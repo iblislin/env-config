@@ -12,11 +12,12 @@ alias cp	cp -R
 alias s		screen
 alias man       env LC_ALL=C man
 alias grep	grep --color
+alias du	du -h
+alias df	df -h
 alias r		screen -r
 alias vi	vim
 alias top	top -s 1
 alias csupup	csup -g -L 2 /root/supfiles/ports-supfile
-alias du	du -h
 alias pm	portmaster -Bd --no-confirm
 alias mysql	mysql -u root -p --prompt="\(\\u\@\\h\)\ \[\\d\]\>"
 
@@ -35,6 +36,15 @@ setenv	LC_MONETARY en_US.UTF-8
 setenv	LC_MESSAGES en_US.UTF-8
 setenv	LC_ALL en_US.UTF-8
 
+#setenv	LANG zh_TW.UTF-8
+#setenv	LC_CTYPE zh_TW.UTF-8
+#setenv	LC_COLLATE zh_TW.UTF-8
+#setenv	LC_TIME zh_TW.UTF-8
+#setenv	LC_NUMERIC zh_TW.UTF-8
+#setenv	LC_MONETARY zh_TW.UTF-8
+#setenv	LC_MESSAGES zh_TW.UTF-8
+#setenv	LC_ALL zh_TW.UTF-8
+
 umask	22
 
 set path = (/sbin /bin /usr/sbin /usr/bin /usr/games /usr/local/sbin /usr/local/bin /usr/X11R6/bin $HOME/bin)
@@ -44,7 +54,11 @@ setenv	PAGER	less
 setenv	BLOCKSIZE       K
 
 if ($?prompt) then
-	set prompt = "%B[%{\033[36m%}%n%{\033[37m%}@%m %~]%# "
+	if ($USER == root) then
+		set prompt = "%B[%{\033[31m%}%n%{\033[37m%}@%m %~]%# "
+	else
+		set prompt = "%B[%{\033[36m%}%n%{\033[37m%}@%m %~]%# "
+	endif
 	set filec
 	set history = 5000
 	set savehist = 5000
