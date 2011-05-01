@@ -1,0 +1,13 @@
+[core]
+	pager = less
+[color]
+	branch = auto
+	status = auto
+	diff = auto
+[user]
+	name = Iblis17
+[alias]
+	ci = commit
+	co = checkout
+	df = diff --cached
+	st = status
