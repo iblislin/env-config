@@ -1,0 +1,33 @@
+# Status line
+caption always "%{.KW} %-w%{.mW}[%n] %t%{.KW}%+w"
+hardstatus alwayslastline "%{R}[ %{w}%1` %{R}]%=%{M}%e %{G}%H %{Y} %c %{R} %Y/%m/%d %{K} Load: %l %{w}"
+
+# Colours
+termcapinfo xterm "Co#256:AB=\E[48;5;%dm:AF=\E[38;5;%dm"
+term xterm
+
+# Hotkeys for resizing
+bind = resize =
+bind + resize +1
+bind - resize -1
+bind _ resize max
+
+# Hotkets for switching
+#bindkey \033[D prev
+#bindkey \033[C next
+bindkey "^[[1;5D" prev
+bindkey "^[[1;5C" next
+
+altscreen on # erase screen when quit apps
+defutf8 on
+defc1 off
+defflow on
+vbell on
+startup_message off
+shell $SHELL
+defencoding utf8
+bind b encoding big5 utf8
+bind u encoding utf8 utf8
+defbce on # erase background with current bg color
+shelltitle "---"
+defscrollback 100000
