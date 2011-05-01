@@ -4,7 +4,7 @@ BASE=`dirname $REAL`
 LN='ln -s'
 
 echo Checking File:
-for i in .cshrc .screenrc
+for i in .cshrc .screenrc .vimrc
 do
 	j=~/$i
 	printf '\t'$j'\t\t'
