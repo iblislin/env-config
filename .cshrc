@@ -15,11 +15,14 @@ alias grep	grep --color
 alias du	du -h
 alias df	df -h
 alias r		screen -r
-alias vi	vim
 alias top	top -s 1
 alias csupup	csup -g -L 2 /root/supfiles/ports-supfile
 alias pm	portmaster -Bd --no-confirm
 alias mysql	mysql -u root -p --prompt="\(\\u\@\\h\)\ \[\\d\]\>"
+
+if (-x /usr/local/bin/bug5) then
+	alias telnet bug5 -pu telnet -8
+endif
 
 set	autolist
 
@@ -49,7 +52,12 @@ umask	22
 
 set path = (/sbin /bin /usr/sbin /usr/bin /usr/games /usr/local/sbin /usr/local/bin /usr/X11R6/bin $HOME/bin)
 
-setenv	EDITOR	vim
+if (-x /usr/local/bin/vim) then
+	setenv	EDITOR	vim
+	alias	vi	vim
+else
+	setenv	EDITOR	vi
+endif
 setenv	PAGER	less
 setenv	BLOCKSIZE       K
 
