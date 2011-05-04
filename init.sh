@@ -11,7 +11,7 @@ do
 	if [ ! -e $j ]
 	then
 		printf 'Not exsits! \n'
-		printf '\t\t\t Creating ...'
+		printf '\t\t\t Creating ... '
 		$LN $BASE/$i $j
 		printf 'Done.\n'
 	elif [ ! -O $j ] 
@@ -23,7 +23,7 @@ do
 	elif [ ! -L $j ]
 	then
 		printf 'Not a symbolic link! \n'
-		printf '\t\t\t Replacing ...'
+		printf '\t\t\t Replacing ... '
 		rm -rf $j
 		$LN $BASE/$i $j
 		printf 'Done.\n'

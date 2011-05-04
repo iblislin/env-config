@@ -13,8 +13,8 @@ bind - resize -1
 bind _ resize max
 
 # Hotkets for switching
-#bindkey \033[D prev
-#bindkey \033[C next
+bindkey "^[[D" prev
+bindkey "^[[C" next
 bindkey "^[[1;5D" prev
 bindkey "^[[1;5C" next
 
