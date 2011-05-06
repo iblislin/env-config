@@ -10,7 +10,8 @@ alias ..	cd ../
 alias rm	rm -vf
 alias cp	cp -R
 alias s		screen
-alias man       env LC_ALL=C man
+alias man	env LC_ALL=C man
+alias helpcommand	man
 alias grep	grep --color
 alias du	du -h
 alias df	df -h
@@ -72,9 +73,13 @@ if ($?prompt) then
 	set savehist = 5000
 	set mail = (/var/mail/$USER)
 	if ( $?tcsh ) then
-		bindkey "^W" backward-delete-word
-		bindkey -k up history-search-backward
-		bindkey -k down history-search-forward
+		bindkey	"^W"	backward-delete-word
+		bindkey	"^[[3~"	delete-char-or-list
+		bindkey	"^[[2~"	overwrite-mode
+		bindkey	"^Z"	run-fg-editor
+		bindkey	"^H"	run-help
+		bindkey	-k up	history-search-backward
+		bindkey	-k down	history-search-forward
 	endif
 endif
 
