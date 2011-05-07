@@ -24,6 +24,9 @@ alias mysql	mysql -u root -p --prompt="\(\\u\@\\h\)\ \[\\d\]\>"
 if (-x /usr/local/bin/bug5) then
 	alias telnet bug5 -pu telnet -8
 endif
+if (-x /usr/local/bin/git) then
+	alias gitk git log -p
+endif
 
 set	autolist
 
