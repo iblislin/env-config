@@ -1,10 +1,12 @@
 #!/bin/sh
+
+. ./init.conf
 REAL=`realpath $0`
 BASE=`dirname $REAL`
 LN='ln -s'
 
 echo Checking File:
-for i in .cshrc .screenrc .vimrc
+for i in $file
 do
 	j=${HOME}/${i}
 	printf '\t'$j'\t\t'
