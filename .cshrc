@@ -80,7 +80,6 @@ if ($?prompt) then
 		bindkey	"^[[3~"	delete-char-or-list
 		bindkey	"^[[2~"	overwrite-mode
 		bindkey	"^Z"	run-fg-editor
-		bindkey	"^H"	run-help
 		bindkey	-k up	history-search-backward
 		bindkey	-k down	history-search-forward
 	endif
