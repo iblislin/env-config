@@ -6,7 +6,7 @@ LN='ln -s'
 echo Checking File:
 for i in .cshrc .screenrc .vimrc
 do
-	j=~/$i
+	j=${HOME}/${i}
 	printf '\t'$j'\t\t'
 	if [ ! -e $j ]
 	then
