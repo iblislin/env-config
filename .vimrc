@@ -139,6 +139,7 @@ set rulerformat=%15(%c%V\ %p%%%)
 "set cmdheight=2
 
 set tabstop=4
+set shiftwidth=4
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Search
 """"""""""""""""""""""""""""""""""""""""""""""""""
@@ -341,3 +342,7 @@ set listchars=tab:>-,trail:-,eol:$,nbsp:%,extends:>,precedes:<
 	let php_htmlInStrings=1
 	let php_folding=1
 	let php_noShortTags=1
+	""""""""""""""""""""""""""""""""""""""""
+	" C ++ 
+	""""""""""""""""""""""""""""""""""""""""
+	nmap <F8> :r ~/.vim/code/default.cpp<Esc>ggdd:6<CR>o
