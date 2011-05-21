@@ -189,7 +189,9 @@ noremap <LEADER>b :e ++enc=big5<CR>:set tenc=big5<CR>
 noremap <LEADER>u :e ++enc=utf-8<CR>:set tenc=utf-8<CR>
 
 map <Shift-CR> O<Esc>
-map <CR> i<CR><Esc>
+nmap <CR> i<CR><Esc>
+nmap <Tab> <C-Right>
+nmap <S-Tab> <C-Left>
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Temp and Backups
