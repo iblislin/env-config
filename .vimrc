@@ -193,6 +193,10 @@ nmap <CR> i<CR><Esc>
 nmap <Tab> <C-Right>
 nmap <S-Tab> <C-Left>
 
+" Keyword completion
+imap <Tab> <C-N>
+imap <S-Tab> <C-P>
+
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Temp and Backups
 """"""""""""""""""""""""""""""""""""""""""""""""""
