@@ -194,8 +194,10 @@ nmap <Tab> <C-Right>
 nmap <S-Tab> <C-Left>
 
 " Keyword completion
-imap <Tab> <C-N>
-imap <S-Tab> <C-P>
+imap <M-Up> <C-N>
+imap <M-Right> <C-N>
+imap <M-Left> <C-P>
+imap <M-Down> <C-P>
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Temp and Backups
