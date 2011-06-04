@@ -15,7 +15,6 @@ bind _ resize max
 # Hotkets for switching
 bindkey "^[[C" next
 bindkey "^[[D" prev
-bindkey "^[[1;5A" copy
 bindkey "^[[1;5C" next
 bindkey "^[[1;5D" prev
 
