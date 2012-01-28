@@ -7,7 +7,7 @@
 [user]
 	name = Iblis Lin
 [alias]
-	ci = commit -a
+	ci = commit
 	co = checkout
 	df = diff
 	st = status
