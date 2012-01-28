@@ -5,9 +5,9 @@
 	status = auto
 	diff = auto
 [user]
-	name = Iblis17
+	name = Iblis Lin
 [alias]
-	ci = commit
+	ci = commit -a
 	co = checkout
-	df = diff --cached
+	df = diff
 	st = status
