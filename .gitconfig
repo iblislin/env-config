@@ -6,8 +6,10 @@
 	diff = auto
 [user]
 	name = Iblis Lin
+	email = iblis@hs.ntnu.edu.tw
 [alias]
 	ci = commit
 	co = checkout
 	df = diff
 	st = status
+	lg = log --abbrev-commit --name-status --graph
