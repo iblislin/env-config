@@ -1,6 +1,6 @@
 #!/bin/sh
 
-. ./init.conf
+file=".cshrc .screenrc .vimrc"
 REAL=`realpath $0`
 BASE=`dirname $REAL`
 LN='ln -s'
