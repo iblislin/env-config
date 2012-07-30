@@ -11,14 +11,12 @@ alias rm	rm -vf
 alias cp	cp -R
 alias s		screen
 alias man	env LC_ALL=C man
-alias helpcommand	man
 alias grep	grep --color
 alias du	du -h
 alias df	df -h
 alias r		screen -r
 alias top	top -s 1
 alias csupup	csup -g -L 2 /root/supfiles/ports-supfile
-alias pm	portmaster -Bd --no-confirm
 alias mysql	mysql -u root -p --prompt="\(\\u\@\\h\)\ \[\\d\]\>"
 
 if (-x /usr/local/bin/bug5) then
