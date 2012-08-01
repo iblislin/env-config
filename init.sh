@@ -1,25 +1,40 @@
 #!/bin/sh
 
-file=".cshrc .screenrc .vimrc"
+file=".cshrc .screenrc"
 REAL=`realpath $0`
 BASE=`dirname $REAL`
 LN='ln -s'
 
-function ckfile()
+ckfile()
 {
-	echo $1 : 
-		if [ ! -O $j ] 
+	printf "$1 : "
+		if [ ! -O $BASE/$1 ] 
 		then
 			printf 'Wrong Owner!\n'
-		elif [ ! -w $j ]
+		elif [ ! -w $BASE/$1 ]
 		then
 			printf 'Permission Deny!\n'
-		elif [ ! -L $j ]
+		elif [ ! -L $BASE/$1 ]
 		then
-			rm -rf $j
-			$LN $BASE/$i $j
+			rm -rf ~/$1
+			$LN $BASE/$1 ~/$1
 			printf 'Done.\n'
 		else
 			printf	'Link existed.\n'
 		fi
 }
+
+vim()
+{
+	ckfile ".vimrc"
+	rm -rf ~/.vim
+	mkdir -p ~/.vim/tmp ~/.vim/backup
+	$LN $BASE/vim/code ~/.vim
+	$LN $BASE/vim/colors ~/.vim
+}
+
+for i in $file
+do
+	ckfile $i;
+	vim;
+done
