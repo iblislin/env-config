@@ -63,8 +63,8 @@ endif
 setenv	PAGER	less
 setenv	BLOCKSIZE       K
 
-if ($?prompt) then
-	if ($USER == root) then
+if ( $?prompt ) then
+	if ( $USER == root ) then
 		set prompt = "%B[%{\033[31m%}%n%{\033[37m%}@%m %~]%# "
 	else
 		set prompt = "%B[%{\033[36m%}%n%{\033[37m%}@%m %~]%# "
@@ -83,3 +83,40 @@ if ($?prompt) then
 	endif
 endif
 
+
+#	Complementation
+
+if ( ! $?hosts ) then
+	set hosts = (\
+				backup \
+				cnmc.tw \
+				mail \
+				ns \
+				www \
+				)
+
+	foreach key (ssh scp sftp)
+		complete $key 'p/1/$hosts/'
+	end
+
+	complete telnet 'p/1/$hosts/' 'p/2/x:[port]/'
+endif
+
+complete cd			'p/1/d/'
+complete alias		'p/1/a/'
+complete unalias	'p/*/a/'
+complete man		'p/*/c/'
+complete env		'c/*=/f/' p/1/e/'='/ 
+complete kill		'p/*/`ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/'
+complete cc			'p/*/f:*.[cao]/'
+
+#	Ports
+if (-x /usr/local/sbin/apachectl) then
+	complete apachectl	'p/1/(start stop restart graceful configtest graceful-stop startssl fullstatus status)/' 'p/*/n/'
+endif
+if (-x /usr/local/bin/php) then
+	complete php	'p/*/f:*.php/'
+endif
+if (-x /usr/local/sbin/postfix) then
+	complete postfix	'p/1/(start stop reload status)/' 'p/*/n/'
+endif
