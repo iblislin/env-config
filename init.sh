@@ -29,8 +29,10 @@ vim()
 	ckfile ".vimrc"
 	rm -rf ~/.vim
 	mkdir -p ~/.vim/tmp ~/.vim/backup
-	$LN $BASE/vim/code ~/.vim
-	$LN $BASE/vim/colors ~/.vim
+	for i in `ls vim`
+	do
+		$LN $BASE/vim/$i ~/.vim
+	done
 }
 
 for i in $file
