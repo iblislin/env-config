@@ -85,7 +85,8 @@ endif
 
 
 #	Complementation
-
+#
+# '@' can substitute '/' in complete
 if ( ! $?hosts ) then
 	set hosts = (\
 				backup \
@@ -95,7 +96,7 @@ if ( ! $?hosts ) then
 				www \
 				)
 
-	foreach key (ssh scp sftp)
+	foreach key (ssh scp sftp ping ftp)
 		complete $key 'p/1/$hosts/'
 	end
 
@@ -103,20 +104,44 @@ if ( ! $?hosts ) then
 endif
 
 complete cd			'p/1/d/'
+complete mkdir		'p/1/d/'
 complete alias		'p/1/a/'
-complete unalias	'p/*/a/'
-complete man		'p/*/c/'
-complete env		'c/*=/f/' p/1/e/'='/ 
+complete unalias	'n/*/a/'
+complete man		'n/*/c/'
+complete where		'n/*/c/'
+complete whereis	'n/*/c/'
+complete which		'n/*/c/'
+complete env		'c/*=/f/' 'p/1/e/=/' 'n/*/c/'
+complete set		'c/*=/f/' 'p/1/s/=/'
+complete setenv		'p/1/e/'
 complete kill		'p/*/`ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/'
 complete cc			'p/*/f:*.[cao]/'
+complete CC			'p/*/f:*.{c++,cxx,cc,cpp,c,o,cpp}/'
 
 #	Ports
 if (-x /usr/local/sbin/apachectl) then
-	complete apachectl	'p/1/(start stop restart graceful configtest graceful-stop startssl fullstatus status)/' 'p/*/n/'
+	complete apachectl	'p/1/(start stop restart graceful configtest \
+						graceful-stop startssl fullstatus status)/'
 endif
 if (-x /usr/local/bin/php) then
-	complete php	'p/*/f:*.php/'
+	complete php		'p/*/f:*.php/'
 endif
 if (-x /usr/local/sbin/postfix) then
-	complete postfix	'p/1/(start stop reload status)/' 'p/*/n/'
+	complete postfix	'p/1/(start stop reload status)/'
+endif
+if (-x /usr/local/bin/sudo) then
+	complete sudo		'p/1/(su)/'
+endif
+if (-x /usr/local/bin/svn) then
+	set svncmd =(add blame praise annotate ann cat \
+				changelist cl checkout co cleanup commit \
+				ci copy cp delete del remove rm diff di \
+				export help import info list ls lock log \
+				merge mergeinfo mkdir move mv rename ren \
+				patch propdel pdel pd propedit pedit pe \
+				propget pget, pg proplist plist pl propset \
+				pset ps relocate resolve resolved revert \
+				status stat st switch sw unlock update up \
+				upgrade)
+	complete svn		'n/help/$svncmd/' 'p/1/$svncmd/'
 endif
