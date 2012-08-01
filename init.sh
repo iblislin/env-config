@@ -5,32 +5,21 @@ REAL=`realpath $0`
 BASE=`dirname $REAL`
 LN='ln -s'
 
-echo Checking File:
-for i in $file
-do
-	j=${HOME}/${i}
-	printf '\t'$j'\t\t'
-	if [ ! -e $j ]
-	then
-		printf 'Not exsits! \n'
-		printf '\t\t\t Creating ... '
-		$LN $BASE/$i $j
-		printf 'Done.\n'
-	elif [ ! -O $j ] 
-	then
-		printf 'Wrong Owner !\n'
-	elif [ ! -w $j ]
-	then
-		printf 'Not writtable! \n'
-	elif [ ! -L $j ]
-	then
-		printf 'Not a symbolic link! \n'
-		printf '\t\t\t Replacing ... '
-		rm -rf $j
-		$LN $BASE/$i $j
-		printf 'Done.\n'
-	else
-		printf	'exsits.\n'
-	fi
-done
-
+function ckfile()
+{
+	echo $1 : 
+		if [ ! -O $j ] 
+		then
+			printf 'Wrong Owner!\n'
+		elif [ ! -w $j ]
+		then
+			printf 'Permission Deny!\n'
+		elif [ ! -L $j ]
+		then
+			rm -rf $j
+			$LN $BASE/$i $j
+			printf 'Done.\n'
+		else
+			printf	'Link existed.\n'
+		fi
+}
