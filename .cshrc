@@ -152,7 +152,10 @@ if (-x /usr/local/bin/php) then
 	complete php		'p/*/f:*.php/'
 endif
 if (-x /usr/local/sbin/postfix) then
-	complete postfix	'p/1/(start stop reload status)/'
+	complete postfix	'n/-c/f/' \
+						'c/-/(c D v)/' \
+						'n/*/(check start abort stop reload status \
+						flush upgrade-configuration set-permissions)/'
 endif
 if (-x /usr/local/bin/sudo) then
 	complete sudo		'p/1/(su)/'
@@ -191,6 +194,9 @@ endif
 #	psearch
 #	git
 #	wget
+#	fetch
 #	curl
 #	grep
-#	screen
+#	find
+#	tar
+#	make
