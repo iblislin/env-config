@@ -117,7 +117,7 @@ complete setenv		'p/1/e/'
 complete kill		'p/*/`ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/'
 complete cc			'p/*/f:*.[cao]/'
 complete CC			'p/*/f:*.{c++,cxx,cc,cpp,c,o,cpp}/'
-complete ifconfig	'p/1/`ifconfig -l`/'\
+complete ifconfig	'p/1/`ifconfig -l`/' \
 					'n/*/(inet inet6 atalk ipx link add alias \
 					-alias arp -arp staticarp -staticarp broadcast \
 					debug -debug promisc -promisc delete description \
@@ -132,6 +132,14 @@ complete ifconfig	'p/1/`ifconfig -l`/'\
 					-polling plumb unplumb metric mtu netmask \
 					prefixlen range remove phase -link monitor \
 					up)/'
+complete netstat	'n/-f/(inet inet6 pfkey atalk netgraph ng \
+					ipx unix link)/' \
+					'n/-p/(divert icmp igmp ip ipsec pim sctp \
+					tcp udp icmp6 ip6 ipsec6 rip6 pfkey ddp \
+					ctrl data ipx spx)/' \
+					'n/-I/`ifconfig -l`/' \
+					'c/-/(A a L n S T W x f p M N i I b d h w \
+					q s z m B r g Q)/'
 
 #	Ports
 if (-x /usr/local/sbin/apachectl) then
