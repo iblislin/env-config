@@ -117,6 +117,21 @@ complete setenv		'p/1/e/'
 complete kill		'p/*/`ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/'
 complete cc			'p/*/f:*.[cao]/'
 complete CC			'p/*/f:*.{c++,cxx,cc,cpp,c,o,cpp}/'
+complete ifconfig	'p/1/`ifconfig -l`/'\
+					'n/*/(inet inet6 atalk ipx link add alias \
+					-alias arp -arp staticarp -staticarp broadcast \
+					debug -debug promisc -promisc delete description \
+					descr -description -descr down group -group \
+					eui64 fib ipdst maclabel media mediaopt \
+					-mediaopt mode inst instance name rxcsum \
+					-rxcsum txcsum -txcsum tso -tso lro -lro \
+					wol wol_ucast wol_mcast wol_magic -wol \
+					create destroy list vlanmtu vlanhwtag \
+					vlanhwfilter vlanhwtso -vlanmtu -vlanhwtag \
+					-vlanhwfilter -vlanhwtso vnet -vnet polling \
+					-polling plumb unplumb metric mtu netmask \
+					prefixlen range remove phase -link monitor \
+					up)/'
 
 #	Ports
 if (-x /usr/local/sbin/apachectl) then
