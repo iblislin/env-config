@@ -168,3 +168,26 @@ if (-x /usr/local/bin/svn) then
 				upgrade)
 	complete svn		'n/help/$svncmd/' 'p/1/$svncmd/'
 endif
+if (-x /usr/local/sbin/portmaster) then
+	complete portmaster 'n@*=@F:'$PWD/'@' \
+						'c/--/(force-config no-confirm no-term-title \
+						no-index-fetch index index-first index-only \
+						delete-build-only update-if-newer packages \
+						packages-only packages-build packages-if-newer \
+						always-fetch local-packagedir= packages-local \
+						delete-packages show-work list-origins \
+						clean-distfiles clean-packages check-depends \
+						help version)/'\
+						'c/-/(C G H K B b g n t v w f i D d m x P PP \
+						a o r R l L F n y e s h)/'\
+						'n@*@F:/usr/ports/@'
+	alias portupgrade	portmaster
+	complete portupgrade	'n/*/`pkg_info | awk \{print\ \$1\}`'
+endif
+
+#	TODO
+#	psearch
+#	git
+#	wget
+#	curl
+#	grep
