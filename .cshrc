@@ -62,6 +62,8 @@ else
 endif
 setenv	PAGER	less
 setenv	BLOCKSIZE       K
+setenv	PACKAGES /usr/ports/packages
+setenv	PACKAGESITE ftp://ftp3.tw.freebsd.org/pub/FreeBSD/ports/i386/packages-9-stable/All/
 
 if ( $?prompt ) then
 	if ( $USER == root ) then
@@ -191,3 +193,4 @@ endif
 #	wget
 #	curl
 #	grep
+#	screen
