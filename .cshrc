@@ -145,6 +145,19 @@ complete netstat	'n/-f/(inet inet6 pfkey atalk netgraph ng \
 					q s z m B r g Q)/'
 complete chown		'c/-/(f h v x R H L P)/' 'c/*:/g/' \
 					'n/-/u/:/' 'p/1/u/:/'
+complete zpool		'c/-/(f n o O m R i l d D c a T u v H t s \
+					x V)/' \
+					'n/*/(create destroy add remove labelclear \
+					list iostat status online offline clear \
+					attach detach replace split scrub import \
+					export upgrade history get set)/'
+complete zfs		'n/*/(create create destroy destroy \
+					snapshot rollback clone promote rename \
+					rename rename list set get inherit \
+					upgrade userspace groupspace mount \
+					unmount share unshare send receive \
+					allow unallow hold holds release diff \
+					jail unjail)/'
 
 #	Ports
 if (-x /usr/local/sbin/apachectl) then
@@ -205,3 +218,5 @@ endif
 #	find
 #	tar
 #	make
+#	mfiutil
+#	systat
