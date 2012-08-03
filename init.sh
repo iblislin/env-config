@@ -1,6 +1,6 @@
 #!/bin/sh
 
-file=".cshrc .screenrc"
+file=".cshrc .screenrc .gitconfig"
 REAL=`realpath $0`
 BASE=`dirname $REAL`
 LN='ln -s'
@@ -38,5 +38,6 @@ vim()
 for i in $file
 do
 	ckfile $i;
-	vim;
 done
+
+vim;
