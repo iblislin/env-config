@@ -192,9 +192,11 @@ if (-x /usr/local/sbin/portmaster) then
 	alias portupgrade	portmaster
 	complete portupgrade	'n/*/`pkg_info | awk \{print\ \$1\}`/'
 endif
+if (-x /usr/local/sbin/dovecotpw) then
+	complete dovecotpw	'n/-s/`dovecotpw -l`/' 'c/-/(l p s u V)/'
+endif
 
 #	TODO
-#	psearch
 #	git
 #	wget
 #	fetch
@@ -203,5 +205,3 @@ endif
 #	find
 #	tar
 #	make
-#	chmod
-#	chown
