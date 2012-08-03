@@ -151,13 +151,15 @@ complete zpool		'c/-/(f n o O m R i l d D c a T u v H t s \
 					list iostat status online offline clear \
 					attach detach replace split scrub import \
 					export upgrade history get set)/'
-complete zfs		'n/*/(create create destroy destroy \
+complete zfs		'c/-/(p o s b V r R f d H t s S v a n i O \
+					I F u l g e c)/' \
+					'n/*/(create create destroy destroy \
 					snapshot rollback clone promote rename \
 					rename rename list set get inherit \
 					upgrade userspace groupspace mount \
 					unmount share unshare send receive \
 					allow unallow hold holds release diff \
-					jail unjail)/'
+					jail unjail jailid)/'
 
 #	Ports
 if (-x /usr/local/sbin/apachectl) then
