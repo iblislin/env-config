@@ -119,7 +119,8 @@ complete setenv		'p/1/e/'
 complete kill		'p/*/`ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/'
 complete cc			'p/*/f:*.[cao]/'
 complete CC			'p/*/f:*.{c++,cxx,cc,cpp,c,o,cpp}/'
-complete ifconfig	'p/1/`ifconfig -l`/' \
+complete ifconfig	'c/-/(L k m n a d u v C g)/' \
+					'n/-/`ifconfig -l`/' 'p/1/`ifconfig -l`/' \
 					'n/*/(inet inet6 atalk ipx link add alias \
 					-alias arp -arp staticarp -staticarp broadcast \
 					debug -debug promisc -promisc delete description \
@@ -142,6 +143,8 @@ complete netstat	'n/-f/(inet inet6 pfkey atalk netgraph ng \
 					'n/-I/`ifconfig -l`/' \
 					'c/-/(A a L n S T W x f p M N i I b d h w \
 					q s z m B r g Q)/'
+complete chown		'c/-/(f h v x R H L P)/' 'c/*:/g/' \
+					'n/-/u/:/' 'p/1/u/:/'
 
 #	Ports
 if (-x /usr/local/sbin/apachectl) then
@@ -184,10 +187,10 @@ if (-x /usr/local/sbin/portmaster) then
 						clean-distfiles clean-packages check-depends \
 						help version)/'\
 						'c/-/(C G H K B b g n t v w f i D d m x P PP \
-						a o r R l L F n y e s h)/'\
+						a o r R l L F n y e s h -)/'\
 						'n@*@F:/usr/ports/@'
 	alias portupgrade	portmaster
-	complete portupgrade	'n/*/`pkg_info | awk \{print\ \$1\}`'
+	complete portupgrade	'n/*/`pkg_info | awk \{print\ \$1\}`/'
 endif
 
 #	TODO
@@ -200,3 +203,5 @@ endif
 #	find
 #	tar
 #	make
+#	chmod
+#	chown
