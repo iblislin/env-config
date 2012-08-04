@@ -160,6 +160,9 @@ complete zfs		'c/-/(p o s b V r R f d H t s S v a n i O \
 					unmount share unshare send receive \
 					allow unallow hold holds release diff \
 					jail unjail jailid)/'
+complete systat		'c/-/(icmp icmp6 ifstat iostat ip ip6 \
+					mbufs netstat pigs swap tcp vmstat)/' \
+					'n/*/x:[refresh-interval]/'
 
 #	Ports
 if (-x /usr/local/sbin/apachectl) then
@@ -221,4 +224,3 @@ endif
 #	tar
 #	make
 #	mfiutil
-#	systat
