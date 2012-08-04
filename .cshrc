@@ -185,7 +185,7 @@ if (-x /usr/local/bin/svn) then
 				export help import info list ls lock log \
 				merge mergeinfo mkdir move mv rename ren \
 				patch propdel pdel pd propedit pedit pe \
-				propget pget, pg proplist plist pl propset \
+				propget pget pg proplist plist pl propset \
 				pset ps relocate resolve resolved revert \
 				status stat st switch sw unlock update up \
 				upgrade)
