@@ -166,6 +166,9 @@ complete systat		'c/-/(icmp icmp6 ifstat iostat ip ip6 \
 complete sockstat	'n@-P@`sed -e '/^\#/d' /etc/protocols \
 					| awk \{print\ \$1\}`@' \
 					'c/-/(4 6 c L l u p P)/'
+complete fstat		'n/-p/`ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/' \
+					'n/-u/u/' \
+					'c/-/(f m n v M N p u)/'
 
 #	Ports
 if (-x /usr/local/sbin/apachectl) then
