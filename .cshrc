@@ -98,7 +98,7 @@ if ( ! $?hosts ) then
 				www \
 				)
 
-	foreach key (ssh scp sftp ping ftp)
+	foreach key (ssh sftp ping ftp)
 		complete $key 'p/1/$hosts/'
 	end
 
@@ -224,3 +224,7 @@ endif
 #	tar
 #	make
 #	mfiutil
+#	dig
+#	sed
+#	awk
+#	socstat  sed -e '/^#/d' /etc/protocols | awk '{print $1}'
