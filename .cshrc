@@ -105,6 +105,12 @@ if ( ! $?hosts ) then
 	complete telnet 'p/1/$hosts/' 'p/2/x:[port]/'
 endif
 
+if ( $USER == root ) then
+	set ps = 'ps -ax'
+else
+	set ps = 'ps'
+endif
+
 complete cd			'p/1/d/'
 complete mkdir		'p/1/d/'
 complete alias		'p/1/a/'
@@ -116,7 +122,7 @@ complete which		'n/*/c/'
 complete env		'c/*=/f/' 'p/1/e/=/' 'n/*/c/'
 complete set		'c/*=/f/' 'p/1/s/=/'
 complete setenv		'p/1/e/'
-complete kill		'p/*/`ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/'
+complete kill		'p/*/`$ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/'
 complete cc			'p/*/f:*.[cao]/'
 complete CC			'p/*/f:*.{c++,cxx,cc,cpp,c,o,cpp}/'
 complete ifconfig	'c/-/(L k m n a d u v C g)/' \
@@ -166,9 +172,12 @@ complete systat		'c/-/(icmp icmp6 ifstat iostat ip ip6 \
 complete sockstat	'n@-P@`sed -e '/^\#/d' /etc/protocols \
 					| awk \{print\ \$1\}`@' \
 					'c/-/(4 6 c L l u p P)/'
-complete fstat		'n/-p/`ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/' \
+complete fstat		'n/-p/`$ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/' \
 					'n/-u/u/' \
 					'c/-/(f m n v M N p u)/'
+complete procstat	'c/-/(h C M N w b c f i j k s t v a)/' \
+					'n/*/`$ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/'
+complete procctl	'n/*/`$ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/'
 
 #	Ports
 if (-x /usr/local/sbin/apachectl) then
