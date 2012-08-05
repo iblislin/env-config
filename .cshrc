@@ -163,6 +163,9 @@ complete zfs		'c/-/(p o s b V r R f d H t s S v a n i O \
 complete systat		'c/-/(icmp icmp6 ifstat iostat ip ip6 \
 					mbufs netstat pigs swap tcp vmstat)/' \
 					'n/*/x:[refresh-interval]/'
+complete sockstat	'n@-P@`sed -e '/^\#/d' /etc/protocols \
+					| awk \{print\ \$1\}`@' \
+					'c/-/(4 6 c L l u p P)/'
 
 #	Ports
 if (-x /usr/local/sbin/apachectl) then
@@ -213,6 +216,9 @@ endif
 if (-x /usr/local/sbin/dovecotpw) then
 	complete dovecotpw	'n/-s/`dovecotpw -l`/' 'c/-/(l p s u V)/'
 endif
+if (-x /usr/local/bin/git) then
+	alias gittutorial	man gittutorial
+endif
 
 #	TODO
 #	git
@@ -227,4 +233,3 @@ endif
 #	dig
 #	sed
 #	awk
-#	socstat  sed -e '/^#/d' /etc/protocols | awk '{print $1}'
