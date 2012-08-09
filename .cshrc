@@ -63,7 +63,7 @@ endif
 setenv	PAGER	less
 setenv	BLOCKSIZE       K
 setenv	PACKAGES /usr/ports/packages
-setenv	PACKAGESITE ftp://ftp3.tw.freebsd.org/pub/FreeBSD/ports/i386/packages-9-stable/All/
+setenv	PACKAGESITE ftp://ftp.tw.freebsd.org/pub/ports/i386/packages-9.0-release/All/
 
 if ( $?prompt ) then
 	if ( $USER == root ) then
@@ -245,3 +245,4 @@ endif
 #	dig
 #	sed
 #	awk
+#	mount
