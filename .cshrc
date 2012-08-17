@@ -12,6 +12,7 @@ alias cp	cp -R
 alias s		screen
 alias man	env LC_ALL=C man
 alias grep	grep --color
+alias egrep	egrep --color
 alias du	du -h
 alias df	df -h
 alias r		screen -r
