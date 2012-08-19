@@ -179,7 +179,11 @@ complete fstat		'n/-p/`$ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/' \
 complete procstat	'c/-/(h C M N w b c f i j k s t v a)/' \
 					'n/*/`$ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/'
 complete procctl	'n/*/`$ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/'
-complete pkg_info	'n/*/`pkg_info | awk \{print\ \$1\}`/'
+
+#	pkgNG
+set pkg_var=`pkg help | & sed -e '/<command>/d'`;
+complete pkg 'n/info/`pkg info | awk \{print\ \$1\}`/' \
+			'n/*/$pkg_var/'
 
 #	Ports
 if (-x /usr/local/sbin/apachectl) then
@@ -235,7 +239,7 @@ if (-x /usr/local/sbin/portmaster) then
 						help version)/'\
 						'c/-/(C G H K B b g n t v w f i D d m x P PP \
 						a o r R l L F n y e s h -)/'\
-						'n/*/`pkg_info | awk \{print\ \$1\}`/'
+						'n/*/`pkg info | awk \{print\ \$1\}`/'
 endif
 if (-x /usr/local/sbin/dovecotpw) then
 	complete dovecotpw	'n/-s/`dovecotpw -l`/' 'c/-/(l p s u V)/'
