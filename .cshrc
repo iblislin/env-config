@@ -179,6 +179,7 @@ complete fstat		'n/-p/`$ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/' \
 complete procstat	'c/-/(h C M N w b c f i j k s t v a)/' \
 					'n/*/`$ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/'
 complete procctl	'n/*/`$ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/'
+complete pkg_info	'n/*/`pkg_info | awk \{print\ \$1\}`/'
 
 #	Ports
 if (-x /usr/local/sbin/apachectl) then
