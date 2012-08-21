@@ -296,9 +296,9 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	" Slippery Snippet
 	""""""""""""""""""""""""""""""""""""""""
-	let g:snip_start_tag = "«"
-	let g:snip_end_tag = "»"
-	let g:snippetsEmu_key = "<C-B>"
+	" let g:snip_start_tag = "«"
+	" let g:snip_end_tag = "»"
+	" let g:snippetsEmu_key = "<C-B>"
 	
 	""""""""""""""""""""""""""""""""""""""""
 	" Nerd Tree
