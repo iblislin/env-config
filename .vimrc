@@ -276,7 +276,7 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	" Taglist
 	""""""""""""""""""""""""""""""""""""""""
-	" set tags='~/.vim/tags'
+	set tags=~/.vim/tags
 	let Tlist_Ctags_Cmd = '/usr/local/bin/exctags'
 	let Tlist_Auto_Update = 1
 	let Tlist_Sort_Type = "name"
@@ -337,7 +337,7 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	" code_complete
 	""""""""""""""""""""""""""""""""""""""""
-	" map <F12> :!exctags -R --c-kinds=+p --fields=+S .<CR>
+	map <F12> :!exctags -R --c-kinds=+p --fields=+S .<CR>
 
 set listchars=tab:>-,trail:-,eol:$,nbsp:%,extends:>,precedes:<
 
