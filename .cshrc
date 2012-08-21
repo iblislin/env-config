@@ -58,6 +58,7 @@ set path = (/sbin /bin /usr/sbin /usr/bin /usr/games /usr/local/sbin /usr/local/
 if (-x /usr/local/bin/vim) then
 	setenv	EDITOR	vim
 	alias	vi	vim
+	complete vi 'n/*/f:^*.[oa]/'
 else
 	setenv	EDITOR	vi
 endif
