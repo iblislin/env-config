@@ -186,6 +186,19 @@ complete pkg 'n/info/`pkg info | awk \{print\ \$1\}`/' \
 			'n/*/$pkg_var/'
 
 #	Ports
+complete make		'n/*/(config fetch checksum depends extract patch \
+					configure build install all showconfig \
+					showconfig-recursive rmconfig rmconfig-recursive \
+					config-conditional config-recursive fetch-list \
+					fetch-recursive fetch-recursive-list run-depends-list \
+					build-depends-list all-depends-list \
+					pretty-print-run-depends-list \
+					pretty-print-build-depends-list missing clean \
+					distclean reinstall deinstall-all package \
+					package-recursive package-name readmes search \
+					quicksearch describe maintainer index fetchindex \
+					update buildkernel installkernel buildworld \
+					installworld)/'
 if (-x /usr/local/sbin/apachectl) then
 	complete apachectl	'p/1/(start stop restart graceful configtest \
 						graceful-stop startssl fullstatus status)/'
