@@ -332,7 +332,7 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	" OmniCppComplete
 	""""""""""""""""""""""""""""""""""""""""
-	map <F6> :!exctags -R --c-kinds=+p --fields=+iaS --extra=+q .<CR>
+	" map <F12> :!exctags -R --c-kinds=+p --fields=+iaS --extra=+q .<CR>
 	"
 	""""""""""""""""""""""""""""""""""""""""
 	" code_complete
