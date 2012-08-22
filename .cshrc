@@ -20,13 +20,6 @@ alias top	top -s 1
 alias csupup	csup -g -L 2 /root/supfiles/ports-supfile
 alias mysql	mysql -u root -p --prompt="\(\\u\@\\h\)\ \[\\d\]\>"
 
-if (-x /usr/local/bin/bug5) then
-	alias telnet bug5 -pu telnet -8
-endif
-if (-x /usr/local/bin/git) then
-	alias gitk git log -p
-endif
-
 set	autolist
 
 setenv	LSCOLORS "ExFxcxdxbxegedabagacad"
@@ -260,7 +253,12 @@ if (-x /usr/local/sbin/dovecotpw) then
 endif
 if (-x /usr/local/bin/git) then
 	alias gittutorial	man gittutorial
+	alias gitk git log -p
 endif
+if (-x /usr/local/bin/bug5) then
+	alias telnet bug5 -pu telnet -8
+endif
+
 
 #	TODO
 #	git
