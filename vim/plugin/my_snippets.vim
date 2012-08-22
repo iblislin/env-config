@@ -52,5 +52,7 @@ let g:template['tcsh']['switch'] = "switch ( ".g:rs."...".g:re.
 let g:template['tcsh']['for'] = "foreach ".g:rs."key".g:re.
 			\" ( ".g:rs."list".g:re." )\<cr>".
 			\g:rs."...".g:re."\<cr>end"
+
+let g:template['csh'] = g:template['tcsh']
 "
 " ---------------------------------------------
