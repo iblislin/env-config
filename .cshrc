@@ -254,7 +254,7 @@ endif
 if (-x /usr/local/bin/git) then
 	alias gittutorial	man gittutorial
 	alias gitk git log -p
-	complete git	'n/*/(add am archive bisect branch bundle \
+	set gitcmd = (add am archive bisect branch bundle \
 		checkout cherry-pick citool clean clone commit describe \
 		diff fetch format-patch gc grep gui init log merge mv \
 		notes pull push rebase reset revert rm shortlog show \
@@ -275,7 +275,9 @@ if (-x /usr/local/bin/git) then
 		http-backend send-pack update-server-info http-fetch http-push \
 		parse-remote receive-pack shell upload-archive upload-pack \
 		check-attr check-ref-format fmt-merge-msg mailinfo mailsplit \
-		merge-one-file patch-id peek-remote sh-setup stripspace)/'
+		merge-one-file patch-id peek-remote sh-setup stripspace)
+	complete git	'n/help/$gitcmd/' \
+					'p/1/$gitcmd/'
 endif
 if (-x /usr/local/bin/bug5) then
 	alias telnet bug5 -pu telnet -8
@@ -283,7 +285,6 @@ endif
 
 
 #	TODO
-#	git
 #	wget
 #	fetch
 #	curl

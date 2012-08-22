@@ -327,7 +327,8 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	" SuperTab
 	""""""""""""""""""""""""""""""""""""""""
-	let g:SuperTabDefaultCompletionType = "<C-N>"
+	let g:SuperTabDefaultCompletionType = "<c-n>"
+	let g:SuperTabContextDefaultCompletionType = "<c-n>"
 	
 	""""""""""""""""""""""""""""""""""""""""
 	" OmniCppComplete
@@ -342,7 +343,7 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	" zenconding
 	""""""""""""""""""""""""""""""""""""""""
-	let g:user_zen_leader_key = "<tab>"
+	let g:user_zen_leader_key = "<c-c>"
 
 set listchars=tab:>-,trail:-,eol:$,nbsp:%,extends:>,precedes:<
 
