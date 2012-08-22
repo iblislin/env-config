@@ -33,6 +33,7 @@ vim()
 	do
 		$LN $BASE/vim/$i ~/.vim
 	done
+	sh ./ctags.sh
 }
 
 for i in $file
