@@ -338,6 +338,11 @@ nmap <F9> :QFix<CR>
 	" code_complete
 	""""""""""""""""""""""""""""""""""""""""
 	map <F12> :!exctags -R --c-kinds=+p --fields=+S .<CR>
+	"
+	""""""""""""""""""""""""""""""""""""""""
+	" zenconding
+	""""""""""""""""""""""""""""""""""""""""
+	let g:user_zen_leader_key = "<tab>"
 
 set listchars=tab:>-,trail:-,eol:$,nbsp:%,extends:>,precedes:<
 
