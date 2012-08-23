@@ -371,6 +371,7 @@ nmap <F9> :QFix<CR>
 	" Bundle 'L9'
 	" Bundle 'FuzzyFinder'
 	Bundle 'matrix'
+	Bundle 'matchit'
 	Bundle 'code_complete'
 	 
 	" non github repos
