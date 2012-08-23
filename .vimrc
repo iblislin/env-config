@@ -333,8 +333,8 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	" code_complete
 	""""""""""""""""""""""""""""""""""""""""
-	set tags=~/.vim/tags
-	let g:completekey = "<c-f>"
+	autocmd BufNewFile,BufRead *.c,*.cpp set tags=~/.vim/tags
+	autocmd BufNewFile,BufRead *.php  let g:completekey = "<c-f>"
 	map <F12> :!exctags -R --c-kinds=+p --fields=+S .<CR>
 	
 	""""""""""""""""""""""""""""""""""""""""
@@ -404,6 +404,7 @@ set listchars=tab:>-,trail:-,eol:$,nbsp:%,extends:>,precedes:<
 	""""""""""""""""""""""""""""""""""""""""
 	" PHP
 	""""""""""""""""""""""""""""""""""""""""
+	autocmd BufNewFile,BufRead *.php set dictionary+=~/.vim/dict/phpfunclist
 	let php_sql_query=1
 	let php_htmlInStrings=1
 	let php_folding=1
