@@ -359,6 +359,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'supertab'
 	Bundle 'surround'
 	Bundle 'javascript'
+	Bundle 'php.syntax'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
