@@ -360,6 +360,7 @@ nmap <F9> :QFix<CR>
 
 	" My Bundles here:
 	Bundle 'zencoding'
+	Bundle 'supertab'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
