@@ -42,3 +42,7 @@ do
 done
 
 vim;
+
+git submodule init
+git submodule sync
+git submodule update
