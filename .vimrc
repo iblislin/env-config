@@ -322,8 +322,8 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	" SuperTab
 	""""""""""""""""""""""""""""""""""""""""
-	let g:SuperTabDefaultCompletionType = "<c-n>"
-	let g:SuperTabContextDefaultCompletionType = "<c-n>"
+	" let g:SuperTabDefaultCompletionType = "<c-n>"
+	" let g:SuperTabContextDefaultCompletionType = "<c-n>"
 	
 	""""""""""""""""""""""""""""""""""""""""
 	" OmniCppComplete
@@ -334,6 +334,7 @@ nmap <F9> :QFix<CR>
 	" code_complete
 	""""""""""""""""""""""""""""""""""""""""
 	set tags=~/.vim/tags
+	let g:completekey = "<c-f>"
 	map <F12> :!exctags -R --c-kinds=+p --fields=+S .<CR>
 	
 	""""""""""""""""""""""""""""""""""""""""
@@ -373,6 +374,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'matrix'
 	Bundle 'matchit'
 	Bundle 'code_complete'
+	Bundle 'autocomplpop'
 	 
 	" non github repos
 	" Bundle 'git://git.wincent.com/command-t.git'
