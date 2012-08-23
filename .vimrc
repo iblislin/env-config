@@ -360,6 +360,7 @@ nmap <F9> :QFix<CR>
 
 	" My Bundles here:
 	Bundle 'mattn/zencoding-vim'
+	Bundle 'mbbill/code_complete'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
