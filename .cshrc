@@ -277,6 +277,8 @@ if (-x /usr/local/bin/git) then
 		check-attr check-ref-format fmt-merge-msg mailinfo mailsplit \
 		merge-one-file patch-id peek-remote sh-setup stripspace)
 	complete git	'n/help/$gitcmd/' \
+					'n/submodule/(add status init update summary \
+					foreach sync)/' \
 					'p/1/$gitcmd/'
 endif
 if (-x /usr/local/bin/bug5) then
