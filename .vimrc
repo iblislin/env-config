@@ -359,7 +359,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'gmarik/vundle'
 
 	" My Bundles here:
-	Bundle 'mattn/zencoding-vim'
+	Bundle 'zencoding'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
