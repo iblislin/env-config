@@ -360,7 +360,6 @@ nmap <F9> :QFix<CR>
 
 	" My Bundles here:
 	Bundle 'mattn/zencoding-vim'
-	Bundle 'mbbill/code_complete'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
@@ -372,6 +371,7 @@ nmap <F9> :QFix<CR>
 	" Bundle 'L9'
 	" Bundle 'FuzzyFinder'
 	Bundle 'matrix'
+	Bundle 'code_complete'
 	 
 	" non github repos
 	" Bundle 'git://git.wincent.com/command-t.git'
