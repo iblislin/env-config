@@ -290,10 +290,6 @@ nmap <F9> :QFix<CR>
 	" nnoremap <F3> :TlistToggle<CR>
 	
 	""""""""""""""""""""""""""""""""""""""""
-	" Cscope
-	""""""""""""""""""""""""""""""""""""""""
-	
-	""""""""""""""""""""""""""""""""""""""""
 	" Slippery Snippet
 	""""""""""""""""""""""""""""""""""""""""
 	" let g:snip_start_tag = "«"
@@ -362,6 +358,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'zencoding'
 	Bundle 'supertab'
 	Bundle 'surround'
+	Bundle 'javascript'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
@@ -399,7 +396,8 @@ set listchars=tab:>-,trail:-,eol:$,nbsp:%,extends:>,precedes:<
 	""""""""""""""""""""""""""""""""""""""""
 	" Make
 	""""""""""""""""""""""""""""""""""""""""
-	nmap <F5> :w<CR>:!CC %:t -o %:r <CR>
+	nmap <F5> :w<CR>:make %:r<CR>
+
 	""""""""""""""""""""""""""""""""""""""""
 	" PHP
 	""""""""""""""""""""""""""""""""""""""""
@@ -407,6 +405,7 @@ set listchars=tab:>-,trail:-,eol:$,nbsp:%,extends:>,precedes:<
 	let php_htmlInStrings=1
 	let php_folding=1
 	let php_noShortTags=1
+
 	""""""""""""""""""""""""""""""""""""""""
 	" C ++ 
 	""""""""""""""""""""""""""""""""""""""""
