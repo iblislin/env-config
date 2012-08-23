@@ -192,7 +192,7 @@ complete make		'n/*/(config fetch checksum depends extract patch \
 					package-recursive package-name readmes search \
 					quicksearch describe maintainer index fetchindex \
 					update buildkernel installkernel buildworld \
-					installworld)/'
+					installworld deinstall)/'
 if (-x /usr/local/sbin/apachectl) then
 	complete apachectl	'p/1/(start stop restart graceful configtest \
 						graceful-stop startssl fullstatus status)/'
