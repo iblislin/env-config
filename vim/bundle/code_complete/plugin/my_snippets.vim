@@ -49,10 +49,29 @@ let g:template['tcsh']['switch'] = "switch ( ".g:rs."...".g:re.
 			\g:rs."...".g:re." :\<cr>".g:rs."...".g:re.
 			\"\<cr>breaksw\<cr>default:\<cr>".
 			\g:rs."...".g:re."\<cr>breaksw\<cr>endsw"
-let g:template['tcsh']['for'] = "foreach ".g:rs."key".g:re.
-			\" ( ".g:rs."list".g:re." )\<cr>".
+let g:template['tcsh']['for'] = "foreach ".g:rs."...".g:re.
+			\" ( ".g:rs."...".g:re." )\<cr>".
 			\g:rs."...".g:re."\<cr>end"
 
 let g:template['csh'] = g:template['tcsh']
 "
 " ---------------------------------------------
+"  Vim Script templates
+let g:template['vim'] = {}
+let g:template['vim']['if'] = 'if '.g:rs."...".g:re.
+			\"\<cr>".g:rs."...".g:re.
+			\"\<cr>endif"
+let g:template['vim']['ife'] = 'if '.g:rs."...".g:re.
+			\"\<cr>".g:rs."...".g:re.
+			\"\<cr>else".
+			\"\<cr>".g:rs."...".g:re.
+			\"\<cr>endif"
+let g:template['vim']['while'] = "while ".g:rs."...".g:re.
+			\"\<cr>".g:rs."...".g:re.
+			\"\<cr>endwhile"
+let g:template['vim']['for'] = "for ".g:rs."...".g:re." in ".g:rs."...".g:re.
+			\"\<cr>".g:rs."...".g:re.
+			\"\<cr>endfor"
+let g:template['vim']['fun'] = "function! ".g:rs."...".g:re."(".g:rs."...".g:re.")".
+			\"\<cr>".g:rs."...".g:re.
+			\"\<cr>endfunction"
