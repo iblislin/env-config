@@ -371,6 +371,7 @@ nmap <F9> :QFix<CR>
 	" vim-scripts repos
 	" Bundle 'L9'
 	" Bundle 'FuzzyFinder'
+	Bundle 'matrix'
 	 
 	" non github repos
 	" Bundle 'git://git.wincent.com/command-t.git'
