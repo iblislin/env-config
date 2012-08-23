@@ -276,19 +276,18 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	" Taglist
 	""""""""""""""""""""""""""""""""""""""""
-	set tags=~/.vim/tags
-	let Tlist_Ctags_Cmd = '/usr/local/bin/exctags'
-	let Tlist_Auto_Update = 1
-	let Tlist_Sort_Type = "name"
-	let Tlist_WinWidth = 30
-	let Tlist_Show_One_File = 0
-	let Tlist_Exit_OnlyWindow = 1
-	let Tlist_Use_SingleClick = 1
-	let Tlist_File_Fold_Auto_Close = 1
-	let Tlist_Process_File_Always = 1
-	let Tlist_Enable_Fold_Column = 0
-	let Tlist_Use_Right_Window = 1
-	nnoremap <F3> :TlistToggle<CR>
+	" let Tlist_Ctags_Cmd = '/usr/local/bin/exctags'
+	" let Tlist_Auto_Update = 1
+	" let Tlist_Sort_Type = "name"
+	" let Tlist_WinWidth = 30
+	" let Tlist_Show_One_File = 0
+	" let Tlist_Exit_OnlyWindow = 1
+	" let Tlist_Use_SingleClick = 1
+	" let Tlist_File_Fold_Auto_Close = 1
+	" let Tlist_Process_File_Always = 1
+	" let Tlist_Enable_Fold_Column = 0
+	" let Tlist_Use_Right_Window = 1
+	" nnoremap <F3> :TlistToggle<CR>
 	
 	""""""""""""""""""""""""""""""""""""""""
 	" Cscope
@@ -338,6 +337,7 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	" code_complete
 	""""""""""""""""""""""""""""""""""""""""
+	set tags=~/.vim/tags
 	map <F12> :!exctags -R --c-kinds=+p --fields=+S .<CR>
 	
 	""""""""""""""""""""""""""""""""""""""""
