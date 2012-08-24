@@ -334,7 +334,7 @@ nmap <F9> :QFix<CR>
 	" code_complete
 	""""""""""""""""""""""""""""""""""""""""
 	autocmd BufNewFile,BufRead *.c,*.cpp set tags=~/.vim/tags
-	autocmd BufNewFile,BufRead *.php  let g:completekey = "<c-f>"
+	autocmd BufNewFile,BufRead *.php  let g:completekey = "<c-x>"
 	map <F12> :!exctags -R --c-kinds=+p --fields=+S .<CR>
 	let g:rs = "'<"	" Default `< >` caused problem in php indent
 	let g:re = ">'"
