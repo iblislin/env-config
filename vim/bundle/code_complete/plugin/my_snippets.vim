@@ -100,6 +100,7 @@ let g:template['php']['else'] = "else"
 			\."\<cr>{"
 			\."\<cr>".g:rs."...".g:re.
 			\"\<cr>}"
+let g:template['php']['while'] = g:template['c']['while']
 let g:template['php']['for'] = g:template['c']['for']
 let g:template['php']['foreach'] = "foreach( ".g:rs."...".g:re." as ".g:rs."...".g:re." )"
 			\."\<cr>{"
