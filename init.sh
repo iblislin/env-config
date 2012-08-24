@@ -27,6 +27,13 @@ ckfile()
 vim()
 {
 	ckfile ".vimrc"
+	for i in backup tmp
+	do
+		if [ ! -d vim/${i} ]
+		then
+			mkdir vim/${i}
+		fi
+	done
 	if [ -d $HOME/.vim ]
 	then
 		rm -rf $HOME/.vim
