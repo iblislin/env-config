@@ -405,10 +405,12 @@ set listchars=tab:>-,trail:-,eol:$,nbsp:%,extends:>,precedes:<
 	" PHP
 	""""""""""""""""""""""""""""""""""""""""
 	autocmd BufNewFile,BufRead *.php set dictionary+=~/.vim/dict/phpfunclist
+	autocmd BufNewFile,BufRead *.php set autoindent
 	let php_sql_query=1
 	let php_htmlInStrings=1
 	let php_folding=1
 	let php_noShortTags=1
+	let php_no_shorttags=1
 
 	""""""""""""""""""""""""""""""""""""""""
 	" C ++ 
