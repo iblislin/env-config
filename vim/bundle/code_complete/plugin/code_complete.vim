@@ -166,10 +166,10 @@ function! ExpandTemplate(cword)
             return "\<c-w>" . g:template[&ft][a:cword]
         endif
     endif
-    if has_key(g:template['_'],a:cword)
-        let s:jumppos = line('.')
-        return "\<c-w>" . g:template['_'][a:cword]
-    endif
+    " if has_key(g:template['_'],a:cword)
+    "     let s:jumppos = line('.')
+    "     return "\<c-w>" . g:template['_'][a:cword]
+    " endif
     return ''
 endfunction
 
@@ -266,8 +266,8 @@ let g:template['cpp'] = g:template['c']
 
 " ---------------------------------------------
 " common templates
-let g:template['_'] = {}
-let g:template['_']['xt'] = "\<c-r>=strftime(\"%Y-%m-%d %H:%M:%S\")\<cr>"
+" let g:template['_'] = {}
+" let g:template['_']['xt'] = "\<c-r>=strftime(\"%Y-%m-%d %H:%M:%S\")\<cr>"
 
 " ---------------------------------------------
 " load user defined snippets
