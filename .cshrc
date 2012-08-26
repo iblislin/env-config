@@ -207,7 +207,7 @@ if (-x /usr/local/sbin/postfix) then
 						flush upgrade-configuration set-permissions)/'
 endif
 if (-x /usr/local/bin/sudo) then
-	complete sudo		'p/1/(su)/'
+	complete sudo		'p/1/c/'
 endif
 if (-x /usr/local/bin/svn) then
 	set svncmd =(add blame praise annotate ann cat \
