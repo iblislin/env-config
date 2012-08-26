@@ -75,3 +75,47 @@ let g:template['vim']['for'] = "for ".g:rs."...".g:re." in ".g:rs."...".g:re.
 let g:template['vim']['fun'] = "function! ".g:rs."...".g:re."(".g:rs."...".g:re.")".
 			\"\<cr>".g:rs."...".g:re.
 			\"\<cr>endfunction"
+let g:template['vim']['cc'] = '.g:rs."...".g:re.'
+"
+" ---------------------------------------------
+"  PHP templates
+let g:template['php'] = {}
+let g:template['php']['cc'] = "<?php\<cr>".g:rs."...".g:re.
+			\"\<cr>?>"
+let g:template['php']['if'] = "if( ".g:rs."...".g:re. " )".
+			\"\<cr>{\<cr>".g:rs."...".g:re."\<cr>}"
+let g:template['php']['ifil'] = "<?php if( ".g:rs."...".g:re. " ): ?>".
+			\"\<cr>".g:rs."...".g:re."\<cr><?php endif; ?>"
+let g:template['php']['ife'] = "if( ".g:rs."...".g:re. " )".
+			\"\<cr>{\<cr>".g:rs."...".g:re."\<cr>}".
+			\"\<cr>else\<cr>{\<cr>".g:rs."...".g:re."\<cr>}"
+let g:template['php']['ifeil'] = "<?php if( ".g:rs."...".g:re. " ): ?>".
+			\"\<cr>".g:rs."...".g:re."\<cr><?php else: ?>".
+			\"\<cr>".g:rs."...".g:re."\<cr><?php endif; ?>"
+let g:template['php']['elseif'] = "elseif ( ".g:rs."...".g:re." )"
+			\."\<cr>{"
+			\."\<cr>".g:rs."...".g:re.
+			\"\<cr>}"
+let g:template['php']['else'] = "else"
+			\."\<cr>{"
+			\."\<cr>".g:rs."...".g:re.
+			\"\<cr>}"
+let g:template['php']['while'] = g:template['c']['while']
+let g:template['php']['for'] = g:template['c']['for']
+let g:template['php']['foreach'] = "foreach( ".g:rs."...".g:re." as ".g:rs."...".g:re." )"
+			\."\<cr>{"
+			\."\<cr>".g:rs."...".g:re.
+			\"\<cr>}"
+let g:template['php']['foreachil'] = "<?php foreach( ".g:rs."...".g:re." as ".g:rs."...".g:re." ): ?>"
+			\."\<cr>".g:rs."...".g:re.
+			\"\<cr><?php endforeach; ?>"
+let g:template['php']['foreachk'] = "foreach( ".g:rs."...".g:re." as ".g:rs."...".g:re." => ".g:rs."...".g:re." )"
+			\."\<cr>{"
+			\."\<cr>".g:rs."...".g:re.
+			\"\<cr>}"
+let g:template['php']['foreachkil'] = "<?php foreach( ".g:rs."...".g:re." as ".g:rs."...".g:re." => ".g:rs."...".g:re." ): ?>"
+			\."\<cr>".g:rs."...".g:re.
+			\"\<cr><?php endforeach; ?>"
+let g:template['php']['switch'] = g:template['c']['switch']
+let g:template['php']['case'] = g:template['c']['case']
+"
