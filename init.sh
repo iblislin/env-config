@@ -32,7 +32,10 @@ vim()
 	then
 		rm -rf $HOME/.vim
 		$LN $BASE/vim $HOME/.vim
+	else
+		$LN $BASE/vim $HOME/.vim
 	fi
+
 	sh ./ctags.sh
 }
 
