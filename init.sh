@@ -8,13 +8,7 @@ LN='ln -s'
 ckfile()
 {
 	printf "$1 : "
-		if [ ! -O $HOME/$1 ] 
-		then
-			printf 'Wrong Owner!\n'
-		elif [ ! -w $HOME/$1 ]
-		then
-			printf 'Permission Deny!\n'
-		elif [ ! -L $HOME/$1 ]
+		if [ ! -L $HOME/$1 ]
 		then
 			rm -rf $HOME/$1
 			$LN $BASE/$1 $HOME/$1
