@@ -135,15 +135,22 @@ let g:template['php']['foreachkil'] = "<?php foreach( ".g:rs."...".g:re." as ".g
 			\"\<cr><?php endforeach; ?>"
 let g:template['php']['switch'] = g:template['c']['switch']
 let g:template['php']['case'] = g:template['c']['case']
-let g:template['php']['fun'] = "function ".g:rs."...".g:re."( ".g:rs."...".g:re." )"
+let g:template['php']['fun'] = "function ".g:rs."...".g:re."(".g:rs."...".g:re.")"
 			\."\<cr>{"
 			\."\<cr>".g:rs."...".g:re.
 			\"\<cr>}"
 			\."\<cr>"
 let g:template['php']['class'] = "class ".g:rs."...".g:re.
 			\"\<cr>{"
+			\."\<cr>function __construct(".g:rs."...".g:re.")"
+			\."\<cr>{"
 			\."\<cr>".g:rs."...".g:re.
 			\"\<cr>}"
+			\."\<cr>function __destruct()"
+			\."\<cr>{"
+			\."\<cr>".g:rs."...".g:re.
+			\"\<cr>}"
+			\."\<cr>}"
 			\."\<cr>"
 "
 " ---------------------------------------------
