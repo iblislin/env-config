@@ -9,10 +9,15 @@
 "
 " ---------------------------------------------
 " C++ templates
+let g:template['cpp']['fori'] = "for(int i=0; i<".g:rs."...".g:re."; i++)"
+			\."\<cr>{"
+			\."\<cr>".g:rs."...".g:re.
+			\"\<cr>}"
 let g:template['cpp']['ns'] = "using namespace ;\<left>"
 let g:template['cpp']['class'] = "class ".g:rs."...".g:re.
 			\"\<cr>{"
 			\."\<cr>public:"
+			\."\<cr>"
 			\."\<cr>private:"
 			\."\<cr>}"
 "
