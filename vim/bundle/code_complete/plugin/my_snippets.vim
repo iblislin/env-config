@@ -10,6 +10,11 @@
 " ---------------------------------------------
 " C++ templates
 let g:template['cpp']['ns'] = "using namespace ;\<left>"
+let g:template['cpp']['class'] = "class ".g:rs."...".g:re.
+			\"\<cr>{"
+			\."\<cr>public:"
+			\."\<cr>private:"
+			\."\<cr>}"
 "
 " ---------------------------------------------
 " Shell Script templates
@@ -76,6 +81,7 @@ let g:template['vim']['fun'] = "function! ".g:rs."...".g:re."(".g:rs."...".g:re.
 			\"\<cr>".g:rs."...".g:re.
 			\"\<cr>endfunction\<cr>"
 let g:template['vim']['cc'] = '.g:rs."...".g:re.'
+let g:template['vim']['cr'] = "\\<cr>"
 "
 " ---------------------------------------------
 "  PHP templates
