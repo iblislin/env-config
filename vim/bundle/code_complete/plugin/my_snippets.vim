@@ -13,6 +13,7 @@ let g:template['cpp']['fori'] = "for(int i=0; i<".g:rs."...".g:re."; i++)"
 			\."\<cr>{"
 			\."\<cr>".g:rs."...".g:re.
 			\"\<cr>}"
+			\."\<cr>"
 let g:template['cpp']['ns'] = "using namespace ;\<left>"
 let g:template['cpp']['class'] = "class ".g:rs."...".g:re.
 			\"\<cr>{"
@@ -113,6 +114,11 @@ let g:template['php']['else'] = "else"
 			\"\<cr>}"
 let g:template['php']['while'] = g:template['c']['while']
 let g:template['php']['for'] = g:template['c']['for']
+let g:template['php']['fori'] = "for($i=0; $i<".g:rs."...".g:re."; $i++)"
+			\."\<cr>{"
+			\."\<cr>".g:rs."...".g:re.
+			\"\<cr>}"
+			\."\<cr>"
 let g:template['php']['foreach'] = "foreach( ".g:rs."...".g:re." as ".g:rs."...".g:re." )"
 			\."\<cr>{"
 			\."\<cr>".g:rs."...".g:re.
