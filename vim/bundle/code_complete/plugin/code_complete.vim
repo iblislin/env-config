@@ -254,11 +254,11 @@ let g:template['c']['for'] = "for(".g:rs."...".g:re."; ".g:rs."...".g:re."; ".g:
             \g:rs."...".g:re."\<cr>}\<cr>"
 let g:template['c']['main'] = "int main(int argc, char \*argv\[\])\<cr>{\<cr>".g:rs."...".g:re."\<cr>}"
 let g:template['c']['switch'] = "switch ( ".g:rs."...".g:re." )\<cr>{\<cr>case ".g:rs."...".g:re." :\<cr>break;\<cr>case ".
-            \g:rs."...".g:re." :\<cr>break;\<cr>default :\<cr>break;\<cr>}"
+            \g:rs."...".g:re." :\<cr>break;\<cr>default :\<cr>break;\<cr>}\<cr>"
 let g:template['c']['case'] = "case ".g:rs."...".g:re." :"
             \."\<cr>break;"
 let g:template['c']['if'] = "if( ".g:rs."...".g:re." )\<cr>{\<cr>".g:rs."...".g:re."\<cr>}"
-let g:template['c']['while'] = "while( ".g:rs."...".g:re." )\<cr>{\<cr>".g:rs."...".g:re."\<cr>}"
+let g:template['c']['while'] = "while( ".g:rs."...".g:re." )\<cr>{\<cr>".g:rs."...".g:re."\<cr>}\<cr>"
 let g:template['c']['ife'] = "if( ".g:rs."...".g:re." )\<cr>{\<cr>".g:rs."...".g:re."\<cr>}\<cr>else\<cr>{\<cr>".g:rs."...".
             \g:re."\<cr>}"
 let g:template['c']['else if'] = "else if( ".g:rs."...".g:re." )\<cr>{\<cr>".g:rs."...".g:re."\<cr>}"

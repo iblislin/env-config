@@ -20,6 +20,10 @@ alias top	top -s 1
 alias csupup	csup -g -L 2 /root/supfiles/ports-supfile
 alias mysql	mysql -u root -p --prompt="\(\\u\@\\h\)\ \[\\d\]\>"
 
+if ( `uname -s` == 'Linux' ) then
+	alias ls ls --color
+endif
+
 set	autolist
 
 setenv	LSCOLORS "ExFxcxdxbxegedabagacad"
