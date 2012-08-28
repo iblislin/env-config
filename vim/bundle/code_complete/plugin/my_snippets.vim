@@ -119,3 +119,7 @@ let g:template['php']['foreachkil'] = "<?php foreach( ".g:rs."...".g:re." as ".g
 let g:template['php']['switch'] = g:template['c']['switch']
 let g:template['php']['case'] = g:template['c']['case']
 "
+" ---------------------------------------------
+"  Javascript templates
+let g:template['javascript'] = {}
+let g:template['javascript']['for'] = g:template['c']['for']
