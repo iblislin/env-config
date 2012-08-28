@@ -22,15 +22,15 @@ let g:template['sh']['ife'] = "if ".g:rs."...".g:re.
 			\g:rs."...".g:re."\<cr>fi"
 let g:template['sh']['for'] = "for ".g:rs."...".g:re.
 			\" in ".g:rs."...".g:re."\<cr>do\<cr>".
-			\g:rs."...".g:re."\<cr>done"
+			\g:rs."...".g:re."\<cr>done\<cr>"
 let g:template['sh']['while'] = "while ".g:rs."...".g:re.
-			\"\<cr>do\<cr>".g:rs."...".g:re."\<cr>done"
+			\"\<cr>do\<cr>".g:rs."...".g:re."\<cr>done\<cr>"
 let g:template['sh']['until'] = "until ".g:rs."...".g:re.
-			\"\<cr>do\<cr>".g:rs."...".g:re."\<cr>done"
+			\"\<cr>do\<cr>".g:rs."...".g:re."\<cr>done\<cr>"
 let g:template['sh']['case'] = "case ".g:rs."...".g:re." in\<cr>".
 			\g:rs."...".g:re.") \<cr>".g:rs."...".g:re." ;;\<cr>".
 			\g:rs."...".g:re.") \<cr>".g:rs."...".g:re." ;;\<cr>".
-			\"*) \<cr>".g:rs."...".g:re." ;;\<cr>esac"
+			\"*) \<cr>".g:rs."...".g:re." ;;\<cr>esac\<cr>"
 "
 " ---------------------------------------------
 " Tcsh Script templates
@@ -42,16 +42,16 @@ let g:template['tcsh']['ife'] = "if ( ".g:rs."...".g:re.
 			\" ) then\<cr>".g:rs."...".g:re."\<cr>else\<cr>".
 			\g:rs."...".g:re."\<cr>endif"
 let g:template['tcsh']['while'] = "while ( ".g:rs."...".g:re.
-			\" )\<cr>".g:rs."...".g:re."\<cr>end"
+			\" )\<cr>".g:rs."...".g:re."\<cr>end\<cr>"
 let g:template['tcsh']['switch'] = "switch ( ".g:rs."...".g:re.
 			\" )\<cr>case ".g:rs."...".g:re." :\<cr>".
 			\g:rs."...".g:re."\<cr>breaksw\<cr>case ".
 			\g:rs."...".g:re." :\<cr>".g:rs."...".g:re.
 			\"\<cr>breaksw\<cr>default:\<cr>".
-			\g:rs."...".g:re."\<cr>breaksw\<cr>endsw"
+			\g:rs."...".g:re."\<cr>breaksw\<cr>endsw\<cr>"
 let g:template['tcsh']['for'] = "foreach ".g:rs."...".g:re.
 			\" ( ".g:rs."...".g:re." )\<cr>".
-			\g:rs."...".g:re."\<cr>end"
+			\g:rs."...".g:re."\<cr>end\<cr>"
 
 let g:template['csh'] = g:template['tcsh']
 "
@@ -68,13 +68,13 @@ let g:template['vim']['ife'] = 'if '.g:rs."...".g:re.
 			\"\<cr>endif"
 let g:template['vim']['while'] = "while ".g:rs."...".g:re.
 			\"\<cr>".g:rs."...".g:re.
-			\"\<cr>endwhile"
+			\"\<cr>endwhile\<cr>"
 let g:template['vim']['for'] = "for ".g:rs."...".g:re." in ".g:rs."...".g:re.
 			\"\<cr>".g:rs."...".g:re.
-			\"\<cr>endfor"
+			\"\<cr>endfor\<cr>"
 let g:template['vim']['fun'] = "function! ".g:rs."...".g:re."(".g:rs."...".g:re.")".
 			\"\<cr>".g:rs."...".g:re.
-			\"\<cr>endfunction"
+			\"\<cr>endfunction\<cr>"
 let g:template['vim']['cc'] = '.g:rs."...".g:re.'
 "
 " ---------------------------------------------
@@ -105,14 +105,14 @@ let g:template['php']['for'] = g:template['c']['for']
 let g:template['php']['foreach'] = "foreach( ".g:rs."...".g:re." as ".g:rs."...".g:re." )"
 			\."\<cr>{"
 			\."\<cr>".g:rs."...".g:re.
-			\"\<cr>}"
+			\"\<cr>}\<cr>"
 let g:template['php']['foreachil'] = "<?php foreach( ".g:rs."...".g:re." as ".g:rs."...".g:re." ): ?>"
 			\."\<cr>".g:rs."...".g:re.
 			\"\<cr><?php endforeach; ?>"
 let g:template['php']['foreachk'] = "foreach( ".g:rs."...".g:re." as ".g:rs."...".g:re." => ".g:rs."...".g:re." )"
 			\."\<cr>{"
 			\."\<cr>".g:rs."...".g:re.
-			\"\<cr>}"
+			\"\<cr>}\<cr>"
 let g:template['php']['foreachkil'] = "<?php foreach( ".g:rs."...".g:re." as ".g:rs."...".g:re." => ".g:rs."...".g:re." ): ?>"
 			\."\<cr>".g:rs."...".g:re.
 			\"\<cr><?php endforeach; ?>"
