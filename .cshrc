@@ -196,7 +196,7 @@ complete make		'n/*/(config fetch checksum depends extract patch \
 					package-recursive package-name readmes search \
 					quicksearch describe maintainer index fetchindex \
 					update buildkernel installkernel buildworld \
-					installworld deinstall)/'
+					installworld deinstall makepatch distribution world)/'
 if (-x /usr/local/sbin/apachectl) then
 	complete apachectl	'p/1/(start stop restart graceful configtest \
 						graceful-stop startssl fullstatus status)/'
@@ -211,7 +211,7 @@ if (-x /usr/local/sbin/postfix) then
 						flush upgrade-configuration set-permissions)/'
 endif
 if (-x /usr/local/bin/sudo) then
-	complete sudo		'p/1/(su)/'
+	complete sudo		'p/1/c/'
 endif
 if (-x /usr/local/bin/svn) then
 	set svncmd =(add blame praise annotate ann cat \
@@ -227,27 +227,21 @@ if (-x /usr/local/bin/svn) then
 	complete svn		'n/help/$svncmd/' 'p/1/$svncmd/'
 endif
 if (-x /usr/local/sbin/portmaster) then
+	set pmcmd = (force-config no-confirm no-term-title \
+				no-index-fetch index index-first index-only \
+				delete-build-only update-if-newer packages \
+				packages-only packages-build packages-if-newer \
+				always-fetch local-packagedir= packages-local \
+				delete-packages show-work list-origins \
+				clean-distfiles clean-packages check-depends \
+				check-port-dbdir help version)
 	complete portmaster 'n@*=@F:'$PWD/'@' \
-						'c/--/(force-config no-confirm no-term-title \
-						no-index-fetch index index-first index-only \
-						delete-build-only update-if-newer packages \
-						packages-only packages-build packages-if-newer \
-						always-fetch local-packagedir= packages-local \
-						delete-packages show-work list-origins \
-						clean-distfiles clean-packages check-depends \
-						help version)/'\
+						'c/--/$pmcmd/'\
 						'c/-/(C G H K B b g n t v w f i D d m x P PP \
 						a o r R l L F n y e s h -)/'\
 						'n@*@F:/usr/ports/@'
 	alias portupgrade	portmaster
-	complete portupgrade	'c/--/(force-config no-confirm no-term-title \
-						no-index-fetch index index-first index-only \
-						delete-build-only update-if-newer packages \
-						packages-only packages-build packages-if-newer \
-						always-fetch local-packagedir= packages-local \
-						delete-packages show-work list-origins \
-						clean-distfiles clean-packages check-depends \
-						help version)/'\
+	complete portupgrade	'c/--/$pmcmd/'\
 						'c/-/(C G H K B b g n t v w f i D d m x P PP \
 						a o r R l L F n y e s h -)/'\
 						'n/*/`pkg info | awk \{print\ \$1\}`/'

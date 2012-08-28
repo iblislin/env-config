@@ -8,16 +8,10 @@ LN='ln -s'
 ckfile()
 {
 	printf "$1 : "
-		if [ ! -O $BASE/$1 ] 
+		if [ ! -L $HOME/$1 ]
 		then
-			printf 'Wrong Owner!\n'
-		elif [ ! -w $BASE/$1 ]
-		then
-			printf 'Permission Deny!\n'
-		elif [ ! -L $BASE/$1 ]
-		then
-			rm -rf ~/$1
-			$LN $BASE/$1 ~/$1
+			rm -rf $HOME/$1
+			$LN $BASE/$1 $HOME/$1
 			printf 'Done.\n'
 		else
 			printf	'Link existed.\n'
@@ -27,12 +21,21 @@ ckfile()
 vim()
 {
 	ckfile ".vimrc"
-	rm -rf ~/.vim
-	mkdir -p ~/.vim/tmp ~/.vim/backup
-	for i in `ls vim`
+	for i in backup tmp
 	do
-		$LN $BASE/vim/$i ~/.vim
+		if [ ! -d vim/${i} ]
+		then
+			mkdir vim/${i}
+		fi
 	done
+	if [ -d $HOME/.vim ]
+	then
+		rm -rf $HOME/.vim
+		$LN $BASE/vim $HOME/.vim
+	else
+		$LN $BASE/vim $HOME/.vim
+	fi
+
 	sh ./ctags.sh
 }
 

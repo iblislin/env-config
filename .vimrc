@@ -334,9 +334,10 @@ nmap <F9> :QFix<CR>
 	" code_complete
 	""""""""""""""""""""""""""""""""""""""""
 	autocmd BufNewFile,BufRead *.c,*.cpp set tags=~/.vim/tags
-	autocmd BufNewFile,BufRead *.php  let g:completekey = "<c-f>"
 	map <F12> :!exctags -R --c-kinds=+p --fields=+S .<CR>
-	
+	let g:rs = "'<"	" Default `< >` caused problem in php indent
+	let g:re = ">'"
+
 	""""""""""""""""""""""""""""""""""""""""
 	" zenconding
 	""""""""""""""""""""""""""""""""""""""""
@@ -405,10 +406,12 @@ set listchars=tab:>-,trail:-,eol:$,nbsp:%,extends:>,precedes:<
 	" PHP
 	""""""""""""""""""""""""""""""""""""""""
 	autocmd BufNewFile,BufRead *.php set dictionary+=~/.vim/dict/phpfunclist
+	autocmd BufNewFile,BufRead *.php set autoindent nocindent
 	let php_sql_query=1
 	let php_htmlInStrings=1
 	let php_folding=1
 	let php_noShortTags=1
+	let php_no_shorttags=1
 
 	""""""""""""""""""""""""""""""""""""""""
 	" C ++ 

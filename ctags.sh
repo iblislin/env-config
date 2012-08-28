@@ -1,5 +1,5 @@
 #!/bin/sh
 
-cd $HOME/.vim/
+cd vim/
 /usr/local/bin/exctags -R --c-kinds=+p --fields=+S /usr/include/ && \
-	echo $HOME/.vim/tags : create successfully!
+	echo $PWD/tags : create successfully!
