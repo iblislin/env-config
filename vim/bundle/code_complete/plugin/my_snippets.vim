@@ -8,7 +8,7 @@
 " ...
 "
 " ---------------------------------------------
-" C++ templates
+" C++ templates {{{1
 let g:template['cpp']['fori'] = "for(int i=0; i<".g:rs."...".g:re."; i++)"
 			\."\<cr>{"
 			\."\<cr>".g:rs."...".g:re.
@@ -151,6 +151,11 @@ let g:template['php']['class'] = "class ".g:rs."...".g:re.
 			\."\<cr>".g:rs."...".g:re.
 			\"\<cr>}"
 			\."\<cr>}"
+			\."\<cr>"
+let g:template['php']['interface'] = "interface ".g:rs."...".g:re.
+			\"\<cr>{"
+			\."\<cr>".g:rs."...".g:re.
+			\"\<cr>}"
 			\."\<cr>"
 "
 " ---------------------------------------------
