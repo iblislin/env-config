@@ -71,6 +71,10 @@ endfunction
 autocmd InsertLeave * call s:LeaveInsert()
 autocmd InsertEnter * call s:EnterInsert()
 
+if has("gui_running")
+	set guifont=Droid\ Sans\ Mono\ 14
+endif
+
 " Set cursorline
 "hi cursorline cterm=none ctermbg=darkgrey
 
