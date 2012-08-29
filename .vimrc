@@ -217,6 +217,7 @@ set noar
 " Default values
 set foldenable
 set fdl=0
+set foldmethod=marker
 "nnoremap <SPACE> @=((foldclosed(line('.')) < 0) ? 'zc' : 'zo')<CR>
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
