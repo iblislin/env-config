@@ -8,13 +8,7 @@ LN='ln -s'
 ckfile()
 {
 	printf "$1 : "
-		if [ ! -O $HOME/$1 ] 
-		then
-			printf 'Wrong Owner!\n'
-		elif [ ! -w $HOME/$1 ]
-		then
-			printf 'Permission Deny!\n'
-		elif [ ! -L $HOME/$1 ]
+		if [ ! -L $HOME/$1 ]
 		then
 			rm -rf $HOME/$1
 			$LN $BASE/$1 $HOME/$1
@@ -38,7 +32,10 @@ vim()
 	then
 		rm -rf $HOME/.vim
 		$LN $BASE/vim $HOME/.vim
+	else
+		$LN $BASE/vim $HOME/.vim
 	fi
+
 	sh ./ctags.sh
 }
 
