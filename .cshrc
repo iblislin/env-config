@@ -22,6 +22,8 @@ alias mysql	mysql -u root -p --prompt="\(\\u\@\\h\)\ \[\\d\]\>"
 
 if ( `uname -s` == 'Linux' ) then
 	alias ls ls --color
+	alias top top -d 0.5
+	alias vi gvim
 endif
 
 set	autolist
