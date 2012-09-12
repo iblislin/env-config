@@ -252,6 +252,16 @@ let g:template['c']['ff'] = "#ifndef\<tab>\<tab>\<c-r>=GetFileName()\<cr>\<CR>#d
             \repeat("\<cr>",5)."#endif\<tab>\<tab>/*\<c-r>=GetFileName()\<cr>*/".repeat("\<up>",3)
 let g:template['c']['for'] = "for(".g:rs."...".g:re."; ".g:rs."...".g:re."; ".g:rs."...".g:re.")\<cr>{\<cr>".
             \g:rs."...".g:re."\<cr>}\<cr>"
+let g:template['c']['fori'] = "for(i=0; i<".g:rs."...".g:re."; i++)"
+            \."\<cr>{"
+            \."\<cr>".g:rs."...".g:re.
+            \"\<cr>}"
+            \."\<cr>"
+let g:template['c']['forj'] = "for(j=0; j<".g:rs."...".g:re."; j++)"
+            \."\<cr>{"
+            \."\<cr>".g:rs."...".g:re.
+            \"\<cr>}"
+            \."\<cr>"
 let g:template['c']['main'] = "int main(int argc, char \*argv\[\])\<cr>{\<cr>".g:rs."...".g:re."\<cr>}"
 let g:template['c']['switch'] = "switch ( ".g:rs."...".g:re." )\<cr>{\<cr>case ".g:rs."...".g:re." :\<cr>break;\<cr>case ".
             \g:rs."...".g:re." :\<cr>break;\<cr>default :\<cr>break;\<cr>}\<cr>"
