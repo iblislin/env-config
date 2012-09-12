@@ -273,6 +273,9 @@ let g:template['c']['ife'] = "if( ".g:rs."...".g:re." )\<cr>{\<cr>".g:rs."...".g
             \g:re."\<cr>}"
 let g:template['c']['else if'] = "else if( ".g:rs."...".g:re." )\<cr>{\<cr>".g:rs."...".g:re."\<cr>}"
 let g:template['c']['else'] = "else\<cr>{\<cr>".g:rs."...".g:re."\<cr>}"
+let g:template['c']['bl'] = "{"
+            \."\<cr>".g:rs."...".g:re.
+            \"\<cr>}"
 
 " ---------------------------------------------
 " C++ templates
