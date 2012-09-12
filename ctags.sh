@@ -1,5 +1,12 @@
 #!/bin/sh
 
 cd vim/
-/usr/local/bin/exctags -R --c-kinds=+p --fields=+S /usr/include/ && \
+
+if [ `uname -s` = 'Linux' ]
+then
+	CTAGS=/usr/bin/ctags
+else
+	CTAGS=/usr/local/bin/exctags
+fi
+$CTAGS -R --c-kinds=+p --fields=+S /usr/include/ && \
 	echo $PWD/tags : create successfully!
