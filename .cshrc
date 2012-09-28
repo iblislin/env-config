@@ -22,7 +22,11 @@ alias mysql	mysql -u root -p --prompt="\(\\u\@\\h\)\ \[\\d\]\>"
 
 if ( `uname -s` == 'Linux' ) then
 	alias ls ls --color
-	alias top top -d 0.5
+	if (-x /usr/bin/htop) then
+		alias top htop -d 5
+	else
+		alias top top -d 0.5
+	endif
 	alias vi gvim
 endif
 
