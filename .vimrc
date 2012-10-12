@@ -408,7 +408,7 @@ set listchars=tab:>-,trail:-,eol:$,nbsp:%,extends:>,precedes:<
 	""""""""""""""""""""""""""""""""""""""""
 	" Make
 	""""""""""""""""""""""""""""""""""""""""
-	nmap <F5> :w<CR>:make %:r<CR>
+	nmap <F5> :wa<CR>:make %:r<CR>
 
 	""""""""""""""""""""""""""""""""""""""""
 	" PHP
