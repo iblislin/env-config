@@ -329,6 +329,8 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	" let g:SuperTabDefaultCompletionType = "<c-n>"
 	" let g:SuperTabContextDefaultCompletionType = "<c-n>"
+	let g:SuperTabDefaultCompletionType = "<tab>"
+	let g:SuperTabContextDefaultCompletionType = "<tab>"
 	
 	""""""""""""""""""""""""""""""""""""""""
 	" OmniCppComplete
@@ -342,6 +344,7 @@ nmap <F9> :QFix<CR>
 	map <F12> :!exctags -R --c-kinds=+p --fields=+S .<CR>
 	let g:rs = "'<"	" Default `< >` caused problem in php indent
 	let g:re = ">'"
+	let g:completekey = "<c-p>"
 
 	""""""""""""""""""""""""""""""""""""""""
 	" zenconding
