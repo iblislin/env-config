@@ -189,10 +189,11 @@ complete procctl	'n/*/`$ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/'
 	set i=`pkg help | & grep -n Commands | \
 		sed -e 's/:.*$//'`;
 	set pkg_var=`pkg help | & \
-		sed -e '/<command>/d' | \
+		sed -e '/help <command>/d' | \
 		awk '{ if(NR>'${i}') print $1}'`;
 	unset i;
 complete pkg 'n/info/`pkg info | awk \{print\ \$1\}`/' \
+			'n/add/f/' \
 			'n/*/$pkg_var/'
 
 #	Ports
