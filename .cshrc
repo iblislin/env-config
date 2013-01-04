@@ -185,7 +185,13 @@ complete procstat	'c/-/(h C M N w b c f i j k s t v a)/' \
 complete procctl	'n/*/`$ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/'
 
 #	pkgNG
-set pkg_var=`pkg help | & sed -e '/<command>/d'`;
+	# Fetch command from `pkg help`
+	set i=`pkg help | & grep -n Commands | \
+		sed -e 's/:.*$//'`;
+	set pkg_var=`pkg help | & \
+		sed -e '/<command>/d' | \
+		awk '{ if(NR>'${i}') print $1}'`;
+	unset i;
 complete pkg 'n/info/`pkg info | awk \{print\ \$1\}`/' \
 			'n/*/$pkg_var/'
 
