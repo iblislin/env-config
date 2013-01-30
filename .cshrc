@@ -21,6 +21,15 @@ alias csupup	csup -g -L 2 /root/supfiles/ports-supfile
 alias mysql	mysql -u root -p --prompt="\(\\u\@\\h\)\ \[\\d\]\>"
 
 if ( `uname -s` == 'Linux' ) then
+	set hosts = (\
+				cnmc.tw\
+				cnmc24.hs.ntnu.edu.tw\
+				cnmc30.hs.ntnu.edu.tw\
+				www.hs.ntnu.edu.tw\
+				mail.hs.ntnu.edu.tw\
+				ns.hs.ntnu.edu.tw\
+				)
+
 	alias ls ls --color
 	if (-x /usr/bin/htop) then
 		alias top htop -d 5
@@ -102,13 +111,13 @@ if ( ! $?hosts ) then
 				ns \
 				www \
 				)
-
-	foreach key (ssh sftp ping ftp)
-		complete $key 'p/1/$hosts/'
-	end
-
-	complete telnet 'p/1/$hosts/' 'p/2/x:[port]/'
 endif
+
+foreach key (ssh sftp ping ftp)
+	complete $key 'p/1/$hosts/'
+end
+
+complete telnet 'p/1/$hosts/' 'p/2/x:[port]/'
 
 if ( $USER == root ) then
 	set ps = 'ps -ax'
