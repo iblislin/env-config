@@ -36,7 +36,6 @@ if ( `uname -s` == 'Linux' ) then
 	else
 		alias top top -d 0.5
 	endif
-	alias vi gvim
 endif
 
 set	autolist
@@ -67,13 +66,17 @@ umask	22
 
 set path = (/sbin /bin /usr/sbin /usr/bin /usr/games /usr/local/sbin /usr/local/bin /usr/X11R6/bin $HOME/bin)
 
-if (-x /usr/local/bin/vim) then
+
+if(-x `where gvim`) then
+	setenv	EDITOR	gvim
+	alias	vi	gvim
+else if (-x `where vim`)
 	setenv	EDITOR	vim
 	alias	vi	vim
-	complete vi 'n/*/f:^*.[oa]/'
 else
 	setenv	EDITOR	vi
 endif
+
 setenv	PAGER	less
 setenv	BLOCKSIZE       K
 setenv	PACKAGES /usr/ports/packages
@@ -130,6 +133,7 @@ complete mkdir		'p/1/d/'
 complete alias		'p/1/a/'
 complete unalias	'n/*/a/'
 complete man		'n/*/c/'
+complete vi			'n/*/f:^*.[oa]/'
 complete where		'n/*/c/'
 complete whereis	'n/*/c/'
 complete which		'n/*/c/'
@@ -194,7 +198,7 @@ complete procstat	'c/-/(h C M N w b c f i j k s t v a)/' \
 complete procctl	'n/*/`$ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/'
 
 #	pkgNG
-if (-x /usr/local/sbin/pkg) then
+if (-x `where pkg`) then
 	# Fetch command from `pkg help`
 	set i=`pkg help | & grep -n Commands | \
 		sed -e 's/:.*$//'`;
@@ -222,23 +226,23 @@ complete make		'n/*/(config fetch checksum depends extract patch \
 					quicksearch describe maintainer index fetchindex \
 					update buildkernel installkernel buildworld \
 					installworld deinstall makepatch distribution world)/'
-if (-x /usr/local/sbin/apachectl) then
+if (-x `where apachectl`) then
 	complete apachectl	'p/1/(start stop restart graceful configtest \
 						graceful-stop startssl fullstatus status)/'
 endif
-if (-x /usr/local/bin/php) then
+if (-x `where php`) then
 	complete php		'p/*/f:*.php/'
 endif
-if (-x /usr/local/sbin/postfix) then
+if (-x `where postfix`) then
 	complete postfix	'n/-c/f/' \
 						'c/-/(c D v)/' \
 						'n/*/(check start abort stop reload status \
 						flush upgrade-configuration set-permissions)/'
 endif
-if (-x /usr/local/bin/sudo) then
+if (-x `where sudo`) then
 	complete sudo		'p/1/c/'
 endif
-if (-x /usr/local/bin/svn) then
+if (-x `where svn`) then
 	set svncmd =(add blame praise annotate ann cat \
 				changelist cl checkout co cleanup commit \
 				ci copy cp delete del remove rm diff di \
@@ -251,7 +255,7 @@ if (-x /usr/local/bin/svn) then
 				upgrade)
 	complete svn		'n/help/$svncmd/' 'p/1/$svncmd/'
 endif
-if (-x /usr/local/sbin/portmaster) then
+if (-x `where portmaster`) then
 	set pmcmd = (force-config no-confirm no-term-title \
 				no-index-fetch index index-first index-only \
 				delete-build-only update-if-newer packages \
@@ -271,10 +275,10 @@ if (-x /usr/local/sbin/portmaster) then
 						a o r R l L F n y e s h -)/'\
 						'n/*/`pkg info | awk \{print\ \$1\}`/'
 endif
-if (-x /usr/local/sbin/dovecotpw) then
+if (-x `where dovecotpw`) then
 	complete dovecotpw	'n/-s/`dovecotpw -l`/' 'c/-/(l p s u V)/'
 endif
-if (-x /usr/local/bin/git) then
+if (-x `where git`) then
 	alias gittutorial	man gittutorial
 	alias gitk git log -p
 	set gitcmd = (add am archive bisect branch bundle \
@@ -304,7 +308,7 @@ if (-x /usr/local/bin/git) then
 					foreach sync)/' \
 					'p/1/$gitcmd/'
 endif
-if (-x /usr/local/bin/bug5) then
+if (-x `where bug5`) then
 	alias telnet bug5 -pu telnet -8
 endif
 
