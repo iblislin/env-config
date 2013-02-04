@@ -67,10 +67,10 @@ umask	22
 set path = (/sbin /bin /usr/sbin /usr/bin /usr/games /usr/local/sbin /usr/local/bin /usr/X11R6/bin $HOME/bin)
 
 
-if(-x `where gvim`) then
+if (-x `where gvim`) then
 	setenv	EDITOR	gvim
 	alias	vi	gvim
-else if (-x `where vim`)
+else if (-x `where vim`) then
 	setenv	EDITOR	vim
 	alias	vi	vim
 else
