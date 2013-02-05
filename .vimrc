@@ -225,6 +225,8 @@ set foldenable
 set fdl=0
 set foldmethod=marker
 "nnoremap <SPACE> @=((foldclosed(line('.')) < 0) ? 'zc' : 'zo')<CR>
+" Python
+autocmd BufNewFile,BufRead *.py set foldmethod=indent
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Text
