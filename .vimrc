@@ -194,8 +194,10 @@ noremap <LEADER>u :e ++enc=utf-8<CR>:set tenc=utf-8<CR>
 
 map <Shift-CR> O<Esc>
 nmap <CR> i<CR><Esc>
-nmap <Tab> <C-Right>
-nmap <S-Tab> <C-Left>
+nmap <Tab> >>
+nmap <S-Tab> <<
+vmap <Tab>	>gv
+vmap <S-Tab> <gv
 
 " Keyword completion
 imap <M-Up> <C-N>
