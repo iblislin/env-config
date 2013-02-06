@@ -53,14 +53,16 @@ setenv	LC_MONETARY en_US.UTF-8
 setenv	LC_MESSAGES en_US.UTF-8
 setenv	LC_ALL en_US.UTF-8
 
-#setenv	LANG zh_TW.UTF-8
-#setenv	LC_CTYPE zh_TW.UTF-8
-#setenv	LC_COLLATE zh_TW.UTF-8
-#setenv	LC_TIME zh_TW.UTF-8
-#setenv	LC_NUMERIC zh_TW.UTF-8
-#setenv	LC_MONETARY zh_TW.UTF-8
-#setenv	LC_MESSAGES zh_TW.UTF-8
-#setenv	LC_ALL zh_TW.UTF-8
+if ( `uname -s` == 'Linux' ) then
+	setenv	LANG zh_TW.UTF-8
+	setenv	LC_CTYPE zh_TW.UTF-8
+	setenv	LC_COLLATE zh_TW.UTF-8
+	setenv	LC_TIME zh_TW.UTF-8
+	setenv	LC_NUMERIC zh_TW.UTF-8
+	setenv	LC_MONETARY zh_TW.UTF-8
+	setenv	LC_MESSAGES zh_TW.UTF-8
+	setenv	LC_ALL zh_TW.UTF-8
+endif
 
 umask	22
 
