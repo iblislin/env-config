@@ -22,7 +22,7 @@ nmap <LEADER>w :w<CR>
 map <LEADER>s :source ~/.vimrc<CR>
 
 " Fast editing of .vimrc
-map <LEADER>e :e! ~/.vimrc<CR>
+" map <LEADER>e :e! ~/.vimrc<CR>
 
 " When .vimrc is edited, reload it
 autocmd! bufwritepost vimrc source ~/.vimrc
