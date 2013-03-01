@@ -36,6 +36,9 @@ if ( `uname -s` == 'Linux' ) then
 	else
 		alias top top -d 0.5
 	endif
+
+	# Complementation
+	complete service	'n@*@F:/etc/default/@'
 endif
 
 set	autolist
