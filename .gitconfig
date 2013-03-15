@@ -2,9 +2,7 @@
 	editor = vim
 	pager = less
 [color]
-	branch = auto
-	status = auto
-	diff = auto
+	ui = auto
 [user]
 	name = Iblis Lin
 	email = iblis@hs.ntnu.edu.tw
