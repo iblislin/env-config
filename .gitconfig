@@ -1,10 +1,9 @@
 [core]
+	editor = vim
 	pager = less
 	editor = vim
 [color]
-	branch = auto
-	status = auto
-	diff = auto
+	ui = auto
 [user]
 	name = Iblis Lin
 	email = iblis@hs.ntnu.edu.tw
@@ -14,3 +13,5 @@
 	df = diff
 	st = status
 	lg = log --abbrev-commit --name-status --graph
+[push]
+	default = matching
