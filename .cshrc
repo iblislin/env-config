@@ -308,9 +308,15 @@ if (-x `where git`) then
 		parse-remote receive-pack shell upload-archive upload-pack \
 		check-attr check-ref-format fmt-merge-msg mailinfo mailsplit \
 		merge-one-file patch-id peek-remote sh-setup stripspace)
+	set git_branch = "`git branch | sed 's/\* //' | awk '{ print $1 }'`"
+	set git_remote = "`git remote`"
 	complete git	'n/help/$gitcmd/' \
 					'n/submodule/(add status init update summary \
 					foreach sync)/' \
+					'n/push/$git_remote/' \
+					'N/push/$git_branch/' \
+					'n/pull/$git_remote/' \
+					'N/pull/$git_branch/' \
 					'p/1/$gitcmd/'
 endif
 if (-x `where bug5`) then
