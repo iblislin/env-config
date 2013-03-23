@@ -9,7 +9,7 @@
 "
 " --------------------------------------------- }}}
 " C++ templates"{{{
-let g:template['cpp']['forj'] = "for(int j=0; i<".g:rs."...".g:re."; j++)"
+let g:template['cpp']['forj'] = "for(int j=0; j<".g:rs."...".g:re."; j++)"
 			\."\<cr>{"
 			\."\<cr>".g:rs."...".g:re.
 			\"\<cr>}"
