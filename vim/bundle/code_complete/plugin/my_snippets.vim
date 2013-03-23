@@ -51,7 +51,6 @@ let g:template['sh']['case'] = "case ".g:rs."...".g:re." in\<cr>".
 " ---------------------------------------------"}}}
 " Zsh Script templates"{{{
 let g:template['zsh'] = g:template['sh']
-let g:template['zsh']['cc'] = "#!/bin/zsh"
 let g:template['zsh']['select'] = "select ".g:rs."...".g:re.
 			\" in ".g:rs."...".g:re."\<cr>do\<cr>".
 			\g:rs."...".g:re."\<cr>done\<cr>"
