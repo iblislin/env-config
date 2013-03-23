@@ -49,6 +49,21 @@ let g:template['sh']['case'] = "case ".g:rs."...".g:re." in\<cr>".
 			\"*) \<cr>".g:rs."...".g:re." ;;\<cr>esac\<cr>"
 "
 " ---------------------------------------------"}}}
+" Zsh Script templates"{{{
+let g:template['zsh'] = g:template['sh']
+let g:template['zsh']['cc'] = "#!/bin/zsh"
+let g:template['zsh']['select'] = "select ".g:rs."...".g:re.
+			\" in ".g:rs."...".g:re."\<cr>do\<cr>".
+			\g:rs."...".g:re."\<cr>done\<cr>"
+let g:template['zsh']['repeat'] = "repeat ".g:rs."...".g:re.
+			\" in ".g:rs."...".g:re."\<cr>do\<cr>".
+			\g:rs."...".g:re."\<cr>done\<cr>"
+let g:template['zsh']['fun'] = "function ".g:rs."...".g:re."()\<cr>".
+			\"{\<cr>".
+			\g:rs."...".g:re."\<cr>".
+			\"}\<cr>"
+"
+" ---------------------------------------------"}}}
 " Tcsh Script templates"{{{
 let g:template['tcsh'] = {}
 let g:template['tcsh']['cc'] = "#!/bin/tcsh"
