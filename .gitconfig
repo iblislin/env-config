@@ -13,5 +13,6 @@
 	df = diff
 	st = status
 	lg = log --abbrev-commit --name-status --graph
+	unstage = reset HEAD --
 [push]
 	default = matching

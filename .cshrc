@@ -307,7 +307,7 @@ if (-x `where git`) then
 		http-backend send-pack update-server-info http-fetch http-push \
 		parse-remote receive-pack shell upload-archive upload-pack \
 		check-attr check-ref-format fmt-merge-msg mailinfo mailsplit \
-		merge-one-file patch-id peek-remote sh-setup stripspace)
+		merge-one-file patch-id peek-remote sh-setup stripspace unstage)
 	alias get_git_branch  "git branch | sed 's/\* //' | awk '{ print $1}'"
 	set git_remote = "git remote"
 	complete git	'n/help/$gitcmd/' \
