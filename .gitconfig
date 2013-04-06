@@ -16,3 +16,5 @@
 	unstage = reset HEAD --
 [push]
 	default = matching
+[merge]
+	tool = vimdiff
