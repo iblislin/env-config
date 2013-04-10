@@ -205,6 +205,8 @@ imap <M-Right> <C-N>
 imap <M-Left> <C-P>
 imap <M-Down> <C-P>
 
+" For vimpager
+set modifiable
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Temp and Backups
 """"""""""""""""""""""""""""""""""""""""""""""""""
