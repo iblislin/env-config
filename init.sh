@@ -49,3 +49,7 @@ vim;
 git submodule init
 git submodule sync
 git submodule update
+
+# vim pager
+$LN $BASE/vimpager/vimpager ~/bin/
+$LN $BASE/vimpager/vimcat ~/bin/

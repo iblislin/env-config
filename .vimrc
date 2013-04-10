@@ -30,6 +30,8 @@ autocmd! bufwritepost vimrc source ~/.vimrc
 " Show commands as they are typed
 set showcmd
 
+" For vimpager
+set modifiable
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Encoding
 """"""""""""""""""""""""""""""""""""""""""""""""""
@@ -205,8 +207,6 @@ imap <M-Right> <C-N>
 imap <M-Left> <C-P>
 imap <M-Down> <C-P>
 
-" For vimpager
-set modifiable
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Temp and Backups
 """"""""""""""""""""""""""""""""""""""""""""""""""
