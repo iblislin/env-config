@@ -14,6 +14,19 @@ path=(/sbin /bin /usr/sbin /usr/bin /usr/games /usr/local/sbin /usr/local/bin $H
 
 export PAGER=less
 
+export LSCOLORS="ExFxcxdxbxegedabagacad"
+
+export TERMCAP='xterm|xterm-color:Co#256:AB=\E[48;5;%dm:AF=\E[38;5;%dm:tc=xterm-xfree86:'
+
+export LANG=en_US.UTF-8
+export LC_CTYPE=en_US.UTF-8
+export LC_COLLATE=en_US.UTF-8
+export LC_TIME=en_US.UTF-8
+export LC_NUMERIC=en_US.UTF-8
+export LC_MONETARY=en_US.UTF-8
+export LC_MESSAGES=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
 # For vim pager
 if [[ -x `where vim` ]]
 then
