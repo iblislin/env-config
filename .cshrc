@@ -96,7 +96,7 @@ if ( $haveVim == 1 ) then
 		alias less $HOME/bin/vimpager
 	endif
 	if(-x $HOME/bin/vimcat) then
-		alias cat $HOME/bin/vimcat
+		alias vcat $HOME/bin/vimcat
 	endif
 endif
 

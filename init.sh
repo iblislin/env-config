@@ -53,3 +53,8 @@ git submodule update
 # vim pager
 $LN $BASE/vimpager/vimpager ~/bin/
 $LN $BASE/vimpager/vimcat ~/bin/
+
+#ZSH
+rm $HOME/.zshrc $HOME/.zshenv
+$LN $BASE/zsh/zshrc $HOME/.zshrc
+$LN $BASE/zsh/zshenv $HOME/.zshenv

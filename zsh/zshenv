@@ -1,0 +1,36 @@
+# ==================================
+# Zsh Options
+# ==================================
+setopt sh_word_split
+setopt extended_glob
+setopt appendhistory 
+setopt autocd
+setopt nomatch
+unsetopt beep
+# ==================================
+# Enviroment Variable
+# ==================================
+path=(/sbin /bin /usr/sbin /usr/bin /usr/games /usr/local/sbin /usr/local/bin $HOME/bin)
+
+export PAGER=less
+
+# For vim pager
+if [[ -x `where vim` ]]
+then
+	if [[ -e $HOME/bin/vimpager ]]
+	then
+		export PAGER=$HOME/bin/vimpager
+		alias less=$PAGER
+	fi
+	if [[ -e $HOME/bin/vimcat ]]
+	then
+		alias vcat=$HOME/bin/vimcat
+	fi
+fi
+
+if [[ $USER == 'root' ]]
+then
+	prompt="%B[%F{red}%n%f@%m %~%(?.. %F{red}Oops!%f)]%# %b"
+else
+	prompt="%B[%F{cyan}%n%f@%m %~%(?.. %F{red}Oops!%f)]%# %b"
+fi
