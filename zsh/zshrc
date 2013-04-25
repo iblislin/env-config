@@ -69,8 +69,6 @@ fi
 # ==================================
 # Alias > Suffix Alias
 # ==================================
-alias -s sh=sh
-
 suf_editor=(c cpp h html css)
 for i in $suf_editor
 do
