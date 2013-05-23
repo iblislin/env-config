@@ -75,11 +75,11 @@ set path = (/sbin /bin /usr/sbin /usr/bin /usr/games /usr/local/sbin /usr/local/
 if (-x `where gvim`) then
 	setenv	EDITOR	gvim
 	alias	vi	gvim
-	set haveVim=1
+	set haveVim
 else if (-x `where vim`) then
 	setenv	EDITOR	vim
 	alias	vi	vim
-	set haveVim=1
+	set haveVim
 else
 	setenv	EDITOR	vi
 endif
@@ -89,7 +89,7 @@ setenv	BLOCKSIZE       K
 setenv	PACKAGES /usr/ports/packages
 setenv	PACKAGESITE ftp://ftp.tw.freebsd.org/pub/ports/amd64/packages-9.0-release/All/
 
-if ( $haveVim == 1 ) then
+if ( $?haveVim ) then
 	unset haveVim
 	if(-x $HOME/bin/vimpager) then
 		setenv PAGER $HOME/bin/vimpager
