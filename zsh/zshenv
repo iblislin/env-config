@@ -43,7 +43,7 @@ fi
 
 if [[ $USER == 'root' ]]
 then
-	prompt="%B[%F{red}%n%f@%m %~%(?.. %F{red}Oops\!%f)]%# %b"
+	prompt="%B[%F{red}%n%f@%m %~%(?.. %F{red}Oops%f)]%# %b"
 else
-	prompt="%B[%F{cyan}%n%f@%m %~%(?.. %F{red}Oops\!%f)]%# %b"
+	prompt="%B[%F{cyan}%n%f@%m %~%(?.. %F{red}Oops%f)]%# %b"
 fi
