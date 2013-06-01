@@ -113,3 +113,10 @@ zstyle :compinstall filename '/home/iblis/.zshrc'
 autoload -Uz compinit
 compinit
 # End of lines added by compinstall
+# ==================================
+# Custom setting
+# ==================================
+if [[ -f $HOME/.zshlocal ]]
+then
+	source $HOME/.zshlocal
+fi

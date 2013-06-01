@@ -55,6 +55,7 @@ $LN $BASE/vimpager/vimpager ~/bin/
 $LN $BASE/vimpager/vimcat ~/bin/
 
 #ZSH
-rm $HOME/.zshrc $HOME/.zshenv
+rm $HOME/.zshrc $HOME/.zshenv $HOME/.zshlocal
 $LN $BASE/zsh/zshrc $HOME/.zshrc
 $LN $BASE/zsh/zshenv $HOME/.zshenv
+$LN $BASE/zsh/zshlocal $HOME/.zshlocal
