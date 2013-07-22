@@ -82,6 +82,7 @@ sufAlias py python
 if isLinux
 then
 	alias ls='ls --color -F'
+	alias watch='watch -n 0.5'
 	if isExist() htop 
 		alias top='htop -d 5'
 	then
