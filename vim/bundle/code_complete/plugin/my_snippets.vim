@@ -30,7 +30,7 @@ let g:template['cpp']['class'] = "class ".g:rs."...".g:re.
 " ---------------------------------------------"}}}
 " Shell Script templates"{{{
 let g:template['sh'] = {}
-let g:template['sh']['cc'] = "#!/bin/sh"
+let g:template['sh']['cc'] = "#!/bin/sh\<cr>"
 let g:template['sh']['if'] = "if ".g:rs."...".g:re.
 			\"\<cr>then\<cr>".g:rs."...".g:re."\<cr>fi"
 let g:template['sh']['ife'] = "if ".g:rs."...".g:re.
@@ -65,7 +65,7 @@ let g:template['zsh']['fun'] = "function ".g:rs."...".g:re."()\<cr>".
 " ---------------------------------------------"}}}
 " Tcsh Script templates"{{{
 let g:template['tcsh'] = {}
-let g:template['tcsh']['cc'] = "#!/bin/tcsh"
+let g:template['tcsh']['cc'] = "#!/bin/tcsh\<cr>"
 let g:template['tcsh']['if'] = "if ( ".g:rs."...".g:re.
 			\" ) then\<cr>".g:rs."...".g:re."\<cr>endif"
 let g:template['tcsh']['ife'] = "if ( ".g:rs."...".g:re.
@@ -108,7 +108,7 @@ let g:template['vim']['fun'] = "function! ".g:rs."...".g:re."(".g:rs."...".g:re.
 let g:template['vim']['cc'] = '.g:rs."...".g:re.'
 let g:template['vim']['cr'] = "\\<cr>"
 "
-" ---------------------------------------------"}}}
+" --------------za-------------------------------"}}}
 "  PHP templates"{{{
 let g:template['php'] = {}
 let g:template['php']['cc'] = "<?php\<cr>".g:rs."...".g:re.
@@ -181,5 +181,10 @@ let g:template['php']['interface'] = "interface ".g:rs."...".g:re.
 "  Javascript templates"{{{
 let g:template['javascript'] = {}
 let g:template['javascript']['for'] = g:template['c']['for']
+"
+" ---------------------------------------------"}}}
+"  Perl templates"{{{
+let g:template['perl'] = {}
+let g:template['perl']['cc'] = "#!/usr/bin/env perl\<cr>"
 "
 " ---------------------------------------------"}}}
