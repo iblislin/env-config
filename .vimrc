@@ -228,7 +228,7 @@ set fdl=0
 set foldmethod=marker
 "nnoremap <SPACE> @=((foldclosed(line('.')) < 0) ? 'zc' : 'zo')<CR>
 " Python
-autocmd Filetype python set foldmethod=indent
+autocmd Filetype python set foldmethod=indent expandtab
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Text
