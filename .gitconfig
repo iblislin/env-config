@@ -8,7 +8,7 @@
 	name = Iblis Lin
 	email = e196819@hotmail.com
 [alias]
-	ci = commit
+	ci = commit -v
 	co = checkout
 	df = diff
 	st = status
