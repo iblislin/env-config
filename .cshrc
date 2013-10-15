@@ -216,20 +216,20 @@ complete procstat	'c/-/(h C M N w b c f i j k s t v a)/' \
 complete procctl	'n/*/`$ps | awk \{if\(NR\!=1\)\ print\ \$1\}`/'
 
 #	pkgNG
-if (-x `where pkg`) then
-	# Fetch command from `pkg help`
-	set i=`pkg help | & grep -n Commands | \
-		sed -e 's/:.*$//'`;
-	set pkg_var=`pkg help | & \
-		sed -e '/help <command>/d' | \
-		awk '{ if(NR>'${i}') print $1}'`;
-	unset i;
-
-	complete pkg 'n/info/`pkg info | awk \{print\ \$1\}`/' \
-				'n/add/f/' \
-				'n/*/$pkg_var/'
-endif
-
+#if (-x `where pkg`) then
+#	# Fetch command from `pkg help`
+#	set i=`pkg help | & grep -n Commands | \
+#		sed -e 's/:.*$//'`;
+#	set pkg_var=`pkg help | & \
+#		sed -e '/help <command>/d' | \
+#		awk '{ if(NR>'${i}') print $1}'`;
+#	unset i;
+#
+#	complete pkg 'n/info/`pkg info | awk \{print\ \$1\}`/' \
+#				'n/add/f/' \
+#				'n/*/$pkg_var/'
+#endif
+#
 #	Ports
 complete make		'n/*/(config fetch checksum depends extract patch \
 					configure build install all showconfig \
