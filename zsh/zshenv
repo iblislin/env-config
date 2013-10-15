@@ -30,6 +30,8 @@ export LC_MONETARY=$encode
 export LC_MESSAGES=$encode
 export LC_ALL=$encode
 
+export PACKAGEROOT='ftp://ftp.tw.freebsd.org'
+
 # For vim pager
 if [[ -x `where vim` ]]
 then

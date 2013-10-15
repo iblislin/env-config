@@ -87,7 +87,7 @@ endif
 setenv	PAGER	less
 setenv	BLOCKSIZE       K
 setenv	PACKAGES /usr/ports/packages
-setenv	PACKAGESITE ftp://ftp.tw.freebsd.org/pub/ports/amd64/packages-9.0-release/All/
+setenv	PACKAGEROOT 'ftp://ftp.tw.freebsd.org'
 
 if ( $?haveVim ) then
 	unset haveVim
