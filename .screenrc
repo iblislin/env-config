@@ -1,6 +1,6 @@
 # Status line
 caption always "%{.KW} %-w%{.mW}[%n] %t%{.KW}%+w"
-hardstatus alwayslastline "%{R}[ %{w}%1` %{R}]%=%{M}%e %{G}%H %{Y} %A%C %{R} %Y/%m/%d %{K} Load: %l %{w}"
+hardstatus alwayslastline "%{R}[ %{w}%1` %{R}]%=%{M}%e %{G}%H %{Y} %A%C:%s %{R} %Y/%m/%d %D %{K} Load: %l %{w}"
 
 # Colours
 termcapinfo xterm "Co#256:AB=\E[48;5;%dm:AF=\E[38;5;%dm"
