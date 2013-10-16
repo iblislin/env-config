@@ -59,12 +59,17 @@ alias mysql='mysql -u root -p --prompt="(\u@\h) [\d]>"'
 #then
 #	export EDITOR=gvim
 #	alias vi='gvim'
-if [[ -x `where vim` ]]
+if [ `where vim` ]
 then
 	export EDITOR=vim
 	alias vi='vim'
 else
 	export EDITOR=vi
+fi
+
+if [ `where cmdwatch` ]
+then
+	alias cmdwatch='cmdwatch -n 1'
 fi
 # ==================================
 # Alias > Suffix Alias
