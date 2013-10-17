@@ -13,19 +13,15 @@ function isLinux()
 function isExist()
 { # {{{
 	# It require one argument.
-	if [ `where $1` ]
-	then
-		return 0
-	else
-		return 1
-	fi
+	WHICH_CMD='/usr/bin/which'
+	$WHICH_CMD -s $1
 } # }}}
 function sufAlias()
 { # {{{
 	# It require two argument.
 	# $1 for the suffix.
 	# $2 for the target program.
-	if isExist $2
+	if ( isExist $2 )
 	then
 		alias -s $1=$2
 	fi
@@ -67,7 +63,7 @@ else
 	export EDITOR=vi
 fi
 
-if [ `where cmdwatch` ]
+if ( isExist cmdwatch )
 then
 	alias cmdwatch='cmdwatch -n 1'
 fi
@@ -88,7 +84,7 @@ if isLinux
 then
 	alias ls='ls --color -F'
 	alias watch='watch -n 0.5'
-	if isExist() htop 
+	if ( isExist htop )
 		alias top='htop -d 5'
 	then
 	else
