@@ -14,7 +14,7 @@ function isExist()
 { # {{{
 	# It require one argument.
 	WHICH_CMD='/usr/bin/which'
-	$WHICH_CMD -s $1
+	$WHICH_CMD $1 > /dev/null
 } # }}}
 function sufAlias()
 { # {{{
