@@ -55,7 +55,7 @@ alias mysql='mysql -u root -p --prompt="(\u@\h) [\d]>"'
 #then
 #	export EDITOR=gvim
 #	alias vi='gvim'
-if [ `where vim` ]
+if ( isExist vim )
 then
 	export EDITOR=vim
 	alias vi='vim'
