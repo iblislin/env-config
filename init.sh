@@ -51,6 +51,7 @@ git submodule sync
 git submodule update
 
 # vim pager
+mkdir -p ~/bin
 $LN $BASE/vimpager/vimpager ~/bin/
 $LN $BASE/vimpager/vimcat ~/bin/
 
