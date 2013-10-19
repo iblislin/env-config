@@ -16,3 +16,6 @@
 [submodule "vim/bundle/php.syntax"]
 	path = vim/bundle/php.syntax
 	url = git://github.com/StanAngeloff/php.vim.git
+[submodule "vimpager"]
+	path = vimpager
+	url = git@github.com:iblis17/vimpager.git
