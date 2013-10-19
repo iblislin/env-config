@@ -4,10 +4,7 @@ export PACKAGEROOT='ftp://ftp.tw.freebsd.org'
 
 pkg_list='screen sudo zsh'
 
-for i in $pkg_list
-do
-	pkg_add -r i
-done
+pkg_add -r $pkg_list
 
 zsh_path=`cat /etc/shells | grep -m 1 "/zsh"`
 
