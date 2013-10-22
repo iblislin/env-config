@@ -19,3 +19,6 @@
 [submodule "vimpager"]
 	path = vimpager
 	url = git://github.com/rkitover/vimpager.git
+[submodule "vim/bundle/nerdtree"]
+	path = vim/bundle/nerdtree
+	url = https://github.com/scrooloose/nerdtree.git
