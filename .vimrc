@@ -390,6 +390,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'matchit'
 	Bundle 'code_complete'
 	Bundle 'autocomplpop'
+	Bundle 'nerdtree'
 	 
 	" non github repos
 	" Bundle 'git://git.wincent.com/command-t.git'
