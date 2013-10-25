@@ -35,14 +35,15 @@ export PACKAGEROOT='ftp://ftp.tw.freebsd.org'
 # For vim pager
 if [[ -x `where vim` ]]
 then
-	if [[ -e $HOME/bin/vimpager ]]
+	if [[ -x $HOME/bin/vimpager ]]
 	then
 		export PAGER=$HOME/bin/vimpager
 		alias less=$PAGER
 	fi
-	if [[ -e $HOME/bin/vimcat ]]
+	if [[ -x $HOME/bin/vimcat ]]
 	then
 		alias vcat=$HOME/bin/vimcat
+		alias vc=$HOME/bin/vimcat
 	fi
 fi
 
