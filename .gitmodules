@@ -1,9 +1,9 @@
 [submodule "vim/bundle/vundle"]
 	path = vim/bundle/vundle
 	url = git://github.com/gmarik/vundle.git
-[submodule "vim/bundle/zencoding"]
+[submodule "vim/bundle/emmet-vim"]
 	path = vim/bundle/zencoding
-	url = git://github.com/mattn/zencoding-vim.git
+	url = git://github.com/mattn/emmet-vim.git
 [submodule "vim/bundle/supertab"]
 	path = vim/bundle/supertab
 	url = git://github.com/ervandew/supertab.git

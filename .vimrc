@@ -353,9 +353,9 @@ nmap <F9> :QFix<CR>
 	let g:completekey = "<c-p>"
 
 	""""""""""""""""""""""""""""""""""""""""
-	" zenconding
+	" Emmet (zenconding)
 	""""""""""""""""""""""""""""""""""""""""
-	let g:user_zen_leader_key = "<c-c>"
+	let g:user_emmet_leader_key = "<c-c>"
 
 	""""""""""""""""""""""""""""""""""""""""
 	" Vundle
@@ -371,11 +371,12 @@ nmap <F9> :QFix<CR>
 	Bundle 'gmarik/vundle'
 
 	" My Bundles here:
-	Bundle 'zencoding'
+	Bundle 'emmet-vim'
 	Bundle 'supertab'
 	Bundle 'surround'
 	Bundle 'javascript'
 	Bundle 'php.syntax'
+	Bundle 'nerdtree'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
@@ -390,7 +391,6 @@ nmap <F9> :QFix<CR>
 	Bundle 'matchit'
 	Bundle 'code_complete'
 	Bundle 'autocomplpop'
-	Bundle 'nerdtree'
 	 
 	" non github repos
 	" Bundle 'git://git.wincent.com/command-t.git'
