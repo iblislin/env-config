@@ -246,7 +246,7 @@ set cindent
 nmap <F2> :set noai nosi nocindent <CR>
 set showmode
 " Scheme
-autocmd Filetype scheme set expandtab
+autocmd Filetype scheme set expandtab nocindent
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Spell check
