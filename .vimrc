@@ -59,7 +59,7 @@ set t_Co=256
 syntax enable
 
 " Set colour scheme
-colorscheme dennylin93
+colorscheme iblis
 
 " Highlight current line in insert mode
 function! s:EnterInsert()
