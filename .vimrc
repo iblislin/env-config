@@ -245,6 +245,8 @@ set cindent
 " Disable all the indent
 nmap <F2> :set noai nosi nocindent <CR>
 set showmode
+" Scheme
+autocmd Filetype scheme set expandtab
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Spell check
@@ -377,6 +379,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'javascript'
 	Bundle 'php.syntax'
 	Bundle 'nerdtree'
+	Bundle 'delimitMate'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
