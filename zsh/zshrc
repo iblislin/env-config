@@ -50,6 +50,7 @@ alias df='df -h'
 alias top='top -s 1'
 #alias csupup='csup -g -L 2 /root/supfiles/ports-supfile'
 alias mysql='mysql -u root -p --prompt="(\u@\h) [\d]>"'
+alias ssh-x='ssh -c arcfour,blowfish-cbc -XC'
 
 #if [[ -x `where gvim` ]]
 #then
