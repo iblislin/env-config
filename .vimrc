@@ -30,8 +30,12 @@ autocmd! bufwritepost vimrc source ~/.vimrc
 " Show commands as they are typed
 set showcmd
 
+" Enable Modeline magic
+set modeline
+
 " For vimpager
 set modifiable
+
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Encoding
 """"""""""""""""""""""""""""""""""""""""""""""""""
