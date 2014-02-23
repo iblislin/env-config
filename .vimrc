@@ -253,6 +253,8 @@ nmap <F2> :set noai nosi nocindent <CR>
 set showmode
 " Scheme
 autocmd Filetype scheme set expandtab nocindent
+" JavaScript
+autocmd Filetype javascript set expandtab
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Spell check
