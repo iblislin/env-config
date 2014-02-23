@@ -144,7 +144,7 @@ set showmatch
 
 " Status line
 set laststatus=2
-"set statusline=%<%f%<%{FileTime()}%<%h%m%r%=%-20.(line=%03l,col=%02c%V,totlin=%L%)\%h%m%r%=%-30(,BfNm=%n%Y%)\%P\*%=%{CurTime()}
+"set statusline=%<%f%<%<%h%m%r%=%-20.(line=%03l,col=%02c%V,totlin=%L%)\%h%m%r%=%-30(,BfNm=%n%Y%)\%P
 set rulerformat=%15(%c%V\ %p%%%)
 "set cmdheight=2
 
@@ -366,6 +366,11 @@ nmap <F9> :QFix<CR>
 	" Emmet (zenconding)
 	""""""""""""""""""""""""""""""""""""""""
 	let g:user_emmet_leader_key = "<c-c>"
+
+	""""""""""""""""""""""""""""""""""""""""
+	" Fugitive
+	""""""""""""""""""""""""""""""""""""""""
+	set statusline=%<%f\ %h%m%r\ %{fugitive#statusline()}%=%-15(%c%V\ %p%%%)
 
 	""""""""""""""""""""""""""""""""""""""""
 	" Vundle
