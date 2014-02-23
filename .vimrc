@@ -386,6 +386,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'php.syntax'
 	Bundle 'nerdtree'
 	Bundle 'delimitMate'
+	Bundle 'git'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
