@@ -402,6 +402,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'fugitive'
 	Bundle 'tcomment'
 	Bundle 'pep8'
+	Bundle 'pyCalltips'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
