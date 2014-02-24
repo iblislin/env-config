@@ -395,6 +395,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'delimitMate'
 	Bundle 'git'
 	Bundle 'fugitive'
+	Bundle 'tcomment'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
