@@ -269,7 +269,7 @@ hi clear SpellBad
 "map <LEADER>sa zg
 "map <LEADER>s? z=
 
-map <F5> :set spell!<CR><BAR>:echo "Spell check: " . strpart("OffOn", 3 * &spell, 3)<CR>
+"map <F5> :set spell!<CR><BAR>:echo "Spell check: " . strpart("OffOn", 3 * &spell, 3)<CR>
 
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
@@ -373,6 +373,11 @@ nmap <F9> :QFix<CR>
 	set statusline=%<%f\ %h%m%r\ %{fugitive#statusline()}%=%-15(%c%V\ %p%%%)
 
 	""""""""""""""""""""""""""""""""""""""""
+	" Pep8
+	""""""""""""""""""""""""""""""""""""""""
+	autocmd Filetype python let g:pep8_map='<F5>'
+
+	""""""""""""""""""""""""""""""""""""""""
 	" Vundle
 	""""""""""""""""""""""""""""""""""""""""
 	set nocompatible               " be iMproved
@@ -396,6 +401,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'git'
 	Bundle 'fugitive'
 	Bundle 'tcomment'
+	Bundle 'pep8'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
@@ -432,11 +438,6 @@ set listchars=tab:>-,trail:-,eol:$,nbsp:%,extends:>,precedes:<
 " Coding
 """"""""""""""""""""""""""""""""""""""""
 	""""""""""""""""""""""""""""""""""""""""
-	" Make
-	""""""""""""""""""""""""""""""""""""""""
-	nmap <F5> :wa<CR>:make %:r<CR>
-
-	""""""""""""""""""""""""""""""""""""""""
 	" PHP
 	""""""""""""""""""""""""""""""""""""""""
 	autocmd BufNewFile,BufRead *.php set dictionary+=~/.vim/dict/phpfunclist
@@ -448,6 +449,9 @@ set listchars=tab:>-,trail:-,eol:$,nbsp:%,extends:>,precedes:<
 	let php_no_shorttags=1
 
 	""""""""""""""""""""""""""""""""""""""""
-	" C ++ 
+	" C/CPP
 	""""""""""""""""""""""""""""""""""""""""
-	nmap <F8> :r ~/.vim/code/default.cpp<Esc>ggdd:6<CR>o
+	autocmd Filetype cpp nmap <F8> :r ~/.vim/code/default.cpp<Esc>ggdd:6<CR>o
+	autocmd Filetype c nmap <F8> :r ~/.vim/code/default.c<Esc>ggdd:5<CR>o
+	autocmd Filetype cpp nmap <F5> :wa<CR>:make %:r<CR>
+	autocmd Filetype c nmap <F5> :wa<CR>:make %:r<CR>
