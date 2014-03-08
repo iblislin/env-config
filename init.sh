@@ -1,6 +1,6 @@
 #!/bin/sh
 
-file=".cshrc .screenrc .gitconfig"
+file=".cshrc .screenrc .gitconfig .pyrc"
 REAL=`realpath $0`
 BASE=`dirname $REAL`
 LN='ln -s'
