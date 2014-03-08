@@ -25,16 +25,16 @@ else:
 
 
 # If history file exist, source it.
-history_path = os.path.expanduser("~/.pyhistory")
-if os.path.exists(history_path):
-    readline.read_history_file(history_path)
+# history_path = os.path.expanduser("~/.pyhistory")
+# if os.path.exists(history_path):
+#     readline.read_history_file(history_path)
 
 
 # Save history on exit
-def save_history(history_path=history_path):
-    import readline
-    readline.write_history_file(history_path)
-atexit.register(save_history)
+# def save_history(history_path=history_path):
+#     import readline
+#     readline.write_history_file(history_path)
+# atexit.register(save_history)
 
 
 # If ~/.pylocal.py exist, source it.
