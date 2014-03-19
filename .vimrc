@@ -239,7 +239,7 @@ autocmd Filetype python set foldmethod=indent expandtab
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Text
 """"""""""""""""""""""""""""""""""""""""""""""""""
-set expandtab
+set noexpandtab
 
 set lbr
 
