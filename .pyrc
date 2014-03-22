@@ -48,7 +48,7 @@ if os.path.exists(pylocal_path):
 
 
 # Anything not deleted (sys and os) will remain in the interpreter session
-del atexit, readline, rlcompleter, save_history, history_path, pylocal_path
+del atexit, readline, rlcompleter, pylocal_path # ,save_history, history_path
 
 
 # Useful libs import for you
