@@ -1,6 +1,8 @@
-#Status line
+# Status line
+backtick 1 1 1 sh -c "if [ $(uname -s) = 'Linux' ]; then sensors | grep temp1 | awk '{ str=substr(\$2, 2, 4); print str \"C\" }'; fi"
+backtick 2 1 1 sh -c "if [ $(uname -s) = 'Linux' ]; then active=$(egrep 'Active:' /proc/meminfo | awk '{print \$2}');total=$(egrep 'MemTotal' /proc/meminfo | awk '{print \$2}');echo $(expr '(' \$active \* 100 ')' / \$total )%; fi"
 caption always "%{.KW} %-w%{.mW}[%n] %t%{.KW}%+w"
-hardstatus alwayslastline "%{R}[ %{w}%1` %{R}]%=%{M}%e %{G}%H %{Y}%A%C:%s %{R} %Y/%m/%d %{K} Load: %l %{w}"
+hardstatus alwayslastline "%{R}[%{w}  %{R}]%=%{M}%e %{G}%H %{Y}%A%C:%s %{R} %Y/%m/%d %{K} Load: %l %{B}CPU: %1` %{C}Mem: %2` %{w}"
 
 # Colours
 termcapinfo xterm "Co#256:AB=\E[48;5;%dm:AF=\E[38;5;%dm"
