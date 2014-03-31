@@ -1,8 +1,12 @@
 # Status line
+# cpu temperature
 backtick 1 1 1 sh -c "if [ $(uname -s) = 'Linux' ]; then sensors | grep temp1 | awk '{ str=substr(\$2, 2, 4); print str \"C\" }'; fi"
+# memary usage
 backtick 2 1 1 sh -c "if [ $(uname -s) = 'Linux' ]; then active=$(egrep 'Active:' /proc/meminfo | awk '{print \$2}');total=$(egrep 'MemTotal' /proc/meminfo | awk '{print \$2}');echo $(expr '(' \$active \* 100 ')' / \$total )%; fi"
+# cpu usgae
+backtick 3 1 1 sh -c "if [ $(uname -s) = 'Linux' ]; then ps aux | awk '{print \$3}' | sed -e '/0\.0/d' -e '/CPU/d' | awk -v cpu=\$(lscpu | grep '\^CPU(s):' | awk '{print \$2}') '{a+=\$1; printf \"%.2f%\n\", a/cpu }' | tail -1; fi"
 caption always "%{.KW} %-w%{.mW}[%n] %t%{.KW}%+w"
-hardstatus alwayslastline "%{R}[%{w}  %{R}]%=%{M}%e %{G}%H %{Y}%A%C:%s %{R} %Y/%m/%d %{K} Load: %l %{B}CPU: %1` %{C}Mem: %2` %{w}"
+hardstatus alwayslastline "%{R}[%{w}  %{R}]%=%{M}%e %{G}%H %{Y}%A%C:%s %{R} %Y/%m/%d %{K} Load: %l %{B}CPU: %3` %1` %{C}Mem: %2` %{w}"
 
 # Colours
 termcapinfo xterm "Co#256:AB=\E[48;5;%dm:AF=\E[38;5;%dm"
@@ -31,5 +35,5 @@ defencoding utf8
 bind b encoding big5 utf8
 bind u encoding utf8 utf8
 defbce on # erase background with current bg color
-shelltitle "---"
+shelltitle "--"
 defscrollback 5000
