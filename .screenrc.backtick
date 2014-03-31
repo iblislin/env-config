@@ -1,8 +1,8 @@
 # Status line
 # cpu temperature
-backtick 1 1 1 sh -c "if [ $(uname -s) = 'Linux' ]; then sensors | grep temp1 | awk '{ str=substr(\$2, 2, 4); print str \"C\" }'; fi"
+backtick 1 1 1 sh -c "if [ $(uname -s) = 'Linux' ]; then sensors | grep temp1 | awk '{ str=substr(\$2, 2, 4); print str \"C\" }'; else sysctl dev.cpu | grep temperature | awk '{\$2=substr(\$2, 1, 4);a[\"t\"]+=\$2; printf \"%.2f\n\", a[\"t\"]/NR}' | tail -1 ; fi"
 # memary usage
-backtick 2 1 1 sh -c "if [ $(uname -s) = 'Linux' ]; then active=$(egrep 'Active:' /proc/meminfo | awk '{print \$2}');total=$(egrep 'MemTotal' /proc/meminfo | awk '{print \$2}');echo $(expr '(' \$active \* 100 ')' / \$total )%; fi"
+backtick 2 1 1 sh -c "if [ $(uname -s) = 'Linux' ]; then active=$(egrep 'Active:' /proc/meminfo | awk '{print \$2}');total=$(egrep 'MemTotal' /proc/meminfo | awk '{print \$2}');echo $(expr '(' \$active \* 100 ')' / \$total )%; else echo $(expr $(sysctl -n vm.stats.vm.v_active_count) \* 100 / $(sysctl -n vm.stats.vm.v_page_count))%; fi"
 # cpu usgae
 backtick 3 1 1 sh -c "if [ $(uname -s) = 'Linux' ]; then ps aux | awk '{print \$3}' | sed -e '/0\.0/d' -e '/CPU/d' | awk -v cpu=\$(lscpu | grep '\^CPU(s):' | awk '{print \$2}') '{a+=\$1; printf \"%.2f%\n\", a/cpu }' | tail -1; fi"
 caption always "%{.KW} %-w%{.mW}[%n] %t%{.KW}%+w"
