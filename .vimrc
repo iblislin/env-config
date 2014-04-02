@@ -36,6 +36,10 @@ set modeline
 " For vimpager
 set modifiable
 
+" Disable F1 heaper
+nmap <F1> <nop>
+imap <F1> <nop>
+
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Encoding
 """"""""""""""""""""""""""""""""""""""""""""""""""
