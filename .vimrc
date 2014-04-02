@@ -209,7 +209,9 @@ nmap <S-Tab> <<
 vmap <Tab>	>gv
 vmap <S-Tab> <gv
 nmap <C-A> ^
+imap <C-A> <Home>
 nmap <C-E> $
+imap <C-E> <End>
 
 " Keyword completion
 imap <M-Up> <C-N>
