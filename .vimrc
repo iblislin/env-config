@@ -408,7 +408,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'fugitive'
 	Bundle 'tcomment'
 	Bundle 'pep8'
-	Bundle 'pyCalltips'
+	" Bundle 'pyCalltips'
 	Bundle 'jedi-vim'
 
 	" original repos on github
