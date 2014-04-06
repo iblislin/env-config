@@ -89,10 +89,10 @@ endif
 "hi cursorline cterm=none ctermbg=darkgrey
 
 " Omni menu colors
-"hi Pmenu ctermbg=darkgrey
-"hi PmenuSel ctermbg=darkblue
-"Pattern matching
-"hi MatchParen ctermbg=11
+" hi Pmenu ctermbg=darkgrey
+" hi PmenuSel ctermbg=darkblue
+" Pattern matching
+" hi MatchParen ctermbg=11
 
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
@@ -409,6 +409,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'tcomment'
 	Bundle 'pep8'
 	Bundle 'pyCalltips'
+	Bundle 'jedi-vim'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
