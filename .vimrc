@@ -209,7 +209,7 @@ nmap <S-Tab> <<
 vmap <Tab>	>gv
 vmap <S-Tab> <gv
 nmap <C-A> ^
-imap <C-A> <Home>
+imap <C-A> <Esc>^i
 nmap <C-E> $
 imap <C-E> <End>
 
