@@ -1,5 +1,5 @@
 # Status line
-backtick 0 0 0 sh -c "screen -ls | grep \$PPID | awk '{print \$1}'"
+backtick 0 0 0 sh -c "screen -ls | grep \$PPID | awk '{print \$1}' | sed 's/\^[0-9]*\.//'"
 # cpu temperature
 backtick 1 1 1 sh -c "if [ $(uname -s) = 'Linux' ]; then sensors | grep temp1 | awk '{ str=substr(\$2, 2, 4); print str \"C\" }'; else sysctl dev.cpu | grep temperature | awk '{\$2=substr(\$2, 1, 4);a[\"t\"]+=\$2; printf \"%.2f\n\", a[\"t\"]/NR}' | tail -1 ; fi"
 # memary usage
