@@ -218,9 +218,6 @@ nmap <C-E> $
 " imap <M-Left> <C-P>
 " imap <M-Down> <C-P>
 
-" Omni Complete
-imap <C-R> <complete_CTRL-E>
-
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Temp and Backups
 """"""""""""""""""""""""""""""""""""""""""""""""""
