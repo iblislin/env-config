@@ -211,13 +211,15 @@ vmap <S-Tab> <gv
 nmap <C-A> ^
 imap <C-A> <Esc>^i
 nmap <C-E> $
-imap <C-E> <End>
 
 " Keyword completion
-imap <M-Up> <C-N>
-imap <M-Right> <C-N>
-imap <M-Left> <C-P>
-imap <M-Down> <C-P>
+" imap <M-Up> <C-N>
+" imap <M-Right> <C-N>
+" imap <M-Left> <C-P>
+" imap <M-Down> <C-P>
+
+" Omni Complete
+imap <C-R> <complete_CTRL-E>
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Temp and Backups
