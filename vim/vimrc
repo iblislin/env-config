@@ -211,6 +211,7 @@ vmap <S-Tab> <gv
 nmap <C-A> ^
 imap <C-A> <Esc>^i
 nmap <C-E> $
+imap <C-D> <End>
 
 " Keyword completion
 " imap <M-Up> <C-N>
