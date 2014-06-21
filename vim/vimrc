@@ -212,6 +212,8 @@ nmap <C-A> ^
 imap <C-A> <Esc>^i
 nmap <C-E> $
 imap <C-D> <End>
+imap <M-Left> <C-Left>
+imap <M-Right> <C-Right>
 
 " Keyword completion
 " imap <M-Up> <C-N>
