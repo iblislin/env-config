@@ -104,8 +104,8 @@ bindkey '^[[A'	up-line-or-search
 bindkey '^[OA'	up-line-or-search               # For gnome terminal
 bindkey '^[[B'	down-line-or-search
 bindkey '^[OB'	down-line-or-search             # For gnome terminal
-bindkey '^R'	history-incremental-pattern-search-backward
-bindkey '^F'	history-incremental-pattern-search-forward
+bindkey -M viins '^R' history-incremental-pattern-search-backward
+bindkey -M viins '^F' history-incremental-pattern-search-forward
 bindkey -M vicmd '/' history-incremental-pattern-search-backward
 bindkey -M vicmd '?' history-incremental-pattern-search-forward
 bindkey '^[[1;3C' forward-word
@@ -128,7 +128,7 @@ compinit
 # Completion setting
 # ==================================
 zstyle ':completion:*' menu select=2
-# zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
+zstyle ':completion:*:default' list-colors $ZLS_COLORS
 # ==================================
 # Custom setting
 # ==================================
