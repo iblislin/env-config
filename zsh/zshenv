@@ -1,12 +1,18 @@
 # ==================================
 # Zsh Options
 # ==================================
-setopt sh_word_split
-setopt extended_glob
 setopt appendhistory 
 setopt autocd
+setopt extended_glob
 setopt nomatch
+setopt prompt_subst
+setopt sh_word_split
 unsetopt beep
+# ==================================
+# Zsh Modules
+# ==================================
+autoload -U colors
+colors
 # ==================================
 # Enviroment Variable
 # ==================================
