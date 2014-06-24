@@ -58,9 +58,15 @@ then
 	fi
 fi
 
+
+local prompt_corner_up="┌─"
+local prompt_corner_down="└─"
+
 if [[ $USER == 'root' ]]
 then
-	prompt="%B[%F{red}%n%f@%m %~%(?.. %F{red}Oops%f)]%# %b"
+	prompt="$prompt_corner_up%B[${fg_bold[yellow]}%~${reset_color}%B]%b
+$prompt_corner_down%B[%F{red}%n%f@%m%(?.. %F{red}Oops%f)]%# %b"
 else
-	prompt="%B[%F{cyan}%n%f@%m %~%(?.. %F{red}Oops%f)]%# %b"
+	prompt="$prompt_corner_up%B[${fg_bold[yellow]}%~${reset_color}%B]%b
+$prompt_corner_down%B[%F{cyan}%n%f@%m%(?.. %F{red}Oops%f)]%# %b"
 fi
