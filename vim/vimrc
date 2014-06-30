@@ -412,6 +412,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'pep8'
 	" Bundle 'pyCalltips'
 	Bundle 'jedi-vim'
+	Bundle 'html5.vim'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
