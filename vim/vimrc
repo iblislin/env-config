@@ -202,7 +202,6 @@ noremap <LEADER>b :e ++enc=big5<CR>:set tenc=big5<CR>
 " UTF-8
 noremap <LEADER>u :e ++enc=utf-8<CR>:set tenc=utf-8<CR>
 
-map <Shift-CR> O<Esc>
 nmap <CR> i<CR><Esc>
 nmap <Tab> >>
 nmap <S-Tab> <<
@@ -220,6 +219,8 @@ nmap <M-UP>		:wincmd k<CR>
 nmap <M-Down>	:wincmd j<CR>
 nmap <M-Left>	:wincmd h<CR>
 nmap <M-Right>	:wincmd l<CR>
+nmap <F6> :set paste!<CR>
+nmap <F7> :set number!<CR>
 
 " Keyword completion
 " imap <M-Up> <C-N>
@@ -403,6 +404,11 @@ nmap <F9> :QFix<CR>
 	autocmd Filetype python let g:pep8_map='<F5>'
 
 	""""""""""""""""""""""""""""""""""""""""
+	" js-lib-syntax
+	""""""""""""""""""""""""""""""""""""""""
+	let g:used_javascript_libs = 'jquery,angularjs,angularui'
+
+	""""""""""""""""""""""""""""""""""""""""
 	" Vundle
 	""""""""""""""""""""""""""""""""""""""""
 	"set nocompatible               " be iMproved
@@ -431,6 +437,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'jedi-vim'
 	Bundle 'html5.vim'
 	Bundle 'taglist'
+	Bundle 'js-lib-syntax'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
