@@ -341,7 +341,7 @@ nmap <F9> :QFix<CR>
 	" x       Close the current nodes parent
 	" X       Recursively close all children of the current node
 	" e       Open a netrw for the current dir
-	" nnoremap <F4> :NERDTreeToggle<CR>
+	nnoremap <F4> :NERDTreeToggle<CR>
 	
 	""""""""""""""""""""""""""""""""""""""""
 	" Nerd Commenter
