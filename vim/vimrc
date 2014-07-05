@@ -311,6 +311,14 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	" Taglist
 	""""""""""""""""""""""""""""""""""""""""
+	" Usage
+	" t		Open target in tab
+	" o		Open target in window
+	" u		Update taglist
+	" q		Close taglist
+	" <tab>	Jump to next file
+	" <backspace>	Jump to previous file
+	"
 	" let Tlist_Ctags_Cmd = '/usr/local/bin/exctags'
 	let Tlist_Auto_Update = 1
 	" let Tlist_Auto_Open = 1
