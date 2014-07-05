@@ -257,7 +257,7 @@ set ai
 set si
 set cindent
 " Disable all the indent
-nmap <F2> :set noai nosi nocindent <CR>
+" nmap <F2> :set noai nosi nocindent <CR>
 set showmode
 " Scheme
 autocmd Filetype scheme set expandtab nocindent
@@ -317,14 +317,14 @@ nmap <F9> :QFix<CR>
 	" let Tlist_Enable_Fold_Column = 0
 	" let Tlist_Use_Right_Window = 1
 	" nnoremap <F3> :TlistToggle<CR>
-	
+
 	""""""""""""""""""""""""""""""""""""""""
 	" Slippery Snippet
 	""""""""""""""""""""""""""""""""""""""""
 	" let g:snip_start_tag = "«"
 	" let g:snip_end_tag = "»"
 	" let g:snippetsEmu_key = "<C-B>"
-	
+
 	""""""""""""""""""""""""""""""""""""""""
 	" Nerd Tree
 	""""""""""""""""""""""""""""""""""""""""
@@ -342,12 +342,12 @@ nmap <F9> :QFix<CR>
 	" X       Recursively close all children of the current node
 	" e       Open a netrw for the current dir
 	nnoremap <F4> :NERDTreeToggle<CR>
-	
+
 	""""""""""""""""""""""""""""""""""""""""
 	" Nerd Commenter
 	""""""""""""""""""""""""""""""""""""""""
 	" let g:NERDMapleader = ";c"
-	
+
 	""""""""""""""""""""""""""""""""""""""""
 	" SuperTab
 	""""""""""""""""""""""""""""""""""""""""
@@ -355,12 +355,12 @@ nmap <F9> :QFix<CR>
 	" let g:SuperTabContextDefaultCompletionType = "<c-n>"
 	let g:SuperTabDefaultCompletionType = "<tab>"
 	let g:SuperTabContextDefaultCompletionType = "<tab>"
-	
+
 	""""""""""""""""""""""""""""""""""""""""
 	" OmniCppComplete
 	""""""""""""""""""""""""""""""""""""""""
 	" map <F12> :!exctags -R --c-kinds=+p --fields=+iaS --extra=+q .<CR>
-	
+
 	""""""""""""""""""""""""""""""""""""""""
 	" code_complete
 	""""""""""""""""""""""""""""""""""""""""
@@ -395,7 +395,7 @@ nmap <F9> :QFix<CR>
 	call vundle#rc()
 
 	" let Vundle manage Vundle
-	" required! 
+	" required!
 	Bundle 'gmarik/vundle'
 
 	" My Bundles here:
@@ -413,13 +413,14 @@ nmap <F9> :QFix<CR>
 	" Bundle 'pyCalltips'
 	Bundle 'jedi-vim'
 	Bundle 'html5.vim'
+	Bundle 'taglist'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
 	" Bundle 'Lokaltog/vim-easymotion'
 	" Bundle 'rstacruz/sparkup', {'rtp': 'vim/'}
 	" Bundle 'tpope/vim-rails.git'
-	
+
 	" vim-scripts repos
 	" Bundle 'L9'
 	" Bundle 'FuzzyFinder'
@@ -427,7 +428,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'matchit'
 	Bundle 'code_complete'
 	Bundle 'autocomplpop'
-	 
+
 	" non github repos
 	" Bundle 'git://git.wincent.com/command-t.git'
 
