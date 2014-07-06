@@ -269,7 +269,7 @@ set showmode
 " Scheme
 autocmd Filetype scheme set expandtab nocindent
 " JavaScript
-autocmd Filetype javascript set expandtab
+" autocmd Filetype javascript set expandtab
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Spell check
