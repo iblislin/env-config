@@ -407,6 +407,13 @@ nmap <F9> :QFix<CR>
 	" js-lib-syntax
 	""""""""""""""""""""""""""""""""""""""""
 	let g:used_javascript_libs = 'jquery,angularjs,angularui'
+	""""""""""""""""""""""""""""""""""""""""
+	" vim-css3-syntax
+	""""""""""""""""""""""""""""""""""""""""
+	augroup VimCSS3Syntax
+		autocmd!
+		autocmd FileType css setlocal iskeyword+=-
+	augroup END
 
 	""""""""""""""""""""""""""""""""""""""""
 	" Vundle
@@ -438,6 +445,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'html5.vim'
 	Bundle 'taglist'
 	Bundle 'js-lib-syntax'
+	Bundle 'vim-css3-syntax'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
