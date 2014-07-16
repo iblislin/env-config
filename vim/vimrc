@@ -269,7 +269,7 @@ set showmode
 " Scheme
 autocmd Filetype scheme set expandtab nocindent
 " JavaScript
-autocmd Filetype javascript set omnifunc=syntaxcomplete#Complete
+" autocmd Filetype javascript set omnifunc=syntaxcomplete#Complete
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Spell check
@@ -414,6 +414,10 @@ nmap <F9> :QFix<CR>
 		autocmd!
 		autocmd FileType css setlocal iskeyword+=-
 	augroup END
+	""""""""""""""""""""""""""""""""""""""""
+	" nodejs-complete
+	""""""""""""""""""""""""""""""""""""""""
+	let g:nodejs_complete_config = { 'js_compl_fn': 'syntaxcomplete#Complete' }
 
 	""""""""""""""""""""""""""""""""""""""""
 	" Vundle
@@ -446,6 +450,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'taglist'
 	Bundle 'js-lib-syntax'
 	Bundle 'vim-css3-syntax'
+	Bundle 'nodejs-complete'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
