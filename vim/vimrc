@@ -210,7 +210,8 @@ vmap <S-Tab> <gv
 nmap <C-A> ^
 imap <C-A> <Esc>^i
 nmap <C-E> $
-imap <C-D> <End>
+imap <C-E> <End>
+" imap <C-D> <End>
 " Word jumping
 imap <M-Left> <C-Left>
 imap <M-Right> <C-Right>
@@ -407,6 +408,7 @@ nmap <F9> :QFix<CR>
 	" js-lib-syntax
 	""""""""""""""""""""""""""""""""""""""""
 	let g:used_javascript_libs = 'jquery,angularjs,angularui'
+
 	""""""""""""""""""""""""""""""""""""""""
 	" vim-css3-syntax
 	""""""""""""""""""""""""""""""""""""""""
@@ -414,10 +416,21 @@ nmap <F9> :QFix<CR>
 		autocmd!
 		autocmd FileType css setlocal iskeyword+=-
 	augroup END
+
 	""""""""""""""""""""""""""""""""""""""""
 	" nodejs-complete
 	""""""""""""""""""""""""""""""""""""""""
 	let g:nodejs_complete_config = { 'js_compl_fn': 'syntaxcomplete#Complete' }
+
+	""""""""""""""""""""""""""""""""""""""""
+	" YouCompleteMe
+	""""""""""""""""""""""""""""""""""""""""
+	let g:ycm_add_preview_to_completeopt = 1
+	" let g:ycm_autoclose_preview_window_after_completion = 1
+	let g:ycm_autoclose_preview_window_after_insertion = 1
+	let g:ycm_complete_in_comments = 1
+	let g:ycm_key_list_previous_completion = ['<S-TAB>', '<Up>']
+	let g:ycm_filepath_completion_use_working_dir = 1
 
 	""""""""""""""""""""""""""""""""""""""""
 	" Vundle
@@ -434,7 +447,7 @@ nmap <F9> :QFix<CR>
 
 	" My Bundles here:
 	Bundle 'emmet-vim'
-	Bundle 'supertab'
+	" Bundle 'supertab'
 	Bundle 'surround'
 	Bundle 'javascript'
 	Bundle 'php.syntax'
@@ -445,12 +458,13 @@ nmap <F9> :QFix<CR>
 	Bundle 'tcomment'
 	Bundle 'pep8'
 	" Bundle 'pyCalltips'
-	Bundle 'jedi-vim'
+	" Bundle 'jedi-vim'
 	Bundle 'html5.vim'
 	Bundle 'taglist'
 	Bundle 'js-lib-syntax'
 	Bundle 'vim-css3-syntax'
 	Bundle 'nodejs-complete'
+	Bundle 'YouCompleteMe'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
