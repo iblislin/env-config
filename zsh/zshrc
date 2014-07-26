@@ -60,7 +60,7 @@ alias wget='wget --no-check-certificate'
 if ( isExist vim )
 then
 	export EDITOR=vim
-	alias vi='vim'
+	alias vi='vim -p'
 else
 	export EDITOR=vi
 fi
