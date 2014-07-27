@@ -1,50 +1,52 @@
 #!/bin/sh
 
-file=".cshrc .screenrc .gitconfig .pyrc"
-REAL=`realpath $0`
+TRUE=1
+FALSE=0
+
+isLinix()
+{
+	if [ `uname -s` = 'Linux' ]
+	then
+		echo $TRUE
+	else
+		echo $FALSE
+	fi
+}
+
+file=".cshrc .screenrc .gitconfig .pyrc vim zsh/zshenv zsh/zshrc"
+rename_vim='.vim'
+rename_zshenv='.zshenv'
+rename_zshrc='.zshrc'
+
+if [ `isLinix` = $TRUE ]
+then
+	REAL=`readlink -f $0`
+else
+	REAL=`realpath $0`
+fi
 BASE=`dirname $REAL`
 LN='ln -s'
 
-ckfile()
-{
-	printf "$1 : "
-		if [ ! -L $HOME/$1 ]
-		then
-			rm -rf $HOME/$1
-			$LN $BASE/$1 $HOME/$1
-			printf 'Done.\n'
-		else
-			printf	'Link existed.\n'
-		fi
-}
+mkdir -p $BASE/vim/backup $BASE/vim/backup ~/bin
 
-vim()
-{
-	ckfile ".vimrc"
-	for i in backup tmp
-	do
-		if [ ! -d vim/${i} ]
-		then
-			mkdir vim/${i}
-		fi
-	done
-	if [ -d $HOME/.vim ]
-	then
-		rm -rf $HOME/.vim
-		$LN $BASE/vim $HOME/.vim
-	else
-		$LN $BASE/vim $HOME/.vim
-	fi
-
-	sh ./ctags.sh
-}
-
-for i in $file
+for f in $file
 do
-	ckfile $i;
+	if [ ! -e $BASE/$f ]
+	then
+		continue
+	fi
+	eval _rename=\$rename_${f#*/}
+	if [ -z $_rename ]
+	then
+		_rename=$f
+	fi
+	if [ -e ~/$_rename ]
+	then
+		rm -f ~/$_rename
+	fi
+	echo "$BASE/$f -> ~/$_rename"
+	$LN $BASE/$f ~/$_rename
 done
-
-vim;
 
 git submodule init
 git submodule sync
@@ -54,9 +56,3 @@ git submodule update
 mkdir -p ~/bin
 $LN $BASE/vimpager/vimpager ~/bin/
 $LN $BASE/vimpager/vimcat ~/bin/
-
-#ZSH
-rm $HOME/.zshrc $HOME/.zshenv $HOME/.zshlocal
-$LN $BASE/zsh/zshrc $HOME/.zshrc
-$LN $BASE/zsh/zshenv $HOME/.zshenv
-$LN $BASE/zsh/zshlocal $HOME/.zshlocal
