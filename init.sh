@@ -46,9 +46,9 @@ done
 
 vim;
 
-git submodule init
+git submodule update --init --recursive
+# git submodule init
 git submodule sync
-git submodule update
 
 # vim pager
 mkdir -p ~/bin
