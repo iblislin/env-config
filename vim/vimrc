@@ -431,6 +431,14 @@ nmap <F9> :QFix<CR>
 	let g:ycm_complete_in_comments = 1
 	let g:ycm_key_list_previous_completion = ['<S-TAB>', '<Up>']
 	let g:ycm_filepath_completion_use_working_dir = 1
+	let g:ycm_filetype_blacklist = {
+		\ 'python': 1
+		\}
+
+	""""""""""""""""""""""""""""""""""""""""
+	" jedi-vim
+	""""""""""""""""""""""""""""""""""""""""
+	let g:jedi#popup_select_first = 0
 
 	""""""""""""""""""""""""""""""""""""""""
 	" Vundle
@@ -458,7 +466,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'tcomment'
 	Bundle 'pep8'
 	" Bundle 'pyCalltips'
-	" Bundle 'jedi-vim'
+	Bundle 'jedi-vim'
 	Bundle 'html5.vim'
 	Bundle 'taglist'
 	Bundle 'js-lib-syntax'
