@@ -52,6 +52,7 @@ alias top='top -s 1'
 alias mysql='mysql -u root -p --prompt="(\u@\h) [\d]>"'
 alias ssh-x='ssh -c arcfour,blowfish-cbc -XC'
 alias wget='wget --no-check-certificate'
+alias py='python'
 
 #if [[ -x `where gvim` ]]
 #then
