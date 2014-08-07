@@ -334,7 +334,7 @@ nmap <F9> :QFix<CR>
 	" let Tlist_Enable_Fold_Column = 0
 	let Tlist_Use_Right_Window = 1
 	let tlist_python_settings = 'python;c:class;f:function;m:member;v:variable;i:import'
-	nnoremap <F3> :TlistToggle<CR>
+	nnoremap <F4> :TlistToggle<CR>
 
 	""""""""""""""""""""""""""""""""""""""""
 	" Slippery Snippet
@@ -360,7 +360,7 @@ nmap <F9> :QFix<CR>
 	" X       Recursively close all children of the current node
 	" e       Open a netrw for the current dir
 	" q       Close the nerd tree split window
-	nnoremap <F4> :NERDTreeToggle<CR>
+	nnoremap <F3> :NERDTreeToggle<CR>
 
 	""""""""""""""""""""""""""""""""""""""""
 	" Nerd Commenter
