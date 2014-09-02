@@ -455,7 +455,7 @@ nmap <F9> :QFix<CR>
 
 	" My Bundles here:
 	Bundle 'emmet-vim'
-	" Bundle 'supertab'
+	Bundle 'supertab'
 	Bundle 'surround'
 	Bundle 'javascript'
 	Bundle 'php.syntax'
