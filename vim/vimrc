@@ -472,7 +472,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'js-lib-syntax'
 	Bundle 'vim-css3-syntax'
 	Bundle 'nodejs-complete'
-	Bundle 'YouCompleteMe'
+	" Bundle 'YouCompleteMe'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
