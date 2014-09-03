@@ -385,11 +385,11 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	" code_complete
 	""""""""""""""""""""""""""""""""""""""""
-	autocmd BufNewFile,BufRead *.c,*.cpp set tags=~/.vim/tags
-	map <F12> :!exctags -R --c-kinds=+p --fields=+S .<CR>
-	let g:rs = "'<"	" Default `< >` caused problem in php indent
-	let g:re = ">'"
-	let g:completekey = "<c-p>"
+	" autocmd BufNewFile,BufRead *.c,*.cpp set tags=~/.vim/tags
+	" map <F12> :!exctags -R --c-kinds=+p --fields=+S .<CR>
+	" let g:rs = "'<"	" Default `< >` caused problem in php indent
+	" let g:re = ">'"
+	" let g:completekey = "<c-p>"
 
 	""""""""""""""""""""""""""""""""""""""""
 	" Emmet (zenconding)
@@ -441,6 +441,16 @@ nmap <F9> :QFix<CR>
 	" jedi-vim
 	""""""""""""""""""""""""""""""""""""""""
 	let g:jedi#popup_select_first = 0
+	au FileType python inoremap <buffer> . .<C-R>=jedi#complete_opened() ? "" : "\<lt>C-X>\<lt>C-O>\<lt>C-P>"<CR>
+
+	""""""""""""""""""""""""""""""""""""""""
+	" ultisnips
+	""""""""""""""""""""""""""""""""""""""""
+
+	""""""""""""""""""""""""""""""""""""""""
+	" vim-autocomplpop
+	""""""""""""""""""""""""""""""""""""""""
+	let g:AutoComplPopDontSelectFirst = 1
 
 	""""""""""""""""""""""""""""""""""""""""
 	" Vundle
@@ -475,6 +485,8 @@ nmap <F9> :QFix<CR>
 	Bundle 'vim-css3-syntax'
 	Bundle 'nodejs-complete'
 	" Bundle 'YouCompleteMe'
+	" Bundle 'ultisnips'
+	Bundle 'L9'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
@@ -485,10 +497,10 @@ nmap <F9> :QFix<CR>
 	" vim-scripts repos
 	" Bundle 'L9'
 	" Bundle 'FuzzyFinder'
-	Bundle 'matrix'
+	" Bundle 'matrix'
 	Bundle 'matchit'
-	Bundle 'code_complete'
-	Bundle 'autocomplpop'
+	" Bundle 'code_complete'
+	Bundle 'vim-autocomplpop'
 
 	" non github repos
 	" Bundle 'git://git.wincent.com/command-t.git'
