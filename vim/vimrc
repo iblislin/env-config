@@ -220,8 +220,10 @@ nmap <M-UP>		:wincmd k<CR>
 nmap <M-Down>	:wincmd j<CR>
 nmap <M-Left>	:wincmd h<CR>
 nmap <M-Right>	:wincmd l<CR>
-nmap <F6> :set paste!<CR>
-nmap <F7> :set number!<CR>
+nmap <F6> :set paste!<CR>:set paste?<CR>
+nmap <F7> :set number!<CR>:set number?<CR>
+imap <F6> <ESC><F6>
+imap <F7> <ESC><F7>i
 
 " Keyword completion
 " imap <M-Up> <C-N>
