@@ -372,10 +372,8 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	" SuperTab
 	""""""""""""""""""""""""""""""""""""""""
-	" let g:SuperTabDefaultCompletionType = "<c-n>"
-	" let g:SuperTabContextDefaultCompletionType = "<c-n>"
-	let g:SuperTabDefaultCompletionType = "<tab>"
-	let g:SuperTabContextDefaultCompletionType = "<tab>"
+	let g:SuperTabDefaultCompletionType = "<c-n>"
+	let g:SuperTabContextDefaultCompletionType = "<c-n>"
 
 	""""""""""""""""""""""""""""""""""""""""
 	" OmniCppComplete
@@ -427,25 +425,28 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	" YouCompleteMe
 	""""""""""""""""""""""""""""""""""""""""
-	let g:ycm_add_preview_to_completeopt = 1
+	" let g:ycm_add_preview_to_completeopt = 1
 	" let g:ycm_autoclose_preview_window_after_completion = 1
-	let g:ycm_autoclose_preview_window_after_insertion = 1
-	let g:ycm_complete_in_comments = 1
-	let g:ycm_key_list_previous_completion = ['<S-TAB>', '<Up>']
-	let g:ycm_filepath_completion_use_working_dir = 1
-	let g:ycm_filetype_blacklist = {
-		\ 'python': 1
-		\}
+	" let g:ycm_autoclose_preview_window_after_insertion = 1
+	" let g:ycm_complete_in_comments = 1
+	" let g:ycm_key_list_previous_completion = ['<S-TAB>', '<Up>']
+	" let g:ycm_filepath_completion_use_working_dir = 1
+	" let g:ycm_filetype_blacklist = {
+	" 	\ 'python': 1
+	" 	\}
 
 	""""""""""""""""""""""""""""""""""""""""
 	" jedi-vim
 	""""""""""""""""""""""""""""""""""""""""
 	let g:jedi#popup_select_first = 0
-	au FileType python inoremap <buffer> . .<C-R>=jedi#complete_opened() ? "" : "\<lt>C-X>\<lt>C-O>\<lt>C-P>"<CR>
+	" Fix popup for autocomplpop
+	" au FileType python inoremap <buffer> . .<C-R>=jedi#complete_opened() ? "" : "\<lt>C-X>\<lt>C-O>\<lt>C-P>"<CR>
 
 	""""""""""""""""""""""""""""""""""""""""
 	" ultisnips
 	""""""""""""""""""""""""""""""""""""""""
+	let g:UltiSnipsExpandTrigger="<tab>"
+	let g:UltiSnipsEditSplit="vertical"
 
 	""""""""""""""""""""""""""""""""""""""""
 	" vim-autocomplpop
@@ -485,7 +486,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'vim-css3-syntax'
 	Bundle 'nodejs-complete'
 	" Bundle 'YouCompleteMe'
-	" Bundle 'ultisnips'
+	Bundle 'ultisnips'
 	Bundle 'L9'
 
 	" original repos on github
@@ -500,7 +501,7 @@ nmap <F9> :QFix<CR>
 	" Bundle 'matrix'
 	Bundle 'matchit'
 	" Bundle 'code_complete'
-	Bundle 'vim-autocomplpop'
+	" Bundle 'vim-autocomplpop'
 
 	" non github repos
 	" Bundle 'git://git.wincent.com/command-t.git'
