@@ -251,8 +251,6 @@ set foldenable
 set fdl=0
 set foldmethod=marker
 "nnoremap <SPACE> @=((foldclosed(line('.')) < 0) ? 'zc' : 'zo')<CR>
-" Python
-autocmd Filetype python set foldmethod=indent expandtab
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Text
@@ -400,11 +398,6 @@ nmap <F9> :QFix<CR>
 	set statusline=%<%f\ %h%m%r\ %{fugitive#statusline()}%=%-15(%c%V\ %p%%%)
 
 	""""""""""""""""""""""""""""""""""""""""
-	" Pep8
-	""""""""""""""""""""""""""""""""""""""""
-	autocmd Filetype python let g:pep8_map='<F5>'
-
-	""""""""""""""""""""""""""""""""""""""""
 	" js-lib-syntax
 	""""""""""""""""""""""""""""""""""""""""
 	let g:used_javascript_libs = 'jquery,angularjs,angularui'
@@ -446,7 +439,10 @@ nmap <F9> :QFix<CR>
 	" ultisnips
 	""""""""""""""""""""""""""""""""""""""""
 	let g:UltiSnipsExpandTrigger="<tab>"
+	let g:UltiSnipsJumpForwardTrigger="<tab>"
+	let g:UltiSnipsJumpBackwardTrigger="<s-tab>"
 	let g:UltiSnipsEditSplit="vertical"
+	inoremap <c-x><c-k> <c-x><c-k>
 
 	""""""""""""""""""""""""""""""""""""""""
 	" vim-autocomplpop
@@ -488,6 +484,7 @@ nmap <F9> :QFix<CR>
 	" Bundle 'YouCompleteMe'
 	Bundle 'ultisnips'
 	Bundle 'L9'
+	Bundle 'vim-snippets'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
@@ -496,7 +493,6 @@ nmap <F9> :QFix<CR>
 	" Bundle 'tpope/vim-rails.git'
 
 	" vim-scripts repos
-	" Bundle 'L9'
 	" Bundle 'FuzzyFinder'
 	" Bundle 'matrix'
 	Bundle 'matchit'
