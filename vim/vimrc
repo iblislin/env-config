@@ -520,17 +520,6 @@ set listchars=tab:>-,trail:-,eol:$,nbsp:%,extends:>,precedes:<
 " Coding
 """"""""""""""""""""""""""""""""""""""""
 	""""""""""""""""""""""""""""""""""""""""
-	" PHP
-	""""""""""""""""""""""""""""""""""""""""
-	autocmd BufNewFile,BufRead *.php set dictionary+=~/.vim/dict/phpfunclist
-	autocmd BufNewFile,BufRead *.php set autoindent nocindent
-	let php_sql_query=1
-	let php_htmlInStrings=1
-	let php_folding=1
-	let php_noShortTags=1
-	let php_no_shorttags=1
-
-	""""""""""""""""""""""""""""""""""""""""
 	" C/CPP
 	""""""""""""""""""""""""""""""""""""""""
 	autocmd Filetype cpp nmap <F8> :r ~/.vim/code/default.cpp<Esc>ggdd:6<CR>o
