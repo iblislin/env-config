@@ -1,7 +1,7 @@
 " Vim color file
 " Name:       iblis
 " Maintainer: Iblis Lin
-" Version:    0.10
+" Version:    0.20
 
 set background=dark
 hi clear
@@ -9,7 +9,7 @@ if exists("syntax_on")
    syntax reset
 endif
 
-let colors_name = "dennylin93"
+let colors_name = "iblis"
 
 if has("gui_running")
     hi Normal         gui=NONE   guifg=#cfbfad   guibg=#000000
@@ -171,4 +171,5 @@ else
         hi SpellCap     cterm=NONE                      ctermbg=23
         hi MatchParen   cterm=NONE      ctermfg=NONE    ctermbg=14
     endif
+
 endif
