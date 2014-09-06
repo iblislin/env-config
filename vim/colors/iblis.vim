@@ -169,7 +169,7 @@ else
         hi SpellRare    cterm=NONE                      ctermbg=53
         hi SpellLocal   cterm=NONE                      ctermbg=58
         hi SpellCap     cterm=NONE                      ctermbg=23
-        hi MatchParen   cterm=NONE      ctermfg=NONE    ctermbg=14
+        hi MatchParen   cterm=NONE      ctermfg=NONE    ctermbg=172
     endif
 
 endif
