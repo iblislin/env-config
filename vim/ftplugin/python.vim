@@ -9,6 +9,8 @@ match LeadingSpaces /^\ \+/
 """"""""""""""""""""""""""""""""""""""""""""""
 setlocal foldmethod=indent
 setlocal expandtab
+nnoremap <buffer> <F5> :w<CR>:exec '!python' shellescape(@%, 1)<CR>
+imap <buffer> <F5> <ESC><F5>
 
 """"""""""""""""""""""""""""""""""""""""""""""
 "  Plugins
@@ -23,7 +25,7 @@ setlocal expandtab
 	""""""""""""""""""""""""""""""""""""""""""""""
 	"  Pep8
 	""""""""""""""""""""""""""""""""""""""""""""""
-	let g:pep8_map='<F5>'
+	let g:pep8_map='<F8>'
 
 	""""""""""""""""""""""""""""""""""""""""""""""
 	"  Vundle
