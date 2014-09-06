@@ -205,8 +205,8 @@ noremap <LEADER>u :e ++enc=utf-8<CR>:set tenc=utf-8<CR>
 nmap <CR> i<CR><Esc>
 nmap <Tab> >>
 nmap <S-Tab> <<
-vmap <Tab>	>gv
-vmap <S-Tab> <gv
+xnoremap <Tab>	>gv
+xnoremap <S-Tab> <gv
 nmap <C-A> ^
 imap <C-A> <Esc>^i
 nmap <C-E> $
@@ -438,10 +438,11 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	" ultisnips
 	""""""""""""""""""""""""""""""""""""""""
-	let g:UltiSnipsExpandTrigger="<tab>"
-	let g:UltiSnipsJumpForwardTrigger="<tab>"
-	let g:UltiSnipsJumpBackwardTrigger="<s-tab>"
-	let g:UltiSnipsEditSplit="vertical"
+	let g:UltiSnipsExpandTrigger = "<tab>"
+	let g:UltiSnipsJumpForwardTrigger = "<tab>"
+	let g:UltiSnipsJumpBackwardTrigger = "<s-tab>"
+	let g:UltiSnipsEditSplit = "vertical"
+	let g:UltiSnipsSaveVisualTrigger = "<c-w>"
 	inoremap <c-x><c-k> <c-x><c-k>
 
 	""""""""""""""""""""""""""""""""""""""""
