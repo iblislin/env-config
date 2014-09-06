@@ -5,7 +5,7 @@ hi def LeadingSpaces term=reverse ctermfg=15 ctermbg=241 gui=reverse guifg=#dc32
 match LeadingSpaces /^\ \+/
 
 """"""""""""""""""""""""""""""""""""""""""""""
-"  Misc
+"  General
 """"""""""""""""""""""""""""""""""""""""""""""
 setlocal foldmethod=indent
 setlocal expandtab
