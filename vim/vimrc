@@ -429,13 +429,6 @@ nmap <F9> :QFix<CR>
 	" 	\}
 
 	""""""""""""""""""""""""""""""""""""""""
-	" jedi-vim
-	""""""""""""""""""""""""""""""""""""""""
-	let g:jedi#popup_select_first = 0
-	" Fix popup for autocomplpop
-	" au FileType python inoremap <buffer> . .<C-R>=jedi#complete_opened() ? "" : "\<lt>C-X>\<lt>C-O>\<lt>C-P>"<CR>
-
-	""""""""""""""""""""""""""""""""""""""""
 	" ultisnips
 	""""""""""""""""""""""""""""""""""""""""
 	let g:UltiSnipsExpandTrigger = "<tab>"
@@ -474,9 +467,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'git'
 	Bundle 'fugitive'
 	Bundle 'tcomment'
-	Bundle 'pep8'
 	" Bundle 'pyCalltips'
-	Bundle 'jedi-vim'
 	Bundle 'html5.vim'
 	Bundle 'taglist'
 	Bundle 'js-lib-syntax'
