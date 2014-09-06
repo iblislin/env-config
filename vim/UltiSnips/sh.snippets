@@ -1,14 +1,14 @@
 snippet for "for ... in loop" b
 for ${1:i} in ${2:list}
 do
-	${0:# code}
+	${0:${VISUAL:# code}}
 done
 endsnippet
 
 snippet while "while loop" b
 while [ ${1:condition} ]
 do
-	${0:# code}
+	${0:${VISUAL:# code}}
 done
 endsnippet
 
@@ -16,7 +16,7 @@ snippet whilei "while loop with i" b
 ${1:i}=${2:0}
 while [ \$$1 -lt ${3:$count} ]
 do
-	${0:# code}
+	${0:${VISUAL:# code}}
 	
 	i=\`expr $i + 1\`
 done
@@ -25,24 +25,24 @@ endsnippet
 snippet if "if ... then statement" b
 if [ ${1:condition} ]
 then
-	${0:# code}
+	${0:${VISUAL:# code}}
 fi
 endsnippet
 
 snippet elif "elif ... then" b
 elif [ ${1:condition} ]
 then
-	${0:# code}
+	${0:${VISUAL:# code}}
 endsnippet
 
 snippet and "[ ... ] && { ... }" b
 [ ${1:condition} ] && {
-	${0:# code}
+	${0:${VISUAL:# code}}
 }
 endsnippet
 
 snippet or "[ ... ] || { ... }" b
 [ ${1:condition} ] || {
-	${0:# code}
+	${0:${VISUAL:# code}}
 }
 endsnippet
