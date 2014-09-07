@@ -1,3 +1,7 @@
 snippet "([0-9])" "The tabstop n" r
 \$\{`!p snip.rv = match.group(1)`:${2:\$\{VISUAL:${1:place_holder}\}}\}
 endsnippet
+
+snippet indent "vim indent"
+\`!v indent(".")\`
+endsnippet
