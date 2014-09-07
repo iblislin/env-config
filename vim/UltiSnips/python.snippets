@@ -1,0 +1,191 @@
+global !p
+
+def get_args(arglist):
+	return [tuple(arg.strip().split('=')) for arg in arglist.strip().split(',') if arg and not arg == 'self']
+
+def docstring_param(arg):
+	return ':param {0}: TODO'.format(arg)
+
+def docstring_params(arglist, snip):
+	for arg in get_args(arglist):
+		snip += docstring_param(arg[0])
+
+endglobal
+
+##############################################
+#  General
+##############################################
+
+snippet main "if __name__ == '__main__'" b
+if __name__ == '__main__':
+	${1:${VISUAL:# code}}$0
+endsnippet
+
+##############################################
+#  If
+##############################################
+
+snippet if "If" b
+if ${1:condiction}:
+	${2:${VISUAL:pass}}$0
+endsnippet
+
+snippet ife "If ... else" b
+if ${1:condiction}:
+	${2:${VISUAL:pass}}
+else:
+	${3:${VISUAL:pass}}$0
+endsnippet
+
+snippet ifee "if ... elif ... else" b
+if ${1:condiction}:
+	${2:${VISUAL:pass}}
+elif ${3:condiction}:
+	${4:${VISUAL:pass}}
+else:
+	${5:${VISUAL:pass}}$0
+endsnippet
+
+##############################################
+#  loop
+##############################################
+
+snippet fori "for i in range() loop" b
+for i in range(${1:stop}):
+	${2:${VISUAL:pass}}$0
+endsnippet
+
+snippet while "while loop" b
+while ${1:condiction}:
+	${2:${VISUAL:pass}}$0
+endsnippet
+
+##############################################
+#  try
+##############################################
+
+snippet try "try ... except" b
+try:
+	${1:${VISUAL:pass}}
+except${2: ${3:Exception} as ${4:e}}:
+	${5:${VISUAL:pass}}$0
+endsnippet
+
+##############################################
+#  with
+##############################################
+
+snippet with "with ... as ..." b
+with ${1:expr} as ${2:var}:
+	${3:${VISUAL:pass}}$0
+endsnippet
+
+snippet open "with open() as file" b
+with open('${1:file path}', '${2:[rwa]b?+?}'):
+	${3:${VISUAL:pass}}$0
+endsnippet
+
+##############################################
+#  Testing
+##############################################
+
+snippet pdb "Set PDB breakpoint" b
+import pdb; pdb.set_trace()
+$0
+endsnippet
+
+snippet ipdb "Set IPDB breakpoint" b
+import ipdb; ipdb.set_trace()
+$0
+endsnippet
+
+snippet pudb "Set PUDB breakpoint" b
+import pudb; pudb.set_trace()
+$0
+endsnippet
+
+snippet ae "Assert equal" b
+self.assertEqual(${1:first}, ${2:second})
+$0
+endsnippet
+
+snippet at "Assert True" b
+self.assertTrue(${1:expression})
+$0
+endsnippet
+
+snippet af "Assert False" b
+self.assertFalse(${1:expression})
+$0
+endsnippet
+
+snippet aae "Assert almost equal" b
+self.assertAlmostEqual(${1:first}, ${2:second})
+$0
+endsnippet
+
+snippet ar "Assert raises" b
+self.assertRaises(${1:exception}, ${2:func}${3/.+/, /}${3:arguments})
+$0
+endsnippet
+
+snippet an "Assert is None" b
+self.assertIsNone(${0:expression})
+$0
+endsnippet
+
+snippet ann "Assert is not None" b
+self.assertIsNotNone(${0:expression})
+$0
+endsnippet
+
+snippet test "test function" b
+def test_${1:func}(${2:`!v indent(".")? 'self' : ''`$3}):
+	${4:${VISUAL:pass}}$0
+endsnippet
+
+snippet testcase "test case class" b
+class Test${1:Class}(${2:unittest.TestCase}):
+	"""
+	${3:TODO: Docstring for Test$1}
+	"""
+
+	def setUp(self):
+		${4:${VISUAL:pass}}
+
+	def tearDown(self):
+		${5:${VISUAL:pass}}$0
+endsnippet
+
+##############################################
+#  function
+##############################################
+
+snippet def "define function" b
+def ${1:function}(${2:self$3}`!p snip.rv = ', ' if t[2] and t[4] else ''`${4:*args, **kwargs}):
+	"""
+	${5:TODO: Docstring for $1}
+`!p
+snip.rv = ''
+snip >> 1
+docstring_params(t[2], snip)
+`
+	:return: ${6:TODO}
+	"""
+	${7:${VISUAL:pass}}$0
+endsnippet
+
+snippet "uni(code)?" "__unicode__" br
+def __unicode__(self):
+	${1:return self.$2}$0
+endsnippet
+
+##############################################
+#  class
+##############################################
+
+snippet prop "class property" b
+@property
+def ${1:function}(self):
+	${2:${VISUAL:# code}}$0
+endsnippet
