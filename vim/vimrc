@@ -416,6 +416,18 @@ nmap <F9> :QFix<CR>
 	let g:nodejs_complete_config = { 'js_compl_fn': 'syntaxcomplete#Complete' }
 
 	""""""""""""""""""""""""""""""""""""""""
+	" jedi-vim
+	""""""""""""""""""""""""""""""""""""""""
+	let g:jedi#popup_select_first = 0
+	" Fix popup for autocomplpop
+	" au FileType python inoremap <buffer> . .<C-R>=jedi#complete_opened() ? "" : "\<lt>C-X>\<lt>C-O>\<lt>C-P>"<CR>
+
+	""""""""""""""""""""""""""""""""""""""""""""""
+	"  Pep8
+	""""""""""""""""""""""""""""""""""""""""""""""
+	let g:pep8_map='<F8>'
+
+	""""""""""""""""""""""""""""""""""""""""
 	" YouCompleteMe
 	""""""""""""""""""""""""""""""""""""""""
 	" let g:ycm_add_preview_to_completeopt = 1
@@ -477,6 +489,8 @@ nmap <F9> :QFix<CR>
 	Bundle 'ultisnips'
 	Bundle 'L9'
 	Bundle 'vim-snippets'
+	Bundle 'jedi-vim'
+	" Bundle 'pep8'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
