@@ -448,7 +448,7 @@ nmap <F9> :QFix<CR>
 	" let g:UltiSnipsJumpBackwardTrigger = "<c-k>"
 	let g:UltiSnipsEditSplit = "vertical"
 	let g:UltiSnipsSaveVisualTrigger = "<c-w>"
-	let g:UltiSnipsSnippetDirectories = [ 'bundle/vim-snippets/UltiSnips' ]
+	let g:UltiSnipsSnippetsDir = '~/.vim/bundle/vim-snippets/UltiSnips'
 	snoremap <silent> <s-tab> <Esc>:call UltiSnips#JumpBackwards()<cr>
 	inoremap <c-x><c-k> <c-x><c-k>
 
