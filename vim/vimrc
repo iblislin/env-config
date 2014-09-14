@@ -443,7 +443,7 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	" ultisnips
 	""""""""""""""""""""""""""""""""""""""""
-	let g:UltiSnipsExpandTrigger = "<tab>"
+	let g:UltiSnipsExpandTrigger = "<c-p>"
 	" let g:UltiSnipsJumpForwardTrigger = "<c-j>"
 	" let g:UltiSnipsJumpBackwardTrigger = "<c-k>"
 	let g:UltiSnipsEditSplit = "vertical"
