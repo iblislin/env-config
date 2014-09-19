@@ -1,7 +1,6 @@
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " General
 """"""""""""""""""""""""""""""""""""""""""""""""""
-
 " Get out of vi's compatible mode
 set nocompatible
 
@@ -40,6 +39,43 @@ set modifiable
 nmap <F1> <nop>
 imap <F1> <nop>
 
+" Remove indenting on empty lines
+noremap <F2> :%s/\s*$//g<CR>:noh<CR>''
+
+" New line in normal mode
+nmap <CR> i<CR><Esc>
+
+" indent shortcut
+nmap <Tab> >>
+nmap <S-Tab> <<
+xnoremap <Tab>	>gv
+xnoremap <S-Tab> <gv
+
+" Word jumping
+imap <M-Left> <C-Left>
+imap <M-Right> <C-Right>
+nmap <C-A> ^
+imap <C-A> <Esc>^i
+nmap <C-E> $
+imap <C-E> <End>
+" imap <C-D> <End>
+
+" split window jumping
+nmap <M-UP>		:wincmd k<CR>
+nmap <M-Down>	:wincmd j<CR>
+nmap <M-Left>	:wincmd h<CR>
+nmap <M-Right>	:wincmd l<CR>
+nmap <F6> :set paste!<CR>:set paste?<CR>
+nmap <F7> :set number!<CR>:set number?<CR>
+imap <F6> <ESC><F6>
+imap <F7> <ESC><F7>i
+
+" Keyword completion
+" imap <M-Up> <C-N>
+" imap <M-Right> <C-N>
+" imap <M-Left> <C-P>
+" imap <M-Down> <C-P>
+
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Encoding
 """"""""""""""""""""""""""""""""""""""""""""""""""
@@ -57,6 +93,12 @@ set termencoding=utf-8
 
 " Treat ambiguous characters as full width
 set ambiwidth=double
+
+" Big5
+noremap <LEADER>b :e ++enc=big5<CR>:set tenc=big5<CR>
+
+" UTF-8
+noremap <LEADER>u :e ++enc=utf-8<CR>:set tenc=utf-8<CR>
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Colours and Fonts
@@ -186,50 +228,6 @@ set switchbuf=usetab
 
 " Always show tab line
 set stal=2
-
-
-""""""""""""""""""""""""""""""""""""""""""""""""""
-" Misc
-""""""""""""""""""""""""""""""""""""""""""""""""""
-autocmd BufNewFile,BufRead *.js,*.htc,*.c,*.tmpl,*.css inoremap $c /**<CR>  **/<ESC>O
-
-" Remove indenting on empty lines
-noremap <F2> :%s/\s*$//g<CR>:noh<CR>''
-
-" Big5
-noremap <LEADER>b :e ++enc=big5<CR>:set tenc=big5<CR>
-
-" UTF-8
-noremap <LEADER>u :e ++enc=utf-8<CR>:set tenc=utf-8<CR>
-
-nmap <CR> i<CR><Esc>
-nmap <Tab> >>
-nmap <S-Tab> <<
-xnoremap <Tab>	>gv
-xnoremap <S-Tab> <gv
-nmap <C-A> ^
-imap <C-A> <Esc>^i
-nmap <C-E> $
-imap <C-E> <End>
-" imap <C-D> <End>
-" Word jumping
-imap <M-Left> <C-Left>
-imap <M-Right> <C-Right>
-" split window jumping
-nmap <M-UP>		:wincmd k<CR>
-nmap <M-Down>	:wincmd j<CR>
-nmap <M-Left>	:wincmd h<CR>
-nmap <M-Right>	:wincmd l<CR>
-nmap <F6> :set paste!<CR>:set paste?<CR>
-nmap <F7> :set number!<CR>:set number?<CR>
-imap <F6> <ESC><F6>
-imap <F7> <ESC><F7>i
-
-" Keyword completion
-" imap <M-Up> <C-N>
-" imap <M-Right> <C-N>
-" imap <M-Left> <C-P>
-" imap <M-Down> <C-P>
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Temp and Backups
