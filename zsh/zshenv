@@ -59,15 +59,31 @@ then
 	fi
 fi
 
+function zle-line-init zle-keymap-select {
+	local prompt_corner_up="┌─"
+	local prompt_corner_down="└─"
+	local vi_mode
+	local user_color
 
-local prompt_corner_up="┌─"
-local prompt_corner_down="└─"
+	if [[ $USER == 'root' ]]
+	then
+		user_color='red'
+	else
+		user_color='cyan'
+	fi
 
-if [[ $USER == 'root' ]]
-then
-	prompt="$prompt_corner_up%B[${fg_bold[yellow]}%~${reset_color}%B]%b
-$prompt_corner_down%B[%F{red}%n%f@%m%(?.. %F{red}Oops%f)]%# %b"
-else
-	prompt="$prompt_corner_up%B[${fg_bold[yellow]}%~${reset_color}%B]%b
-$prompt_corner_down%B[%F{cyan}%n%f@%m%(?.. %F{red}Oops%f)]%# %b"
-fi
+	if [ $KEYMAP = 'vicmd' ]
+	then
+		vi_mode='NORMAL'
+	else
+		vi_mode='INSERT'
+	fi
+
+	prompt="$prompt_corner_up%B[${fg_bold[yellow]}%~${reset_color}%B]%b %B[-- $vi_mode --]%b
+$prompt_corner_down%B[%F{$user_color}%n%f@%m%(?.. %F{red}Oops%f)]%# %b"
+
+	zle reset-prompt
+}
+
+zle -N zle-line-init
+zle -N zle-keymap-select
