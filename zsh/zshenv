@@ -59,6 +59,9 @@ then
 	fi
 fi
 
+# ==================================
+# Prompt
+# ==================================
 function zle-line-init zle-keymap-select {
 	local prompt_corner_up="┌─"
 	local prompt_corner_down="└─"
