@@ -68,6 +68,7 @@ function zle-line-init zle-keymap-select {
 	local vi_mode
 	local user_color
 	local git_prompt
+	local venv_prompt
 
 	if [[ $USER == 'root' ]]
 	then
@@ -87,7 +88,12 @@ function zle-line-init zle-keymap-select {
 		git_prompt=" %B[%bGit(${fg_bold[green]}$(git symbolic-ref HEAD | cut -d'/' -f3)${reset_color})%B]%b"
 	}
 
-	prompt="$prompt_corner_up%B[${fg_bold[yellow]}%~${reset_color}%B]%b$git_prompt %B[-- $vi_mode --]%b
+	if [ $VIRTUAL_ENV ]
+	then
+		venv_prompt=" %B[%bVenv(${fg_bold[magenta]}$(basename $VIRTUAL_ENV)${reset_color})%B]%b"
+	fi
+
+	prompt="$prompt_corner_up%B[${fg_bold[yellow]}%~${reset_color}%B]%b${venv_prompt}${git_prompt} %B[-- $vi_mode --]%b
 $prompt_corner_down%B[%F{$user_color}%n%f@%m%(?.. %F{red}Oops%f)]%# %b"
 
 	zle reset-prompt
