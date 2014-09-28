@@ -62,10 +62,10 @@ fi
 # ==================================
 # Prompt
 # ==================================
-function zle-line-init zle-keymap-select {
+function set_prompt {
 	local prompt_corner_up="┌─"
 	local prompt_corner_down="└─"
-	local vi_mode
+	local vi_mode='INSERT'
 	local user_color
 	local git_prompt
 	local venv_prompt
@@ -77,12 +77,14 @@ function zle-line-init zle-keymap-select {
 		user_color='cyan'
 	fi
 
-	if [ $KEYMAP = 'vicmd' ]
-	then
-		vi_mode='NORMAL'
-	else
-		vi_mode='INSERT'
-	fi
+	[ $KEYMAP ] && {
+		if [ $KEYMAP = 'vicmd' ]
+		then
+			vi_mode='NORMAL'
+		else
+			vi_mode='INSERT'
+		fi
+	}
 
 	( git symbolic-ref HEAD >& /dev/null ) && {
 		git_prompt=" %B[%bGit(${fg_bold[green]}$(git symbolic-ref HEAD | cut -d'/' -f3)${reset_color})%B]%b"
@@ -95,9 +97,14 @@ function zle-line-init zle-keymap-select {
 
 	prompt="$prompt_corner_up%B[${fg_bold[yellow]}%~${reset_color}%B]%b${venv_prompt}${git_prompt} %B[-- $vi_mode --]%b
 $prompt_corner_down%B[%F{$user_color}%n%f@%m%(?.. %F{red}Oops%f)]%# %b"
+}
 
+function zle-line-init zle-keymap-select {
+	set_prompt
 	zle reset-prompt
 }
 
 zle -N zle-line-init
 zle -N zle-keymap-select
+
+set_prompt
