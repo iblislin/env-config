@@ -467,7 +467,7 @@ nmap <F9> :QFix<CR>
 	hi GitGutterAdd cterm=Bold ctermfg=green  ctermbg=None
 	hi GitGutterChange cterm=Bold ctermfg=yellow ctermbg=None
 	hi GitGutterDelete cterm=Bold ctermfg=red ctermbg=None
-	" hi GitGutterChangeDelete cterm=Bold
+	hi GitGutterChangeDelete cterm=Bold ctermfg=yellow ctermbg=None
 
 	""""""""""""""""""""""""""""""""""""""""
 	" Vundle
@@ -537,14 +537,8 @@ nmap <F9> :QFix<CR>
 
 set listchars=tab:>-,trail:-,eol:$,nbsp:%,extends:>,precedes:<
 
-
-""""""""""""""""""""""""""""""""""""""""
-" Coding
-""""""""""""""""""""""""""""""""""""""""
-	""""""""""""""""""""""""""""""""""""""""
-	" C/CPP
-	""""""""""""""""""""""""""""""""""""""""
-	autocmd Filetype cpp nmap <F8> :r ~/.vim/code/default.cpp<Esc>ggdd:6<CR>o
-	autocmd Filetype c nmap <F8> :r ~/.vim/code/default.c<Esc>ggdd:5<CR>o
-	autocmd Filetype cpp nmap <F5> :wa<CR>:make %:r<CR>
-	autocmd Filetype c nmap <F5> :wa<CR>:make %:r<CR>
+""""""""""""""""""""""""""""""""""""""""""""""
+" Autocmd
+""""""""""""""""""""""""""""""""""""""""""""""
+" Return to last edit position when opening files
+autocmd BufReadPost * silent! normal! g`"zv
