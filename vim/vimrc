@@ -456,6 +456,11 @@ nmap <F9> :QFix<CR>
 	let g:AutoComplPopDontSelectFirst = 1
 
 	""""""""""""""""""""""""""""""""""""""""
+	" Renumber
+	""""""""""""""""""""""""""""""""""""""""
+	vnoremap <C-A> :Renumber a<CR>
+
+	""""""""""""""""""""""""""""""""""""""""
 	" Vundle
 	""""""""""""""""""""""""""""""""""""""""
 	"set nocompatible               " be iMproved
@@ -490,6 +495,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'L9'
 	Bundle 'vim-snippets'
 	Bundle 'jedi-vim'
+	Bundle 'renumber.vim'
 	" Bundle 'pep8'
 
 	" original repos on github
