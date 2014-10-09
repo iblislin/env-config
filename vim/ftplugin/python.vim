@@ -9,5 +9,5 @@ match LeadingSpaces /^\ \+/
 """"""""""""""""""""""""""""""""""""""""""""""
 setlocal foldmethod=indent
 setlocal expandtab
-nnoremap <buffer> <F5> :w<CR>:exec '!python' shellescape(@%, 1)<CR>
+nnoremap <buffer> <F5> :w<CR>:pyfile %<CR>
 imap <buffer> <F5> <ESC><F5>
