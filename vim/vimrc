@@ -461,6 +461,15 @@ nmap <F9> :QFix<CR>
 	vnoremap <C-A> :Renumber a<CR>
 
 	""""""""""""""""""""""""""""""""""""""""
+	" Gitgutter
+	""""""""""""""""""""""""""""""""""""""""
+	hi SignColumn cterm=Bold ctermbg=None
+	hi GitGutterAdd cterm=Bold ctermfg=green  ctermbg=None
+	hi GitGutterChange cterm=Bold ctermfg=yellow ctermbg=None
+	hi GitGutterDelete cterm=Bold ctermfg=red ctermbg=None
+	" hi GitGutterChangeDelete cterm=Bold
+
+	""""""""""""""""""""""""""""""""""""""""
 	" Vundle
 	""""""""""""""""""""""""""""""""""""""""
 	"set nocompatible               " be iMproved
@@ -496,6 +505,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'vim-snippets'
 	Bundle 'jedi-vim'
 	Bundle 'renumber.vim'
+	Bundle 'gitgutter'
 	" Bundle 'pep8'
 
 	" original repos on github
