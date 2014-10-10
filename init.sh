@@ -49,10 +49,17 @@ do
 done
 
 git submodule update --init --recursive
-# git submodule init
 git submodule sync
 
 # vim pager
 mkdir -p ~/bin
 $LN $BASE/vimpager/vimpager ~/bin/
 $LN $BASE/vimpager/vimcat ~/bin/
+
+# zsh folder
+ZSH=${ZSH:="$HOME/.zsh"}
+if [ ! -e $ZSH ]
+then
+	echo 'Link zsh folder:'
+	$LN $BASE/zsh $ZSH
+fi
