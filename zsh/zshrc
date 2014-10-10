@@ -132,7 +132,7 @@ SAVEHIST=1000
 fpath=($ZSH/completions/src $fpath)
 
 autoload -Uz compinit
-compinit
+compinit -u
 
 zstyle ':completion:*' menu select=2
 zstyle ':completion:*:default' list-colors $ZLS_COLORS
