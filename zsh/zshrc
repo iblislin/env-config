@@ -126,17 +126,31 @@ zle -A backward-delete-char vi-backward-delete-char
 HISTFILE=~/.histfile
 HISTSIZE=1000
 SAVEHIST=1000
-# The following lines were added by compinstall
-zstyle :compinstall filename "$HOME/.zshrc"
-autoload -Uz compinit
-compinit
-# End of lines added by compinstall
 # ==================================
 # Completion setting
 # ==================================
+fpath=($ZSH/completions/src $fpath)
+
+autoload -Uz compinit
+compinit
+
 zstyle ':completion:*' menu select=2
 zstyle ':completion:*:default' list-colors $ZLS_COLORS
 compdef mosh=ssh
+
+# pip zsh completion start
+# generate by $ pip completion --zsh
+function _pip_completion {
+  local words cword
+  read -Ac words
+  read -cn cword
+  reply=( $( COMP_WORDS="$words[*]" \
+             COMP_CWORD=$(( cword-1 )) \
+             PIP_AUTO_COMPLETE=1 $words[1] ) )
+}
+compctl -K _pip_completion pip
+# pip zsh completion end
+
 # ==================================
 # Custom setting
 # ==================================
