@@ -60,6 +60,6 @@ $LN $BASE/vimpager/vimcat ~/bin/
 ZSH=${ZSH:="$HOME/.zsh"}
 if [ ! -e $ZSH ]
 then
-	echo 'Link zsh folder:'
+	echo 'Link zsh folder:' $ZSH
 	$LN $BASE/zsh $ZSH
 fi
