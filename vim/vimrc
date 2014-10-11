@@ -394,6 +394,7 @@ nmap <F9> :QFix<CR>
 	" Fugitive
 	""""""""""""""""""""""""""""""""""""""""
 	set statusline=%<%f\ %h%m%r\ %{fugitive#statusline()}%=%-15(%c%V\ %p%%%)
+	nnoremap <leader>d :Gwrite<CR>:GitGutter<CR>
 
 	""""""""""""""""""""""""""""""""""""""""
 	" js-lib-syntax
