@@ -57,7 +57,7 @@ imap <M-Right> <C-Right>
 nmap <C-A> ^
 imap <C-A> <Esc>^i
 nmap <C-E> $
-imap <C-E> <End>
+inoremap <expr> <C-E> pumvisible() ? "<C-E>" : "<End>"
 " imap <C-D> <End>
 
 " split window jumping
@@ -418,8 +418,7 @@ nmap <F9> :QFix<CR>
 	" jedi-vim
 	""""""""""""""""""""""""""""""""""""""""
 	let g:jedi#popup_select_first = 0
-	" Fix popup for autocomplpop
-	" au FileType python inoremap <buffer> . .<C-R>=jedi#complete_opened() ? "" : "\<lt>C-X>\<lt>C-O>\<lt>C-P>"<CR>
+	let g:jedi#popup_on_dot = 0
 
 	""""""""""""""""""""""""""""""""""""""""""""""
 	"  Pep8
