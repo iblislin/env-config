@@ -520,7 +520,7 @@ nmap <F9> :QFix<CR>
 	" Bundle 'matrix'
 	Bundle 'matchit'
 	" Bundle 'code_complete'
-	" Bundle 'vim-autocomplpop'
+	Bundle 'vim-autocomplpop'
 
 	" non github repos
 	" Bundle 'git://git.wincent.com/command-t.git'
