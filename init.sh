@@ -27,7 +27,7 @@ fi
 BASE=`dirname $REAL`
 LN='ln -s'
 
-mkdir -p $BASE/vim/backup $BASE/vim/backup ~/bin
+mkdir -p $BASE/vim/backup $BASE/vim/tmp ~/bin
 
 for f in $file
 do
