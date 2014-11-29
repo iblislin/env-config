@@ -74,7 +74,7 @@ fi
 
 if ( isExist nload )
 then
-	alias nload='nload -i 10240 -o 10240'
+	alias nload='nload -i 102400 -o 102400'
 fi
 # ==================================
 # Alias > Suffix Alias
