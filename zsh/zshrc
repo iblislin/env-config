@@ -71,6 +71,11 @@ if ( isExist cmdwatch )
 then
 	alias cmdwatch='cmdwatch -n 1'
 fi
+
+if ( isExist nload )
+then
+	alias nload='nload -i 10240 -o 10240'
+fi
 # ==================================
 # Alias > Suffix Alias
 # ==================================
