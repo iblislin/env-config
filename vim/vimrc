@@ -24,7 +24,7 @@ nmap <LEADER>w :w<CR>
 " map <LEADER>e :e! ~/.vimrc<CR>
 
 " When .vimrc is edited, reload it
-autocmd! bufwritepost vimrc source ~/.vimrc
+autocmd! bufwritepost vimrc source ~/.vim/vimrc
 
 " Show commands as they are typed
 set showcmd
