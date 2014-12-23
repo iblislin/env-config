@@ -5,7 +5,7 @@
 set nocompatible
 
 " How many lines of history
-set history=500
+set history=5000
 
 " Set to auto read when a file is changed from the outside
 "set autoread
@@ -520,6 +520,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'matchit'
 	" Bundle 'code_complete'
 	Bundle 'vim-autocomplpop'
+	Bundle 'signature'
 
 	" non github repos
 	" Bundle 'git://git.wincent.com/command-t.git'

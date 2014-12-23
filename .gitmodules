@@ -82,3 +82,6 @@
 [submodule "zsh/completions"]
 	path = zsh/completions
 	url = https://github.com/iblis17/zsh-completions.git
+[submodule "vim/bundle/signature"]
+	path = vim/bundle/signature
+	url = https://github.com/kshenoy/vim-signature.git
