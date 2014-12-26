@@ -62,6 +62,7 @@ if ( isExist vim )
 then
 	export EDITOR=vim
 	alias vi='vim -p'
+	alias vim='vim -p'
 else
 	export EDITOR=vi
 fi
