@@ -219,10 +219,10 @@ set wrapscan
 
 
 " Hot keys
-nmap <C-T>c :tabnew<CR>
-nmap <C-T>k :tabclose<CR>
-nmap <C-H> :tabprev<CR>
-nmap <C-L> :tabnext<CR>
+nmap <silent><C-T>c :tabnew<CR>
+nmap <silent> <C-T>k :tabclose<CR>
+nmap <silent> <C-H> :tabprev<CR>
+nmap <silent> <C-L> :tabnext<CR>
 
 set switchbuf=usetab
 
