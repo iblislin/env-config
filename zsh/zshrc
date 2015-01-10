@@ -53,6 +53,7 @@ alias ssh-x='ssh -c arcfour,blowfish-cbc -XC'
 alias ssh-passwd='ssh -o PubkeyAuthentication=no'
 alias wget='wget --no-check-certificate'
 alias py='python'
+alias sudo='sudo -E'
 
 #if [[ -x `where gvim` ]]
 #then
