@@ -12,7 +12,9 @@ nnoremap k 5k
 """"""""""""""""""""""""""""""""""""""""""""""
 nnoremap o :tabnew<SPACE>
 
+nnoremap <C-Up> :tabprevious<CR>
 nnoremap <C-Right> :tabnext<CR>
+nnoremap <C-Down> :tabnext<CR>
 nnoremap <C-Left> :tabprevious<CR>
 
 
