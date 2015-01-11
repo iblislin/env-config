@@ -3,14 +3,17 @@
 """"""""""""""""""""""""""""""""""""""""""""""
 set scroll=10
 
-" nnoremap j 5j
-" nnoremap k 5k
+nnoremap j 5j
+nnoremap k 5k
 
 
 """"""""""""""""""""""""""""""""""""""""""""""
 "  tab
 """"""""""""""""""""""""""""""""""""""""""""""
-nmap o :tabnew<SPACE>
+nnoremap o :tabnew<SPACE>
+
+nnoremap <C-Right> :tabnext<CR>
+nnoremap <C-Left> :tabprevious<CR>
 
 
 """"""""""""""""""""""""""""""""""""""""""""""
