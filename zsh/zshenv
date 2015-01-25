@@ -97,7 +97,8 @@ function set_prompt {
 		venv_prompt=" %B[%bVenv(${fg_bold[magenta]}$(basename $VIRTUAL_ENV)${reset_color})%B]%b"
 	fi
 
-	prompt="$prompt_corner_up%B[${fg_bold[yellow]}%~${reset_color}%B]%b${venv_prompt}${git_prompt} %B[-- $vi_mode --]%b
+	prompt="$prompt_corner_up%B[${fg_bold[yellow]}%~${reset_color}%B]%b
+%B|%b${venv_prompt}${git_prompt} %B[-- $vi_mode --]%b
 $prompt_corner_down%B[%F{$user_color}%n%f@%m%(?.. %F{red}Oops%f)]%# %b"
 }
 
