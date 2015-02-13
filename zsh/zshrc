@@ -54,6 +54,7 @@ alias ssh-passwd='ssh -o PubkeyAuthentication=no'
 alias wget='wget --no-check-certificate'
 alias py='python'
 alias sudo='sudo -E'
+alias httpserver='python -m SimpleHTTPServer'
 
 #if [[ -x `where gvim` ]]
 #then
