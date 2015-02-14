@@ -1,4 +1,6 @@
 """"""""""""""""""""""""""""""""""""""""""""""
 "  General
 """"""""""""""""""""""""""""""""""""""""""""""
-set foldmethod=indent
+setlocal foldmethod=indent
+setlocal tabstop=2
+setlocal shiftwidth=2
