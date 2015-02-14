@@ -47,13 +47,12 @@ alias egrep='egrep --color'
 alias du='du -h'
 alias df='df -h'
 alias top='top -s 1'
-#alias csupup='csup -g -L 2 /root/supfiles/ports-supfile'
 alias mysql='mysql -u root -p --prompt="(\u@\h) [\d]>"'
 alias ssh-x='ssh -c arcfour,blowfish-cbc -XC'
 alias ssh-passwd='ssh -o PubkeyAuthentication=no'
 alias wget='wget --no-check-certificate'
 alias py='python'
-alias sudo='sudo -E'
+alias sudo='sudo ' # https://wiki.archlinux.org/index.php/Sudo#Passing_aliases
 alias httpserver='python -m SimpleHTTPServer'
 
 #if [[ -x `where gvim` ]]
