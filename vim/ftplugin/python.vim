@@ -1,8 +1,8 @@
 """"""""""""""""""""""""""""""""""""""""""""""
 "  Color
 """"""""""""""""""""""""""""""""""""""""""""""
-hi def LeadingSpaces term=reverse ctermfg=15 ctermbg=241 gui=reverse guifg=#dc322f
-match LeadingSpaces /^\ \+/
+hi def LeadingTab term=reverse ctermfg=16 ctermbg=001 gui=reverse guifg=#dc322f
+match LeadingTab /^\t\+/
 
 """"""""""""""""""""""""""""""""""""""""""""""
 "  General
