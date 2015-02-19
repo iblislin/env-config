@@ -61,12 +61,12 @@ inoremap <expr> <C-E> pumvisible() ? "<C-E>" : "<End>"
 " imap <C-D> <End>
 
 " split window jumping
-nmap <M-UP>		:wincmd k<CR>
-nmap <M-Down>	:wincmd j<CR>
-nmap <M-Left>	:wincmd h<CR>
-nmap <M-Right>	:wincmd l<CR>
-nmap <F6> :set paste!<CR>:set paste?<CR>
-nmap <F7> :set number!<CR>:set number?<CR>
+nnoremap <silent> <M-UP>		:wincmd k<CR>
+nnoremap <silent> <M-Down>	:wincmd j<CR>
+nnoremap <silent> <M-Left>	:wincmd h<CR>
+nnoremap <silent> <M-Right>	:wincmd l<CR>
+nnoremap <silent> <F6> :set paste!<CR>:set paste?<CR>
+nnoremap <F7> :set number!<CR>:set number?<CR>
 imap <F6> <ESC><F6>
 imap <F7> <ESC><F7>i
 
