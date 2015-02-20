@@ -507,6 +507,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'renumber.vim'
 	Bundle 'gitgutter'
 	" Bundle 'pep8'
+	Bundle 'vim-go'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
