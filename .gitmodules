@@ -88,3 +88,6 @@
 [submodule "vim/bundle/vim-go"]
 	path = vim/bundle/vim-go
 	url = git@github.com:fatih/vim-go.git
+[submodule "vim/bundle/jst"]
+	path = vim/bundle/jst
+	url = https://github.com/briancollins/vim-jst.git

@@ -508,6 +508,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'gitgutter'
 	" Bundle 'pep8'
 	Bundle 'vim-go'
+	Bundle 'jst'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
