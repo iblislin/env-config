@@ -92,7 +92,7 @@ set fileencodings=utf-8,big5,euc-jp,gbk,euc-kr,utf-bom,iso8859-1
 set termencoding=utf-8
 
 " Treat ambiguous characters as full width
-set ambiwidth=double
+set ambiwidth=single
 
 " Big5
 noremap <LEADER>b :e ++enc=big5<CR>:set tenc=big5<CR>
