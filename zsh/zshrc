@@ -158,6 +158,16 @@ function _pip_completion {
 compctl -K _pip_completion pip
 # pip zsh completion end
 
+
+# ==================================
+# jails shell
+# ==================================
+if [[ `echo $STY | cut -d'.' -f 2 | cut -d'_' -f 2` = 'jail' ]]
+then
+	local vm=`echo $STY | cut -d'.' -f 2 | cut -d'_' -f 1`
+	exec sudo JSTY=$STY jexec $vm zsh
+fi
+
 # ==================================
 # Custom setting
 # ==================================
