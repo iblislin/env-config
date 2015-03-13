@@ -506,7 +506,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'jedi-vim'
 	Bundle 'renumber.vim'
 	Bundle 'gitgutter'
-	" Bundle 'pep8'
+	Bundle 'pep8'
 	Bundle 'vim-go'
 	Bundle 'jst'
 
