@@ -18,6 +18,8 @@ bindkey "^[[C" next
 bindkey "^[[D" prev
 bindkey "^[[1;5C" next
 bindkey "^[[1;5D" prev
+bindkey "^[^K" next
+bindkey "^[^J" prev
 
 altscreen on # erase screen when quit apps
 defutf8 on

@@ -63,3 +63,5 @@ then
 	echo 'Link zsh folder:' $ZSH
 	$LN $BASE/zsh $ZSH
 fi
+
+$LN $BASE/.tmux.conf ~/
