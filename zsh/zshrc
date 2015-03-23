@@ -55,10 +55,6 @@ alias py='python'
 alias sudo='sudo ' # https://wiki.archlinux.org/index.php/Sudo#Passing_aliases
 alias httpserver='python -m SimpleHTTPServer'
 
-#if [[ -x `where gvim` ]]
-#then
-#	export EDITOR=gvim
-#	alias vi='gvim'
 if ( isExist vim )
 then
 	export EDITOR=vim
@@ -67,7 +63,6 @@ then
 else
 	export EDITOR=vi
 fi
-
 if ( isExist cmdwatch )
 then
 	alias cmdwatch='cmdwatch -n 1'
@@ -76,6 +71,30 @@ fi
 if ( isExist nload )
 then
 	alias nload='nload -i 102400 -o 102400'
+fi
+if ( isExist htop )
+then
+	alias top='htop -d 5'
+else
+	alias top='top -d 0.5'
+fi
+if ( isExist python3 )
+then
+	if ( isExist ipython3 )
+	then
+		alias py3=ipython3
+	else
+		alias py3=python3
+	fi
+fi
+if ( isExist python )
+then
+	if ( isExist ipython2 )
+	then
+		alias py=ipython2
+	else
+		alias py=python
+	fi
 fi
 # ==================================
 # Alias > Suffix Alias
@@ -94,12 +113,6 @@ if isLinux
 then
 	alias ls='ls --color -F'
 	alias watch='watch -n 0.5'
-	if ( isExist htop )
-		alias top='htop -d 5'
-	then
-	else
-		alias top='top -d 0.5'
-	fi
 fi
 # ==================================
 # Bindkey
