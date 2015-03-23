@@ -75,8 +75,6 @@ fi
 if ( isExist htop )
 then
 	alias top='htop -d 5'
-else
-	alias top='top -d 0.5'
 fi
 if ( isExist python3 )
 then
