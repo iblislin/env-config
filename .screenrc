@@ -1,6 +1,6 @@
 # Status line
 backtick 0 0 0 sh -c "screen -ls | grep \$PPID | awk '{print \$1}' | sed 's/\^[0-9]*\.//'"
-caption always "%{.KW} %-w%{.mW}[%n] %t%{.KW}%+w"
+caption always "%{.KW}%-w%{.mW}%n %t%{.KW}%+w"
 hardstatus alwayslastline "%{R}[%{w} %0` %{R}]%=%{M}%e %{G}%H %{Y}%A%C:%s %{R} %Y/%m/%d %{K} Load: %l %{B}%{w}"
 
 # Colours
@@ -32,5 +32,5 @@ defencoding utf8
 bind b encoding big5 utf8
 bind u encoding utf8 utf8
 defbce on # erase background with current bg color
-shelltitle "--"
-defscrollback 5000
+shelltitle ""
+defscrollback 10000
