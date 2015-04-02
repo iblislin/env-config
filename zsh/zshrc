@@ -1,3 +1,5 @@
+# zshrc is or interacive shell
+
 # ==================================
 # Function
 # ==================================
@@ -185,6 +187,30 @@ then
 	fi
 	exec sudo JSTY=$STY jexec $vm $shell
 fi
+
+# ==================================
+# Hook Functions
+# ==================================
+_change_tab_title() { # for screen and tmux
+	if ( ! isExist python )
+	then
+		return
+	fi
+	# python -c "print('$1');import time;" &> /dev/null
+	python -O $ZSH/bin/tab.py $1
+}
+
+_clean_tab_title() {
+	if [ $? -ne 0 ]
+	then
+		echo -n -e '\033k\b\033\\'
+	fi
+}
+
+autoload -Uz  add-zsh-hook
+
+add-zsh-hook preexec _change_tab_title
+add-zsh-hook precmd _clean_tab_title
 
 # ==================================
 # Custom setting
