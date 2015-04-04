@@ -59,6 +59,8 @@ imap <C-A> <Esc>^i
 nmap <C-E> $
 inoremap <expr> <C-E> pumvisible() ? "<C-E>" : "<End>"
 " imap <C-D> <End>
+noremap ' `
+noremap ` '
 
 " split window jumping
 nnoremap <silent> <M-UP>		:wincmd k<CR>
