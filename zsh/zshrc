@@ -209,8 +209,11 @@ _clean_tab_title() {
 
 autoload -Uz  add-zsh-hook
 
-add-zsh-hook preexec _change_tab_title
-add-zsh-hook precmd _clean_tab_title
+if [ $TMUX ] || [ $STY ]
+then
+	add-zsh-hook preexec _change_tab_title
+	add-zsh-hook precmd _clean_tab_title
+fi
 
 # ==================================
 # Custom setting
