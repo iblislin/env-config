@@ -1,11 +1,7 @@
 # Status line
 backtick 0 0 0 sh -c "screen -ls | grep \$PPID | awk '{print \$1}' | sed 's/\^[0-9]*\.//'"
-caption always "%{.KW}%-w%{.mW}%n %t%{.KW}%+w"
+caption always "%{= .KW}%-w%{= .mW}%n %t%{= .KW}%+w"
 hardstatus alwayslastline "%{R}[%{w} %0` %{R}]%=%{M}%e %{G}%H %{Y}%A%C:%s %{R} %Y/%m/%d %{K} Load: %l %{B}%{w}"
-
-# Colours
-termcapinfo xterm "Co#256:AB=\E[48;5;%dm:AF=\E[38;5;%dm"
-term xterm
 
 # Hotkeys for resizing
 bind = resize =

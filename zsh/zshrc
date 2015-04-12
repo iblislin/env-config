@@ -196,7 +196,6 @@ _change_tab_title() { # for screen and tmux
 	then
 		return
 	fi
-	# python -c "print('$1');import time;" &> /dev/null
 	python -O $ZSH/bin/tab.py $1
 }
 

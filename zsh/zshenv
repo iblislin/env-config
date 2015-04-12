@@ -27,10 +27,9 @@ export LSCOLORS="ExFxcxdxbxegedabagacad"
 
 export ZLS_COLORS="di=01;34:ln=01;35:ex=31:so=32"
 
-export TERM='xterm-256color'
-export TERMCAP='xterm|xterm-color:Co#256:AB=\E[48;5;%dm:AF=\E[38;5;%dm:tc=xterm-xfree86:'
+# export TERM='screen-256color'
 
-encode=en_US.UTF-8
+local encode=en_US.UTF-8
 export LANG=$encode
 export LANGUAGE=$encode
 export LC_CTYPE=$encode
