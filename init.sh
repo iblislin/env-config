@@ -25,7 +25,7 @@ else
 	REAL=`realpath $0`
 fi
 BASE=`dirname $REAL`
-LN='ln -s'
+LN='ln -sf'
 
 mkdir -p $BASE/vim/backup $BASE/vim/tmp ~/bin
 
