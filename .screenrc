@@ -28,5 +28,5 @@ defencoding utf8
 bind b encoding big5 utf8
 bind u encoding utf8 utf8
 defbce on # erase background with current bg color
-shelltitle ""
+shelltitle "% |-"
 defscrollback 10000
