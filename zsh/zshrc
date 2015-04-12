@@ -96,6 +96,10 @@ then
 		alias py=python
 	fi
 fi
+if ( isExist tmux )
+then
+	alias tmux='TERM="screen-256color" tmux'
+fi
 # ==================================
 # Alias > Suffix Alias
 # ==================================

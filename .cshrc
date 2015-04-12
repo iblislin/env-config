@@ -45,7 +45,7 @@ set	autolist
 
 setenv	LSCOLORS "ExFxcxdxbxegedabagacad"
 
-setenv	TERMCAP 'xterm|xterm-color:Co#256:AB=\E[48;5;%dm:AF=\E[38;5;%dm:tc=xterm-xfree86:'
+# setenv	TERMCAP 'xterm|xterm-color:Co#256:AB=\E[48;5;%dm:AF=\E[38;5;%dm:tc=xterm-xfree86:'
 
 setenv	LANG en_US.UTF-8
 setenv	LC_CTYPE en_US.UTF-8
