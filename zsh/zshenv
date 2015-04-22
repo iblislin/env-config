@@ -27,11 +27,7 @@ export LSCOLORS="ExFxcxdxbxegedabagacad"
 
 export ZLS_COLORS="di=01;34:ln=01;35:ex=31:so=32"
 
-# export TERM='screen-256color'
-if [ $TMUX ] && [ $STY ]
-then
-	export TERM='xterm'
-fi
+export TERM=xterm
 
 local encode=en_US.UTF-8
 export LANG=$encode
