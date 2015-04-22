@@ -10,6 +10,7 @@ EXCLUDE_CMD = {
         'll',
         'cd',
         '.',
+        '..',
     ),
     'NEXT': ( # those cmds will use the next as title
         'sudo',
