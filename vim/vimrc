@@ -511,6 +511,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'pep8'
 	Bundle 'vim-go'
 	Bundle 'jst'
+	Bundle 'salt'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
