@@ -16,6 +16,10 @@ nnoremap <C-Up> :tabprevious<CR>
 nnoremap <C-Right> :tabnext<CR>
 nnoremap <C-Down> :tabnext<CR>
 nnoremap <C-Left> :tabprevious<CR>
+nnoremap a :tabprevious<CR>
+nnoremap s :tabnext<CR>
+nnoremap A :tabfirst<CR>
+nnoremap S :tablast<CR>
 
 
 """"""""""""""""""""""""""""""""""""""""""""""
