@@ -13,7 +13,7 @@ isLinix()
 	fi
 }
 
-file=".cshrc .screenrc .gitconfig .pyrc vim zsh/zshenv zsh/zshrc"
+file=".cshrc .screenrc .gitconfig .pythonrc vim zsh/zshenv zsh/zshrc"
 rename_vim='.vim'
 rename_zshenv='.zshenv'
 rename_zshrc='.zshrc'

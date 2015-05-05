@@ -1,0 +1,24 @@
+try:
+    import readline
+except ImportError:
+    print("Module readline not available.")
+else:
+    import rlcompleter
+    readline.parse_and_bind("tab: complete")
+
+def reload(func):
+    """
+    function reload tool
+
+    :type func: function
+    """
+    import sys
+    import importlib
+
+    _mo = importlib.reload(sys.modules.get(func.__module__))
+    ret = eval('_mo.{}'.format(func.__qualname__))
+
+    del _mo
+    del sys
+    del importlib
+    return ret
