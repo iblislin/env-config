@@ -6,19 +6,28 @@ else:
     import rlcompleter
     readline.parse_and_bind("tab: complete")
 
-def reload(func):
+def reload(obj):
     """
-    function reload tool
+    reload tool for function or class
 
-    :type func: function
+    :type obj: function or class
     """
-    import sys
-    import importlib
+    def _reload(obj):
+        import sys
+        import importlib
 
-    _mo = importlib.reload(sys.modules.get(func.__module__))
-    ret = eval('_mo.{}'.format(func.__qualname__))
+        _mo = importlib.reload(sys.modules.get(obj.__module__))
+        ret = eval('_mo.{}'.format(obj.__qualname__))
 
-    del _mo
-    del sys
-    del importlib
-    return ret
+        del _mo
+        del sys
+        del importlib
+        return ret
+
+    try:
+        l = obj.mro()
+        l.pop()
+    except:
+        l = [obj]
+
+    return tuple(map(lambda x: _reload(x), l))[0]
