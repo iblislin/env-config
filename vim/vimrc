@@ -548,5 +548,3 @@ set listchars=tab:>-,trail:-,eol:$,nbsp:%,extends:>,precedes:<
 """"""""""""""""""""""""""""""""""""""""""""""
 " Return to last edit position when opening files
 autocmd BufReadPost * silent! normal! g`"zv
-
-" this is demo"
