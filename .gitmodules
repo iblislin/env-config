@@ -97,3 +97,9 @@
 [submodule "vim/bundle/salt"]
 	path = vim/bundle/salt
 	url = https://github.com/saltstack/salt-vim.git
+[submodule "vim/bundle/vim-indent-object"]
+	path = vim/bundle/vim-indent-object
+	url = https://github.com/michaeljsmith/vim-indent-object.git
+[submodule "vim/bundle/vim-slime"]
+	path = vim/bundle/vim-slime
+	url = https://github.com/jpalardy/vim-slime.git

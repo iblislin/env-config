@@ -472,6 +472,13 @@ nmap <F9> :QFix<CR>
 	hi GitGutterChangeDelete cterm=Bold ctermfg=yellow ctermbg=None
 
 	""""""""""""""""""""""""""""""""""""""""
+	" vim-slime
+	""""""""""""""""""""""""""""""""""""""""
+	let g:slime_target = "tmux"
+	let g:slime_default_config = { "socket_name": "default", "target_pane": ":.1" }
+	let g:slime_python_ipython = 1
+
+	""""""""""""""""""""""""""""""""""""""""
 	" Vundle
 	""""""""""""""""""""""""""""""""""""""""
 	"set nocompatible               " be iMproved
@@ -512,6 +519,8 @@ nmap <F9> :QFix<CR>
 	Bundle 'vim-go'
 	Bundle 'jst'
 	Bundle 'salt'
+	Bundle 'vim-indent-object'
+	Bundle 'vim-slime'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
