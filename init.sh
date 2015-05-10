@@ -13,7 +13,7 @@ isLinix()
 	fi
 }
 
-file=".cshrc .screenrc .gitconfig .pythonrc vim zsh/zshenv zsh/zshrc"
+file=".cshrc .screenrc .gitconfig .pythonrc vim zsh/zshenv zsh/zshrc .tmux.conf"
 rename_vim='.vim'
 rename_zshenv='.zshenv'
 rename_zshrc='.zshrc'
@@ -25,7 +25,7 @@ else
 	REAL=`realpath $0`
 fi
 BASE=`dirname $REAL`
-LN='ln -sf'
+LN='ln -sfv'
 
 mkdir -p $BASE/vim/backup $BASE/vim/tmp ~/bin
 
@@ -48,9 +48,6 @@ do
 	$LN $BASE/$f ~/$_rename
 done
 
-git submodule update --init --recursive
-git submodule sync
-
 # vim pager
 mkdir -p ~/bin
 $LN $BASE/vimpager/vimpager ~/bin/
@@ -64,4 +61,12 @@ then
 	$LN $BASE/zsh $ZSH
 fi
 
-$LN $BASE/.tmux.conf ~/
+# bin folder
+for f in `find $BASE/bin -type f`
+do
+	$LN $f $HOME/bin/
+done
+
+git submodule update --init --recursive
+git submodule sync
+
