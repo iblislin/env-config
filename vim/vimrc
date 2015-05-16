@@ -249,7 +249,7 @@ set noar
 " Default values
 set foldenable
 set fdl=0
-set foldmethod=marker
+set foldmethod=indent
 "nnoremap <SPACE> @=((foldclosed(line('.')) < 0) ? 'zc' : 'zo')<CR>
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
@@ -360,7 +360,7 @@ nmap <F9> :QFix<CR>
 	" X       Recursively close all children of the current node
 	" e       Open a netrw for the current dir
 	" q       Close the nerd tree split window
-	nnoremap <F3> :NERDTreeToggle<CR>
+	nnoremap <F3> :NERDTreeTabsToggle<CR>
 
 	""""""""""""""""""""""""""""""""""""""""
 	" Nerd Commenter
@@ -521,6 +521,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'salt'
 	Bundle 'vim-indent-object'
 	Bundle 'vim-slime'
+	Bundle 'vim-nerdtree-tabs'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
