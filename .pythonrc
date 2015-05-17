@@ -1,0 +1,33 @@
+try:
+    import readline
+except ImportError:
+    print("Module readline not available.")
+else:
+    import rlcompleter
+    readline.parse_and_bind("tab: complete")
+
+def reload(obj):
+    """
+    reload tool for function or class
+
+    :type obj: function or class
+    """
+    def _reload(obj):
+        import sys
+        import importlib
+
+        _mo = importlib.reload(sys.modules.get(obj.__module__))
+        ret = eval('_mo.{}'.format(obj.__qualname__))
+
+        del _mo
+        del sys
+        del importlib
+        return ret
+
+    try:
+        l = obj.mro()
+        l.pop()
+    except:
+        l = [obj]
+
+    return tuple(map(lambda x: _reload(x), l))[0]

@@ -249,7 +249,7 @@ set noar
 " Default values
 set foldenable
 set fdl=0
-set foldmethod=marker
+set foldmethod=indent
 "nnoremap <SPACE> @=((foldclosed(line('.')) < 0) ? 'zc' : 'zo')<CR>
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
@@ -360,7 +360,7 @@ nmap <F9> :QFix<CR>
 	" X       Recursively close all children of the current node
 	" e       Open a netrw for the current dir
 	" q       Close the nerd tree split window
-	nnoremap <F3> :NERDTreeToggle<CR>
+	nnoremap <F3> :NERDTreeTabsToggle<CR>
 
 	""""""""""""""""""""""""""""""""""""""""
 	" Nerd Commenter
@@ -472,6 +472,13 @@ nmap <F9> :QFix<CR>
 	hi GitGutterChangeDelete cterm=Bold ctermfg=yellow ctermbg=None
 
 	""""""""""""""""""""""""""""""""""""""""
+	" vim-slime
+	""""""""""""""""""""""""""""""""""""""""
+	let g:slime_target = "tmux"
+	let g:slime_default_config = { "socket_name": "default", "target_pane": ":.1" }
+	let g:slime_python_ipython = 1
+
+	""""""""""""""""""""""""""""""""""""""""
 	" Vundle
 	""""""""""""""""""""""""""""""""""""""""
 	"set nocompatible               " be iMproved
@@ -512,6 +519,9 @@ nmap <F9> :QFix<CR>
 	Bundle 'vim-go'
 	Bundle 'jst'
 	Bundle 'salt'
+	Bundle 'vim-indent-object'
+	Bundle 'vim-slime'
+	Bundle 'vim-nerdtree-tabs'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
