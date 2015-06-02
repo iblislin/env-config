@@ -25,7 +25,12 @@ def change_title(s):
 def main():
     if len(sys.argv) <= 1:
         return
-    for cmd in sys.argv[1:]:
+
+    # skip env var prefix
+    # e.g. ``TERM=xterm ls`` should return`` ls``
+    cmd_list = sys.argv[2:] if '=' in sys.argv[1] else sys.argv[1:]
+
+    for cmd in cmd_list:
         if cmd in EXCLUDE_CMD['CLEAN']:
             change_title('\b')
             break
@@ -35,6 +40,7 @@ def main():
         break
     else:
         pass
+
 
 if __name__ == '__main__':
     main()
