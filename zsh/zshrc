@@ -76,7 +76,7 @@ then
 fi
 if ( isExist htop )
 then
-	alias top='htop -d 5'
+	alias top='TERM=screen htop -d 5'
 fi
 if ( isExist python3 )
 then
