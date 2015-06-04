@@ -46,7 +46,7 @@ export PACKAGEROOT='ftp://ftp.tw.freebsd.org'
 export PYTHONSTARTUP=~/.pyrc
 
 # For vim pager
-if [[ -x `where vim` ]]
+if [[ -x `where vim | head -1` ]]
 then
 	if [[ -x $HOME/bin/vimpager ]]
 	then
