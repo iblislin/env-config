@@ -101,6 +101,11 @@ if ( isExist tmux )
 then
 	alias tmux='TERM="screen-256color" tmux'
 	alias tmux-inner="tmux -f ~/.tmux-inner.conf -S /tmp/tmux-`id -u`-inner"
+
+	if [ $TMUX ]
+	then
+		export TMUX_SESSION=`tmux display-message -p '#S'`
+	fi
 fi
 if ( isExist cmdwatch && isExist figlet )
 then
