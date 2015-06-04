@@ -1,5 +1,7 @@
-vim/backup
-vim/tmp
+vim/backup/*
+vim/tmp/*
+!vim/*/.PADDING
 vim/tags
 zsh/zshlocal
 vimperator/info
+vim/.netrwhist
