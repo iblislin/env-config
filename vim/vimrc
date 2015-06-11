@@ -43,7 +43,27 @@ imap <F1> <nop>
 noremap <F2> :%s/\s*$//g<CR>:noh<CR>''
 
 " New line in normal mode
-nmap <CR> i<CR><Esc>
+nnoremap <expr> <CR> SmartNewLine() ? "i<CR><Esc>" : "i0<C-D><CR><Esc>"
+inoremap <expr> <C-E> pumvisible() ? "<C-E>" : "<End>"
+
+function! SmartNewLine()
+python3 << EOF
+def f():
+	import vim
+
+    line = vim.current.line
+    buffer = vim.current.buffer
+    cursor_row, cursor_col = vim.current.window.cursor
+
+    if not line[:cursor_col].lstrip():
+        vim.command("return 0")
+    else:
+        vim.command("return 1")
+
+f()
+del f
+EOF
+endfunction
 
 " indent shortcut
 nmap <Tab> >>
