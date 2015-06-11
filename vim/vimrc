@@ -49,7 +49,7 @@ inoremap <expr> <C-E> pumvisible() ? "<C-E>" : "<End>"
 function! SmartNewLine()
 python3 << EOF
 def f():
-	import vim
+    import vim
 
     line = vim.current.line
     buffer = vim.current.buffer
