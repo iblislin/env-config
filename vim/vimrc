@@ -44,7 +44,6 @@ noremap <F2> :%s/\s*$//g<CR>:noh<CR>''
 
 " New line in normal mode
 nnoremap <expr> <CR> SmartNewLine() ? "i<CR><Esc>" : "i0<C-D><CR><Esc>"
-inoremap <expr> <C-E> pumvisible() ? "<C-E>" : "<End>"
 
 function! SmartNewLine()
 python3 << EOF
