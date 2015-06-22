@@ -522,6 +522,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'vim-indent-object'
 	Bundle 'vim-slime'
 	Bundle 'vim-nerdtree-tabs'
+	Bundle 'coffee-script'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
