@@ -101,11 +101,6 @@ if ( isExist tmux )
 then
 	alias tmux='TERM="screen-256color" tmux'
 	alias tmux-inner="tmux -f ~/.tmux-inner.conf -S /tmp/tmux-`id -u`-inner"
-
-	if [ $TMUX ]
-	then
-		export TMUX_SESSION=`tmux display-message -p '#S'`
-	fi
 fi
 if ( isExist cmdwatch && isExist figlet )
 then
@@ -186,7 +181,6 @@ function _pip_completion {
 compctl -K _pip_completion pip
 # pip zsh completion end
 
-
 # ==================================
 # jails shell
 # ==================================
@@ -202,6 +196,55 @@ then
 	fi
 	exec sudo JSTY=$STY jexec $vm $shell
 fi
+
+# ==================================
+# python venv dispatcher
+# ==================================
+
+if [ $TMUX ]
+then
+	export TMUX_SESSION=`tmux display-message -p '#S'`
+
+	function tmux_sess_prefix() {
+		# grep tmux session without _venv suffix
+		local patterns='_venv _vhost _code'
+
+		for patt in $patterns
+		do
+			if [ `echo $TMUX_SESSION | grep "${patt}\$"` ]
+			then
+				echo $TMUX_SESSION | sed -e "s/${patt}$//"
+			fi
+		done
+	}
+
+	function tmux_sess_route() {
+		local dir=1
+		local session_name=`tmux_sess_prefix`
+
+		if [ ! $session_name ]
+		then
+			return 0
+		fi
+
+		for _path in "$HOME/git" "$HOME/code" "$HOME/www"
+		do
+			if [ -d $_path/$session_name ]
+			then
+				break
+			fi
+		done
+
+		echo $_path/$session_name
+	}
+
+	cd `tmux_sess_route` >& /dev/null && {
+		source ~/venv/`tmux_sess_prefix`/bin/activate >& /dev/null
+	} || {
+		source ~/venv/py3/bin/activate
+	}
+fi
+
 
 # ==================================
 # Hook Functions
