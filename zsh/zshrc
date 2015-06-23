@@ -76,7 +76,6 @@ then
 fi
 if ( isExist htop )
 then
-	alias htop='TERM=screen htop'
 	alias top='htop -d 5'
 fi
 if ( isExist python3 )
@@ -99,8 +98,7 @@ then
 fi
 if ( isExist tmux )
 then
-	alias tmux='TERM="screen-256color" tmux'
-	alias tmux-inner="tmux -f ~/.tmux-inner.conf -S /tmp/tmux-`id -u`-inner"
+	alias tmux-inner="TERM=rxvt-256color tmux -f ~/.tmux-inner.conf -S /tmp/tmux-`id -u`-inner"
 fi
 if ( isExist cmdwatch && isExist figlet )
 then
