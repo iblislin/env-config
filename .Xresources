@@ -1,0 +1,44 @@
+! Urxvt {{{
+! color settings
+URxvt*termName:              rxvt-256color
+URxvt*depth:                 32
+URxvt*background:            [25]#000000
+URxvt*foreground:            white
+Urxvt*underlineurls:         true
+
+! scroll
+URxvt*scrollBar:             false
+URxvt*mouseWheelScrollPage:  true
+URxvt*cursorBlink:           true
+URxvt*scrollWithBuffer:      true
+URxvt*scrollTtyKeypress:     true
+
+! font
+URxvt*font:                  xft:Droid Sans Mono:size=12:style=Regular,xft:Noto Sans CJK TC
+URxvt*internalBorder:        1
+URxvt*letterSpace:           -1
+
+! key
+Urxvt*modifier:              alt
+
+! Tango Color Theme
+urxvt*color0:                rgba:1b1b/0808/0202/CCCC
+urxvt*color1:                rgb:cccc/0000/0000
+urxvt*color2:                rgb:4e4e/9a9a/0606
+urxvt*color3:                rgb:c4c4/a0a0/0000
+urxvt*color4:                rgb:3434/6565/a4a4
+urxvt*color5:                rgb:7575/5050/7b7b
+urxvt*color6:                rgb:0606/9820/9a9a
+urxvt*color7:                rgb:d3d3/d7d7/cfcf
+urxvt*color8:                rgb:5555/5757/5353
+urxvt*color9:                rgb:efef/2929/2929
+urxvt*color10:               rgb:8a8a/e2e2/3434
+urxvt*color11:               rgb:fcfc/e9e9/4f4f
+urxvt*color12:               rgb:7272/9f9f/cfcf
+urxvt*color13:               rgb:adad/7f7f/a8a8
+urxvt*color14:               rgb:3434/e2e2/e2e2
+urxvt*color15:               rgb:eeee/eeee/ecec
+
+! misc
+URxvt*saveLines:             65535
+URxvt*urgentOnBell:          true
