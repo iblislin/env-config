@@ -98,7 +98,7 @@ then
 fi
 if ( isExist tmux )
 then
-	alias tmux-inner="TERM=rxvt-256color tmux -f ~/.tmux-inner.conf -S /tmp/tmux-`id -u`-inner"
+	alias tmux-inner="tmux -f ~/.tmux-inner.conf -S /tmp/tmux-`id -u`-inner"
 fi
 if ( isExist cmdwatch && isExist figlet )
 then
@@ -201,6 +201,7 @@ fi
 
 if [ $TMUX ]
 then
+	export TERM='rxvt-256color'
 	export TMUX_SESSION=`tmux display-message -p '#S'`
 
 	function tmux_sess_prefix() {
