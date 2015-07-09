@@ -104,6 +104,10 @@ if ( isExist cmdwatch && isExist figlet )
 then
 	alias clock="cmdwatch 'date \"+%H : %M : %S\" | figlet -m 10'"
 fi
+if ( isExist npm )
+then
+	alias="CFLAGS='-I/usr/local/include -L/usr/local/lib' npm"
+fi
 # ==================================
 # Alias > Suffix Alias
 # ==================================
