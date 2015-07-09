@@ -237,6 +237,12 @@ then
 		echo $_path/$session_name
 	}
 
+	if [[ `echo $TMUX_SESSION | egrep '_jail$'` ]]
+	then
+		vm=`echo $TMUX_SESSION | sed -e 's/_jail$//'`
+		exec sudo jexec $vm zsh || exec sudo jexec $vm tcsh
+	fi
+
 	cd `tmux_sess_route` >& /dev/null && {
 		source ~/venv/`tmux_sess_prefix`/bin/activate >& /dev/null
 	} || {
