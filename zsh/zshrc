@@ -125,6 +125,11 @@ if isLinux
 then
 	alias ls='ls --color -F'
 	alias watch='watch -n 0.5'
+
+	if ( ! isExist htop )
+	then
+		alias top='top -d 0.5'
+	fi
 fi
 # ==================================
 # Bindkey
