@@ -247,7 +247,7 @@ then
 	}
 
 	function jail_attach() {
-		if [[ `sudo jexec $vm which zsh` ]]
+		if [ `sudo jexec $vm which zsh` ]
 		then
 			env sudo jexec $vm zsh
 			return
@@ -256,7 +256,7 @@ then
 		env sudo jexec $vm tcsh
 	}
 
-	if [[ `echo $TMUX_SESSION | egrep '_jail$'` ]]
+	if [ `echo $TMUX_SESSION | egrep '_jail$'` ]
 	then
 		vm=`echo $TMUX_SESSION | sed -e 's/_jail$//'`
 		exec jail_attach
