@@ -5,3 +5,5 @@ vim/tags
 zsh/zshlocal
 vimperator/info
 vim/.netrwhist
+
+zsh/repo/*
