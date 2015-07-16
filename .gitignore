@@ -7,3 +7,4 @@ vimperator/info
 vim/.netrwhist
 
 zsh/repo/*
+!zsh/repo/.PADDING
