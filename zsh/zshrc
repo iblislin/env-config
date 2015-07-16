@@ -297,6 +297,24 @@ then
 fi
 
 # ==================================
+# Plugins
+# ==================================
+
+# zsh syntax highlight
+unalias .
+ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets pattern)
+source $ZSH/repo/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+ZSH_HIGHLIGHT_STYLES[command]='fg=green,bold'
+ZSH_HIGHLIGHT_STYLES[precommand]='fg=green,bold,underline'
+ZSH_HIGHLIGHT_STYLES[hashed-command]='fg=green,bold'
+ZSH_HIGHLIGHT_STYLES[alias]='fg=green,bold'
+ZSH_HIGHLIGHT_STYLES[reserved-word]='fg=yellow,bold'
+ZSH_HIGHLIGHT_STYLES[builtin]='fg=yellow,bold'
+ZSH_HIGHLIGHT_STYLES[function]='fg=green,bold'
+alias .=ls
+
+
+# ==================================
 # Custom setting
 # ==================================
 if [[ -f $HOME/.zshlocal ]]
