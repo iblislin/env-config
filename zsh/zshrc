@@ -108,6 +108,10 @@ if ( isExist npm )
 then
 	alias="CFLAGS='-I/usr/local/include -L/usr/local/lib' npm"
 fi
+if (isExist irssi )
+then
+	alias="TERM=xterm irssi"
+fi
 # ==================================
 # Alias > Suffix Alias
 # ==================================
