@@ -98,7 +98,9 @@ then
 fi
 if ( isExist tmux )
 then
+	alias t=tmux
 	alias tmux-inner="tmux -f ~/.tmux-inner.conf -S /tmp/tmux-`id -u`-inner"
+	alias ti=tmux-inner
 fi
 if ( isExist cmdwatch && isExist figlet )
 then
