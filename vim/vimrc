@@ -63,7 +63,7 @@ def f():
 f()
 del f
 EOF
-elseif
+elseif has("python")
 python << EOF
 def f():
     import vim
