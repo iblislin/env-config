@@ -46,6 +46,7 @@ noremap <F2> :%s/\s*$//g<CR>:noh<CR>''
 nnoremap <expr> <CR> SmartNewLine() ? "i<CR><Esc>" : "i0<C-D><CR><Esc>"
 
 function! SmartNewLine()
+if has("python3")
 python3 << EOF
 def f():
     import vim
@@ -62,6 +63,24 @@ def f():
 f()
 del f
 EOF
+elseif
+python << EOF
+def f():
+    import vim
+
+    line = vim.current.line
+    buffer = vim.current.buffer
+    cursor_row, cursor_col = vim.current.window.cursor
+
+    if not line[:cursor_col].lstrip():
+        vim.command("return 0")
+    else:
+        vim.command("return 1")
+
+f()
+del f
+EOF
+endif
 endfunction
 
 " indent shortcut
