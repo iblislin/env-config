@@ -41,7 +41,7 @@ export LC_ALL=$encode
 export PACKAGEROOT='ftp://ftp.tw.freebsd.org'
 
 # For python shell
-export PYTHONSTARTUP=~/.pyrc
+export PYTHONSTARTUP=~/.pythonrc
 
 # For vim pager
 if [[ -x `where vim | head -1` ]]
