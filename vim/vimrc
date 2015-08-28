@@ -176,6 +176,8 @@ endif
 " Pattern matching
 " hi MatchParen ctermbg=11
 
+" column ruler
+set colorcolumn=80
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " File formats
