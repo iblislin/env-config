@@ -5,6 +5,7 @@ vim/tags
 zsh/zshlocal
 vimperator/info
 vim/.netrwhist
+vim/spell
 
 zsh/repo/*
 !zsh/repo/.PADDING
