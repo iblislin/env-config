@@ -568,6 +568,7 @@ nmap <F9> :QFix<CR>
 	Bundle 'vim-nerdtree-tabs'
 	Bundle 'coffee-script'
 	Bundle 'vim-erlang-omnicomplete'
+	Bundle 'vim-simple-todo'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
