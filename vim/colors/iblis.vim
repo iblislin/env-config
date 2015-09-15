@@ -172,4 +172,6 @@ else
         hi MatchParen   cterm=NONE      ctermfg=NONE    ctermbg=172
     endif
 
+	hi ColorColumn ctermbg=4
+
 endif
