@@ -6,6 +6,8 @@ zsh/zshlocal
 vimperator/info
 vim/.netrwhist
 vim/spell
+vim/bundle/
+!vim/bundle/vundle
 
 zsh/repo/*
 !zsh/repo/.PADDING
