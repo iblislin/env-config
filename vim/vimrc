@@ -538,7 +538,7 @@ nmap <F9> :QFix<CR>
 	" My Bundles here:
 	Plugin 'mattn/emmet-vim'
 	Plugin 'ervandew/supertab'
-	Plugin 'tpope/surround'
+	Plugin 'tpope/vim-surround'
 	Plugin 'pangloss/vim-javascript'
 	Plugin 'StanAngeloff/php.vim.git'
 	Plugin 'scrooloose/nerdtree'
