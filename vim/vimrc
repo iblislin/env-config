@@ -416,6 +416,7 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	let g:SuperTabDefaultCompletionType = "<c-n>"
 	let g:SuperTabContextDefaultCompletionType = "<c-n>"
+	let g:SuperTabCrMapping = 1
 
 	""""""""""""""""""""""""""""""""""""""""
 	" OmniCppComplete
@@ -568,6 +569,7 @@ nmap <F9> :QFix<CR>
 	Plugin 'coffee-script'
 	Plugin 'vim-erlang-omnicomplete'
 	Plugin 'vim-simple-todo'
+	Plugin 'JuliaLang/julia-vim'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
