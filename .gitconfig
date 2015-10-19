@@ -17,3 +17,5 @@
 	default = matching
 [merge]
 	tool = vimdiff
+; [https]
+; 	proxy = socks5://140.113.54.46:10000

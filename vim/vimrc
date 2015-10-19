@@ -525,50 +525,49 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	" Vundle
 	""""""""""""""""""""""""""""""""""""""""
-	"set nocompatible               " be iMproved
+	set nocompatible               " be iMproved
 	filetype off                   " required!
 
 	set rtp+=~/.vim/bundle/vundle/
-	call vundle#rc()
+	call vundle#begin()
 
 	" let Vundle manage Vundle
 	" required!
-	Bundle 'gmarik/vundle'
+	Plugin 'VundleVim/Vundle.vim'
 
 	" My Bundles here:
-	Bundle 'emmet-vim'
-	Bundle 'supertab'
-	Bundle 'surround'
-	Bundle 'javascript'
-	Bundle 'php.syntax'
-	Bundle 'nerdtree'
-	Bundle 'delimitMate'
-	Bundle 'git'
-	Bundle 'fugitive'
-	Bundle 'tcomment'
-	" Bundle 'pyCalltips'
-	Bundle 'html5.vim'
-	Bundle 'taglist'
-	Bundle 'js-lib-syntax'
-	Bundle 'vim-css3-syntax'
-	Bundle 'nodejs-complete'
+	Plugin 'mattn/emmet-vim'
+	Plugin 'supertab'
+	Plugin 'surround'
+	Plugin 'javascript'
+	Plugin 'php.syntax'
+	Plugin 'nerdtree'
+	Plugin 'delimitMate'
+	Plugin 'git'
+	Plugin 'fugitive'
+	Plugin 'tcomment'
+	Plugin 'html5.vim'
+	Plugin 'taglist'
+	Plugin 'js-lib-syntax'
+	Plugin 'vim-css3-syntax'
+	Plugin 'nodejs-complete'
 	" Bundle 'YouCompleteMe'
-	Bundle 'ultisnips'
-	Bundle 'L9'
-	Bundle 'vim-snippets'
-	Bundle 'jedi-vim'
-	Bundle 'renumber.vim'
-	Bundle 'gitgutter'
-	Bundle 'pep8'
-	Bundle 'vim-go'
-	Bundle 'jst'
-	Bundle 'salt'
-	Bundle 'vim-indent-object'
-	Bundle 'vim-slime'
-	Bundle 'vim-nerdtree-tabs'
-	Bundle 'coffee-script'
-	Bundle 'vim-erlang-omnicomplete'
-	Bundle 'vim-simple-todo'
+	Plugin 'ultisnips'
+	Plugin 'L9'
+	Plugin 'vim-snippets'
+	Plugin 'jedi-vim'
+	Plugin 'renumber.vim'
+	Plugin 'gitgutter'
+	Plugin 'pep8'
+	Plugin 'vim-go'
+	Plugin 'jst'
+	Plugin 'salt'
+	Plugin 'vim-indent-object'
+	Plugin 'vim-slime'
+	Plugin 'vim-nerdtree-tabs'
+	Plugin 'coffee-script'
+	Plugin 'vim-erlang-omnicomplete'
+	Plugin 'vim-simple-todo'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
@@ -587,16 +586,17 @@ nmap <F9> :QFix<CR>
 	" non github repos
 	" Bundle 'git://git.wincent.com/command-t.git'
 
+	call vundle#end()            " required
 	filetype plugin indent on     " required!
-	"
+
 	" Brief help
-	" :BundleList          - list configured bundles
-	" :BundleInstall(!)    - install(update) bundles
-	" :BundleSearch(!) foo - search(or refresh cache first) for foo
-	" :BundleClean(!)      - confirm(or auto-approve) removal of unused bundles
+	" :PluginList       - lists configured plugins
+	" :PluginInstall    - installs plugins; append `!` to update or just :PluginUpdate
+	" :PluginSearch foo - searches for foo; append `!` to refresh local cache
+	" :PluginClean      - confirms removal of unused plugins; append `!` to auto-approve removal
 	"
 	" see :h vundle for more details or wiki for FAQ
-	" NOTE: comments after Bundle command are not allowed..
+	" Put your non-Plugin stuff after this line
 
 set listchars=tab:>-,trail:-,eol:$,nbsp:%,extends:>,precedes:<
 
