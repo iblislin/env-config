@@ -22,7 +22,8 @@ dir(){
 #  vars
 ##############################################
 
-REPO_LIST='https://github.com/zsh-users/zsh-syntax-highlighting.git'
+REPO_LIST='https://github.com/zsh-users/zsh-syntax-highlighting.git' \
+          'https://github.com/zdict/zdict.sh.git'
 REPO_DIR=`dir $0`/repo
 
 cd $REPO_DIR
