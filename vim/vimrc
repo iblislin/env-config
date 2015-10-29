@@ -570,6 +570,7 @@ nmap <F9> :QFix<CR>
 	Plugin 'vim-erlang-omnicomplete'
 	Plugin 'vim-simple-todo'
 	Plugin 'JuliaLang/julia-vim'
+	Plugin 'tmhedberg/SimpylFold'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
