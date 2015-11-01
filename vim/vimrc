@@ -110,6 +110,10 @@ nnoremap <F7> :set number!<CR>:set number?<CR>
 imap <F6> <ESC><F6>
 imap <F7> <ESC><F7>i
 
+" tab page jumping
+nnoremap <silent> <C-V><C-PageUp> :tabp<CR>
+nnoremap <silent> <C-V><C-PageDown> :tabn<CR>
+
 " Keyword completion
 " imap <M-Up> <C-N>
 " imap <M-Right> <C-N>
