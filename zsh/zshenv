@@ -21,6 +21,8 @@ path=(/sbin /bin /usr/sbin /usr/bin /usr/games /usr/local/sbin /usr/local/bin $H
 
 export ZSH="$HOME/.zsh"
 
+export TERM='screen-256color'
+
 export PAGER=less
 
 export LSCOLORS="ExFxcxdxbxegedabagacad"

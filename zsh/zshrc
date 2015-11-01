@@ -98,7 +98,7 @@ then
 fi
 if ( isExist tmux )
 then
-	alias t=tmux
+	alias t='tmux -2'
 	alias tmux-inner="tmux -f ~/.tmux-inner.conf -S /tmp/tmux-`id -u`-inner"
 	alias ti=tmux-inner
 fi
