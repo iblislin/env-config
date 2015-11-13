@@ -533,7 +533,7 @@ nmap <F9> :QFix<CR>
 	set nocompatible               " be iMproved
 	filetype off                   " required!
 
-	set rtp+=~/.vim/bundle/vundle/
+	set rtp+=~/.vim/bundle/Vundle.vim/
 	call vundle#begin()
 
 	" let Vundle manage Vundle
@@ -548,32 +548,31 @@ nmap <F9> :QFix<CR>
 	Plugin 'StanAngeloff/php.vim.git'
 	Plugin 'scrooloose/nerdtree'
 	Plugin 'Raimondi/delimitMate'
-	Plugin 'git'
-	Plugin 'fugitive'
-	Plugin 'tcomment'
-	Plugin 'html5.vim'
-	Plugin 'taglist'
-	Plugin 'js-lib-syntax'
-	Plugin 'vim-css3-syntax'
-	Plugin 'nodejs-complete'
+	Plugin 'tpope/vim-fugitive'
+	Plugin 'tomtom/tcomment_vim'
+	Plugin 'othree/html5.vim'
+	Plugin 'vim-scripts/taglist.vim'
+	Plugin 'othree/javascript-libraries-syntax.vim'
+	Plugin 'hail2u/vim-css3-syntax'
+	Plugin 'myhere/vim-nodejs-complete'
 	" Bundle 'YouCompleteMe'
-	Plugin 'ultisnips'
-	Plugin 'L9'
-	Plugin 'vim-snippets'
-	Plugin 'jedi-vim'
-	Plugin 'renumber.vim'
-	Plugin 'gitgutter'
-	Plugin 'pep8'
-	Plugin 'vim-go'
-	Plugin 'jst'
-	Plugin 'salt'
-	Plugin 'vim-indent-object'
-	Plugin 'vim-slime'
-	Plugin 'vim-nerdtree-tabs'
-	Plugin 'coffee-script'
-	Plugin 'vim-erlang-omnicomplete'
+	Plugin 'iblis17/ultisnips.git'
+	Plugin 'vim-scripts/L9'
+	Plugin 'iblis17/vim-snippets'
+	Plugin 'davidhalter/jedi-vim'
+	Plugin 'vim-scripts/renumber.vim'
+	Plugin 'airblade/vim-gitgutter'
+	" Plugin 'pep8'
+	" Plugin 'vim-go'
+	" Plugin 'jst'
+	" Plugin 'salt'
+	Plugin 'michaeljsmith/vim-indent-object'
+	Plugin 'jistr/vim-nerdtree-tabs'
+	" Plugin 'coffee-script'
+	" Plugin 'vim-erlang-omnicomplete'
 	Plugin 'JuliaLang/julia-vim'
 	Plugin 'tmhedberg/SimpylFold'
+	Bundle 'kshenoy/vim-signature'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
@@ -584,10 +583,9 @@ nmap <F9> :QFix<CR>
 	" vim-scripts repos
 	" Bundle 'FuzzyFinder'
 	" Bundle 'matrix'
-	Bundle 'matchit'
+	Bundle 'vim-scripts/matchit'
 	" Bundle 'code_complete'
-	Bundle 'vim-autocomplpop'
-	Bundle 'signature'
+	Bundle 'vim-scripts/AutoComplPop'
 
 	" non github repos
 	" Bundle 'git://git.wincent.com/command-t.git'
