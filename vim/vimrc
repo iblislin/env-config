@@ -583,7 +583,7 @@ nmap <F9> :QFix<CR>
 	" vim-scripts repos
 	" Bundle 'FuzzyFinder'
 	" Bundle 'matrix'
-	Bundle 'vim-scripts/matchit'
+	Bundle 'vim-scripts/matchit.zip'
 	" Bundle 'code_complete'
 	Bundle 'vim-scripts/AutoComplPop'
 
