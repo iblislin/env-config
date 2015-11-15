@@ -83,17 +83,20 @@ then
 	if ( isExist ipython3 )
 	then
 		alias py3=ipython3
+		alias py=ipython3
+
+		if ( isExist ptpython )
+		then
+			alias py=ptipython
+		fi
 	else
 		alias py3=python3
-	fi
-fi
-if ( isExist python )
-then
-	if ( isExist ipython2 )
-	then
-		alias py=ipython2
-	else
-		alias py=python
+		alias py=python3
+
+		if ( isExist ptpython )
+		then
+			alias py=ptpython
+		fi
 	fi
 fi
 if ( isExist tmux )
@@ -110,7 +113,7 @@ if ( isExist npm )
 then
 	alias="CFLAGS='-I/usr/local/include -L/usr/local/lib' npm"
 fi
-if (isExist irssi )
+if ( isExist irssi )
 then
 	alias="TERM=xterm irssi"
 fi
