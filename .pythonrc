@@ -7,3 +7,29 @@ else:
     readline.parse_and_bind("tab: complete")
 
 PACKAGE_PARENT = '..'
+
+
+try:
+    import numpy as np
+    import numpy.matlib as mat
+except:
+    pass
+
+
+try:
+    import pandas as pd
+except:
+    pass
+
+
+try:
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+except
+    pass
+
+
+try:
+    import scipy 
+except:
+    pass
