@@ -413,7 +413,8 @@ nmap <F9> :QFix<CR>
 	" X       Recursively close all children of the current node
 	" e       Open a netrw for the current dir
 	" q       Close the nerd tree split window
-	let g:NERDTreeWinSize=22
+	let g:NERDTreeWinSize = 22
+	let NERDTreeIgnore = ['\.pyc$', '\.pyo$', '^__pycache__$', '\~$']
 	nnoremap <F3> :NERDTreeTabsToggle<CR>
 
 	""""""""""""""""""""""""""""""""""""""""
@@ -566,7 +567,7 @@ nmap <F9> :QFix<CR>
 	Plugin 'othree/javascript-libraries-syntax.vim'
 	Plugin 'hail2u/vim-css3-syntax'
 	Plugin 'myhere/vim-nodejs-complete'
-	" Bundle 'YouCompleteMe'
+	" Plugin 'Valloric/YouCompleteMe'
 	Plugin 'iblis17/ultisnips.git'
 	Plugin 'vim-scripts/L9'
 	Plugin 'iblis17/vim-snippets'
