@@ -40,7 +40,13 @@ nmap <F1> <nop>
 imap <F1> <nop>
 
 " Remove indenting on empty lines
-noremap <F2> :%s/\s*$//g<CR>:noh<CR>''
+fun! StripTrailingWhitespaces()
+	let l = line(".")
+	let c = col(".")
+	%s/\s\+$//ge
+	call cursor(l, c)
+endfun
+nnoremap <F2> :call StripTrailingWhitespaces()<CR>
 
 " New line in normal mode
 nnoremap <expr> <CR> SmartNewLine() ? "i<CR><Esc>" : "i0<C-D><CR><Esc>"
@@ -504,7 +510,7 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	" vim-autocomplpop
 	""""""""""""""""""""""""""""""""""""""""
-	let g:AutoComplPopDontSelectFirst = 1
+	let g:AutoComplPopDontSelectFirst = 0
 
 	""""""""""""""""""""""""""""""""""""""""
 	" Renumber
