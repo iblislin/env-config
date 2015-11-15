@@ -528,6 +528,11 @@ nmap <F9> :QFix<CR>
 	let g:slime_python_ipython = 1
 
 	""""""""""""""""""""""""""""""""""""""""
+	" SimpylFold
+	""""""""""""""""""""""""""""""""""""""""
+	let g:SimpylFold_docstring_preview = 1
+
+	""""""""""""""""""""""""""""""""""""""""
 	" Vundle
 	""""""""""""""""""""""""""""""""""""""""
 	set nocompatible               " be iMproved
@@ -572,7 +577,10 @@ nmap <F9> :QFix<CR>
 	" Plugin 'vim-erlang-omnicomplete'
 	Plugin 'JuliaLang/julia-vim'
 	Plugin 'tmhedberg/SimpylFold'
-	Bundle 'kshenoy/vim-signature'
+	Plugin 'kshenoy/vim-signature'
+	Plugin 'powerline/powerline', {'rtp': 'powerline/bindings/vim/'}
+	Plugin 'vim-scripts/matchit.zip'
+	Plugin 'vim-scripts/AutoComplPop'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
@@ -583,9 +591,7 @@ nmap <F9> :QFix<CR>
 	" vim-scripts repos
 	" Bundle 'FuzzyFinder'
 	" Bundle 'matrix'
-	Bundle 'vim-scripts/matchit.zip'
 	" Bundle 'code_complete'
-	Bundle 'vim-scripts/AutoComplPop'
 
 	" non github repos
 	" Bundle 'git://git.wincent.com/command-t.git'
