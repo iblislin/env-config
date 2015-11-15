@@ -2,7 +2,10 @@
 "  Color
 """"""""""""""""""""""""""""""""""""""""""""""
 hi def LeadingTab term=reverse ctermfg=16 ctermbg=001 gui=reverse guifg=#dc322f
+hi def BadWhitespace term=reverse ctermfg=16 ctermbg=001 gui=reverse guifg=#dc322f
+
 match LeadingTab /^\t\+/
+match BadWhitespace /\s\+$/
 
 """"""""""""""""""""""""""""""""""""""""""""""
 "  General
@@ -15,7 +18,10 @@ imap <buffer> <F5> <ESC><F5>
 
 nnoremap <expr> <CR> SmartNewLine() ? "i<CR><Esc>" : "i^<C-D><CR><Esc>"
 
-""""""""""""""""""""""""""""""""""""""""
+" purge trailing space
+autocmd BufWritePre *.py :call StripTrailingWhitespaces()
+
+""""""""""""""""""""""""""""""""""""""""""""""
 " SuperTab
-""""""""""""""""""""""""""""""""""""""""
+""""""""""""""""""""""""""""""""""""""""""""""
 let g:SuperTabDefaultCompletionType = "<c-x><c-o>"
