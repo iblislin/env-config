@@ -581,6 +581,7 @@ nmap <F9> :QFix<CR>
 	Plugin 'powerline/powerline', {'rtp': 'powerline/bindings/vim/'}
 	Plugin 'vim-scripts/matchit.zip'
 	Plugin 'vim-scripts/AutoComplPop'
+	Plugin 'vim-scripts/indentpython.vim'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
