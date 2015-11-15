@@ -589,6 +589,7 @@ nmap <F9> :QFix<CR>
 	Plugin 'vim-scripts/matchit.zip'
 	Plugin 'vim-scripts/AutoComplPop'
 	Plugin 'vim-scripts/indentpython.vim'
+	Plugin 'scrooloose/syntastic'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
