@@ -332,6 +332,9 @@ set spell
 set spelllang=en
 
 hi clear SpellBad
+hi clear SpellCap
+hi clear SpellLocal
+hi clear SpellRare
 
 "map <LEADER>sn ]s
 "map <LEADER>sp [s
@@ -592,6 +595,7 @@ nmap <F9> :QFix<CR>
 	Plugin 'vim-scripts/AutoComplPop'
 	Plugin 'vim-scripts/indentpython.vim'
 	Plugin 'scrooloose/syntastic'
+	Plugin 'pi314/todo-or-not-todo.vim'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
