@@ -454,7 +454,7 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	" Fugitive
 	""""""""""""""""""""""""""""""""""""""""
-	set statusline=%<%f\ %h%m%r\ %{fugitive#statusline()}%=%-15(%c%V\ %p%%%)
+	" set statusline=%<%f\ %h%m%r\ %{fugitive#statusline()}%=%-15(%c%V\ %p%%%)
 	nnoremap <silent> <leader>s :Gwrite<CR>:GitGutter<CR>
 
 	""""""""""""""""""""""""""""""""""""""""
@@ -544,6 +544,11 @@ nmap <F9> :QFix<CR>
 	""""""""""""""""""""""""""""""""""""""""
 	let g:SimpylFold_docstring_preview = 1
 
+	""""""""""""""""""""""""""""""""""""""""
+	"  todo-or-not-todo
+	""""""""""""""""""""""""""""""""""""""""
+	let g:todo_checkbox_switch_style = 'menu'
+	
 	""""""""""""""""""""""""""""""""""""""""
 	" Vundle
 	""""""""""""""""""""""""""""""""""""""""
