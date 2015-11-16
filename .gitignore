@@ -8,6 +8,7 @@ vim/.netrwhist
 vim/spell
 vim/bundle/
 !vim/bundle/vundle
+vim/plugged
 
 zsh/repo/*
 !zsh/repo/.PADDING

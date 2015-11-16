@@ -548,59 +548,97 @@ nmap <F9> :QFix<CR>
 	"  todo-or-not-todo
 	""""""""""""""""""""""""""""""""""""""""
 	let g:todo_checkbox_switch_style = 'menu'
+
+	""""""""""""""""""""""""""""""""""""""""
+	"  vim-plug
+	""""""""""""""""""""""""""""""""""""""""
+	call plug#begin('~/.vim/plugged')
+
+	Plug 'mattn/emmet-vim'
+	Plug 'ervandew/supertab'
+	Plug 'tpope/vim-surround'
+	Plug 'pangloss/vim-javascript'
+	Plug 'StanAngeloff/php.vim'
+	Plug 'scrooloose/nerdtree'
+	Plug 'Raimondi/delimitMate'
+	Plug 'tpope/vim-fugitive'
+	Plug 'tomtom/tcomment_vim'
+	Plug 'othree/html5.vim'
+	Plug 'vim-scripts/taglist.vim'
+	Plug 'othree/javascript-libraries-syntax.vim'
+	Plug 'hail2u/vim-css3-syntax'
+	Plug 'myhere/vim-nodejs-complete'
+	Plug 'iblis17/ultisnips'
+	Plug 'vim-scripts/L9'
+	Plug 'iblis17/vim-snippets'
+	Plug 'davidhalter/jedi-vim'
+	Plug 'vim-scripts/renumber.vim'
+	Plug 'airblade/vim-gitgutter'
+	Plug 'michaeljsmith/vim-indent-object'
+	Plug 'jistr/vim-nerdtree-tabs'
+	Plug 'JuliaLang/julia-vim'
+	Plug 'tmhedberg/SimpylFold'
+	Plug 'kshenoy/vim-signature'
+	Plug 'powerline/powerline', {'rtp': 'powerline/bindings/vim/'}
+	Plug 'vim-scripts/matchit.zip'
+	Plug 'vim-scripts/AutoComplPop'
+	Plug 'vim-scripts/indentpython.vim'
+	Plug 'pi314/todo-or-not-todo.vim'
+
+	call plug#end()
 	
 	""""""""""""""""""""""""""""""""""""""""
 	" Vundle
 	""""""""""""""""""""""""""""""""""""""""
-	set nocompatible               " be iMproved
-	filetype off                   " required!
-
-	set rtp+=~/.vim/bundle/Vundle.vim/
-	call vundle#begin()
+	" set nocompatible               " be iMproved
+	" filetype off                   " required!
+    "
+	" set rtp+=~/.vim/bundle/Vundle.vim/
+	" call vundle#begin()
 
 	" let Vundle manage Vundle
 	" required!
-	Plugin 'VundleVim/Vundle.vim'
+	" Plugin 'VundleVim/Vundle.vim'
 
 	" My Bundles here:
-	Plugin 'mattn/emmet-vim'
-	Plugin 'ervandew/supertab'
-	Plugin 'tpope/vim-surround'
-	Plugin 'pangloss/vim-javascript'
-	Plugin 'StanAngeloff/php.vim.git'
-	Plugin 'scrooloose/nerdtree'
-	Plugin 'Raimondi/delimitMate'
-	Plugin 'tpope/vim-fugitive'
-	Plugin 'tomtom/tcomment_vim'
-	Plugin 'othree/html5.vim'
-	Plugin 'vim-scripts/taglist.vim'
-	Plugin 'othree/javascript-libraries-syntax.vim'
-	Plugin 'hail2u/vim-css3-syntax'
-	Plugin 'myhere/vim-nodejs-complete'
+	" Plugin 'mattn/emmet-vim'
+	" Plugin 'ervandew/supertab'
+	" Plugin 'tpope/vim-surround'
+	" Plugin 'pangloss/vim-javascript'
+	" Plugin 'StanAngeloff/php.vim.git'
+	" Plugin 'scrooloose/nerdtree'
+	" Plugin 'Raimondi/delimitMate'
+	" Plugin 'tpope/vim-fugitive'
+	" Plugin 'tomtom/tcomment_vim'
+	" Plugin 'othree/html5.vim'
+	" Plugin 'vim-scripts/taglist.vim'
+	" Plugin 'othree/javascript-libraries-syntax.vim'
+	" Plugin 'hail2u/vim-css3-syntax'
+	" Plugin 'myhere/vim-nodejs-complete'
 	" Plugin 'Valloric/YouCompleteMe'
-	Plugin 'iblis17/ultisnips.git'
-	Plugin 'vim-scripts/L9'
-	Plugin 'iblis17/vim-snippets'
-	Plugin 'davidhalter/jedi-vim'
-	Plugin 'vim-scripts/renumber.vim'
-	Plugin 'airblade/vim-gitgutter'
+	" Plugin 'iblis17/ultisnips.git'
+	" Plugin 'vim-scripts/L9'
+	" Plugin 'iblis17/vim-snippets'
+	" Plugin 'davidhalter/jedi-vim'
+	" Plugin 'vim-scripts/renumber.vim'
+	" Plugin 'airblade/vim-gitgutter'
 	" Plugin 'pep8'
 	" Plugin 'vim-go'
 	" Plugin 'jst'
 	" Plugin 'salt'
-	Plugin 'michaeljsmith/vim-indent-object'
-	Plugin 'jistr/vim-nerdtree-tabs'
+	" Plugin 'michaeljsmith/vim-indent-object'
+	" Plugin 'jistr/vim-nerdtree-tabs'
 	" Plugin 'coffee-script'
 	" Plugin 'vim-erlang-omnicomplete'
-	Plugin 'JuliaLang/julia-vim'
-	Plugin 'tmhedberg/SimpylFold'
-	Plugin 'kshenoy/vim-signature'
-	Plugin 'powerline/powerline', {'rtp': 'powerline/bindings/vim/'}
-	Plugin 'vim-scripts/matchit.zip'
-	Plugin 'vim-scripts/AutoComplPop'
-	Plugin 'vim-scripts/indentpython.vim'
+	" Plugin 'JuliaLang/julia-vim'
+	" Plugin 'tmhedberg/SimpylFold'
+	" Plugin 'kshenoy/vim-signature'
+	" Plugin 'powerline/powerline', {'rtp': 'powerline/bindings/vim/'}
+	" Plugin 'vim-scripts/matchit.zip'
+	" Plugin 'vim-scripts/AutoComplPop'
+	" Plugin 'vim-scripts/indentpython.vim'
 	" Plugin 'scrooloose/syntastic'
-	Plugin 'pi314/todo-or-not-todo.vim'
+	" Plugin 'pi314/todo-or-not-todo.vim'
 
 	" original repos on github
 	" Bundle 'tpope/vim-fugitive'
@@ -608,16 +646,11 @@ nmap <F9> :QFix<CR>
 	" Bundle 'rstacruz/sparkup', {'rtp': 'vim/'}
 	" Bundle 'tpope/vim-rails.git'
 
-	" vim-scripts repos
-	" Bundle 'FuzzyFinder'
-	" Bundle 'matrix'
-	" Bundle 'code_complete'
-
 	" non github repos
 	" Bundle 'git://git.wincent.com/command-t.git'
 
-	call vundle#end()            " required
-	filetype plugin indent on     " required!
+	" call vundle#end()             " required
+	" filetype plugin indent on     " required!
 
 	" Brief help
 	" :PluginList       - lists configured plugins
