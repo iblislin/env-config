@@ -104,6 +104,7 @@ then
 	alias t='tmux -2'
 	alias tmux-inner="tmux -f ~/.tmux-inner.conf -S /tmp/tmux-`id -u`-inner"
 	alias ti=tmux-inner
+	alias r='tmux attach -d'
 fi
 if ( isExist cmdwatch && isExist figlet )
 then
