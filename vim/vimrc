@@ -328,7 +328,7 @@ autocmd Filetype scheme set expandtab nocindent
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Spell check
 """"""""""""""""""""""""""""""""""""""""""""""""""
-set spell
+set nospell
 set spelllang=en
 
 hi clear SpellBad
