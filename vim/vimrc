@@ -594,7 +594,7 @@ nmap <F9> :QFix<CR>
 	Plugin 'vim-scripts/matchit.zip'
 	Plugin 'vim-scripts/AutoComplPop'
 	Plugin 'vim-scripts/indentpython.vim'
-	Plugin 'scrooloose/syntastic'
+	" Plugin 'scrooloose/syntastic'
 	Plugin 'pi314/todo-or-not-todo.vim'
 
 	" original repos on github
