@@ -601,6 +601,9 @@ nmap <F9> :QFix<CR>
 	Plug 'tmhedberg/SimpylFold', {'for': 'python'}
 	Plug 'vim-scripts/indentpython.vim', {'for': 'python'}
 
+	" c/cpp
+	Plug 'myint/clang-complete', {'for': ['c', 'cpp', 'cl']}
+
 	call plug#end()
 	
 	""""""""""""""""""""""""""""""""""""""""
