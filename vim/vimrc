@@ -604,7 +604,7 @@ nmap <F9> :QFix<CR>
 	" c/cpp
 	Plug 'myint/clang-complete', {'for': ['c', 'cpp', 'cl']}
 	"" opencl
-	Plug 'petRUShka/vim-opencl', {'for': ['c', 'cl', 'cpp']}
+	Plug 'petRUShka/vim-opencl', {'for': ['c', 'opencl', 'cpp']}
 
 
 	call plug#end()
