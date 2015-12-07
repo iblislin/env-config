@@ -12,3 +12,9 @@ match BadWhitespace /\s\+$/
 """"""""""""""""""""""""""""""""""""""""""""""
 nnoremap <F5> :wa<CR>:make %:r<CR>
 setlocal expandtab
+
+" purge trailing space
+autocmd BufWritePre *.c :call StripTrailingWhitespaces()
+autocmd BufWritePre *.cpp :call StripTrailingWhitespaces()
+autocmd BufWritePre *.h :call StripTrailingWhitespaces()
+autocmd BufWritePre *.hpp :call StripTrailingWhitespaces()
