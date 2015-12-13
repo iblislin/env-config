@@ -140,6 +140,11 @@ then
 	then
 		alias top='top -d 0.5'
 	fi
+
+	if (isExist yaourt)
+	then
+		alias alias yu='yaourt -Sy --noconfirm --needed'
+	fi
 fi
 # ==================================
 # Bindkey
