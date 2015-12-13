@@ -12,6 +12,15 @@ function isLinux()
 		return 1	# False
 	fi
 } # }}}
+function isDarwin()
+{ # {{{
+	if [[ `uname -s` == 'Darwin' ]]
+	then
+		return 0	# means true in the following script
+	else
+		return 1	# False
+	fi
+} # }}}
 function isExist()
 { # {{{
 	# It require one argument.
@@ -41,8 +50,6 @@ alias .='ls'
 alias ..='cd ../'
 alias rm='rm -vf'
 alias cp='cp -R'
-alias s='screen'
-alias r='screen -r'
 alias man='env LC_ALL=C man'
 alias grep='grep --color'
 alias egrep='egrep --color'
@@ -147,6 +154,13 @@ then
 	fi
 fi
 # ==================================
+# Alias > Hook for Darwin
+# ==================================
+if isDarwin
+then
+	alias ls='ls -FG'
+fi
+# ==================================
 # Bindkey
 # ==================================
 bindkey -v
@@ -161,8 +175,11 @@ bindkey -M viins '^F'	history-incremental-pattern-search-forward
 bindkey -M vicmd '/'	history-incremental-pattern-search-backward
 bindkey -M vicmd '?'	history-incremental-pattern-search-forward
 bindkey '^[[1;3C'	forward-word
+bindkey '^[[1;5C'	forward-word
+bindkey '^[^[[C'	forward-word
 bindkey '^[k'	forward-word
 bindkey '^[[1;3D'	backward-word
+bindkey '^[^[[D'	backward-word
 bindkey '^[j'	backward-word
 bindkey '\e.'	insert-last-word
 bindkey -M menuselect '^[[Z'	reverse-menu-complete
