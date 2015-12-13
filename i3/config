@@ -138,8 +138,10 @@ bindsym $mod+8 workspace 8
 #navigate workspaces next / previous
 # bindsym $mod+Ctrl+Right workspace next
 # bindsym $mod+Ctrl+Left workspace prev
-bindsym $mod+a exec ~/.i3/bin/workspace.py -1
-bindsym $mod+s exec ~/.i3/bin/workspace.py 1
+bindsym $mod+z exec ~/.i3/bin/workspace.py -1
+bindsym $mod+x exec ~/.i3/bin/workspace.py 1
+bindsym $mod+a workspace prev
+bindsym $mod+s workspace next
 
 # Move focused container to workspace
 bindsym $mod+Ctrl+1 move container to workspace number 1
