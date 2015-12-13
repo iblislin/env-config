@@ -14,7 +14,7 @@ URxvt*scrollWithBuffer:      true
 URxvt*scrollTtyKeypress:     true
 
 ! font
-URxvt*font:                  xft:Droid Sans Mono:size=12:style=Regular,xft:Noto Sans CJK TC
+URxvt*font:                  xft:Droid Sans Mono for Powerline:size=14:style=Regular,xft:Noto Sans CJK TC:size=14:style=Regular
 URxvt*internalBorder:        1
 URxvt*letterSpace:           -1
 
