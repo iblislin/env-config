@@ -311,7 +311,7 @@ set foldmethod=indent
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Text
 """"""""""""""""""""""""""""""""""""""""""""""""""
-set noexpandtab
+set expandtab
 
 set lbr
 
