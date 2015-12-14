@@ -297,7 +297,7 @@ then
 	cd `tmux_sess_route` >& /dev/null && {
 		source ~/venv/`tmux_sess_prefix`/bin/activate >& /dev/null
 	} || {
-		source ~/venv/py3/bin/activate
+		source ~/venv/py3/bin/activate >& /dev/null
 	}
 fi
 
