@@ -602,9 +602,12 @@ nmap <F9> :QFix<CR>
 	Plug 'vim-scripts/indentpython.vim', {'for': 'python'}
 
 	" c/cpp
-	" Plug 'myint/clang-complete', {'for': ['c', 'cpp', 'cl']}
+	Plug 'myint/clang-complete', {'for': ['c', 'opencl', 'cpp']}
 	"" opencl
 	Plug 'petRUShka/vim-opencl', {'for': ['c', 'opencl', 'cpp']}
+
+    " nim
+    Plug 'iblis17/nim.vim'
 
 
 	call plug#end()
@@ -690,3 +693,5 @@ set listchars=tab:>-,trail:-,eol:$,nbsp:%,extends:>,precedes:<
 """"""""""""""""""""""""""""""""""""""""""""""
 " Return to last edit position when opening files
 autocmd BufReadPost * silent! normal! g`"zv
+
+autocmd BufRead,BufNewFile *.todo set filetype=rst.todo
