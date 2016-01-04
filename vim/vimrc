@@ -421,6 +421,7 @@ nmap <F9> :QFix<CR>
 	" q       Close the nerd tree split window
 	let g:NERDTreeWinSize = 22
 	let NERDTreeIgnore = ['\.pyc$', '\.pyo$', '^__pycache__$', '\~$']
+    let g:NERDTreeDirArrows = 0
 	nnoremap <F3> :NERDTreeTabsToggle<CR>
 
 	""""""""""""""""""""""""""""""""""""""""
