@@ -63,6 +63,7 @@ bindsym $mod+j focus left
 bindsym $mod+k focus down
 bindsym $mod+l focus up
 bindsym $mod+odiaeresis focus right
+bindsym $mod+o exec ~/.i3/bin/switch.py
 
 # alternatively, you can use the cursor keys:
 bindsym $mod+Left focus left
@@ -167,29 +168,29 @@ bindsym $mod+Shift+7 move container to workspace number 7; workspace 7
 bindsym $mod+Shift+8 move container to workspace number 8; workspace 8
 
 # rename workspaces
-rename workspace to 1:α
-rename workspace to 2:β
-rename workspace to 3:ξ
-rename workspace to 4:δ
-rename workspace to 5:ε
-rename workspace to 6:φ
-rename workspace to 7:γ
-rename workspace to 8:θ
+# rename workspace to 1:α
+# rename workspace to 2:β
+# rename workspace to 3:ξ
+# rename workspace to 4:δ
+# rename workspace to 5:ε
+# rename workspace to 6:φ
+# rename workspace to 7:γ
+# rename workspace to 8:θ
 
-rename workspace 11 to 11:α
-rename workspace 12 to 12:β
-rename workspace 13 to 13:ξ
-rename workspace 14 to 14:δ
-rename workspace 15 to 15:ε
-rename workspace 16 to 16:φ
-rename workspace 17 to 17:γ
-rename workspace 18 to 18:θ
+# rename workspace 11 to 11:α
+# rename workspace 12 to 12:β
+# rename workspace 13 to 13:ξ
+# rename workspace 14 to 14:δ
+# rename workspace 15 to 15:ε
+# rename workspace 16 to 16:φ
+# rename workspace 17 to 17:γ
+# rename workspace 18 to 18:θ
 
 # Open applications on specific workspaces
 # assign [class="Thunderbird"] 1
-assign [class="Firefox"] 2
+# assign [class="Firefox"] 2
 # assign [class="Pcmanfm"] 3
-assign [class="Slack"] 5
+# assign [class="Slack"] 5
 
 # Open specific applications in floating mode
 for_window [title="alsamixer"] floating enable border pixel 2

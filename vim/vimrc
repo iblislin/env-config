@@ -603,7 +603,7 @@ nmap <F9> :QFix<CR>
 	Plug 'vim-scripts/indentpython.vim', {'for': 'python'}
 
 	" c/cpp
-	Plug 'myint/clang-complete', {'for': ['c', 'cpp', 'cl']}
+	Plug 'myint/clang-complete', {'for': ['c', 'opencl', 'cpp']}
 	"" opencl
 	Plug 'petRUShka/vim-opencl', {'for': ['c', 'opencl', 'cpp']}
 
