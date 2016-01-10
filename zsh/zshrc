@@ -174,14 +174,15 @@ bindkey -M viins '^R'	history-incremental-pattern-search-backward
 bindkey -M viins '^F'	history-incremental-pattern-search-forward
 bindkey -M vicmd '/'	history-incremental-pattern-search-backward
 bindkey -M vicmd '?'	history-incremental-pattern-search-forward
-bindkey '^[[1;3C'	forward-word
-bindkey '^[[1;5C'	forward-word
-bindkey '^[^[[C'	forward-word
-bindkey '^[k'	forward-word
-bindkey '^[[1;3D'	backward-word
-bindkey '^[^[[D'	backward-word
-bindkey '^[j'	backward-word
-bindkey '\e.'	insert-last-word
+bindkey '^[[1;3C'   forward-word
+bindkey '^[[1;5C'   forward-word
+bindkey '^[^[[C'    forward-word
+bindkey '^[k'       forward-word
+bindkey '^[[1;3D'   backward-word
+bindkey '^[^[[D'    backward-word
+bindkey '^[j'       backward-word
+bindkey '\e.'       insert-last-word
+bindkey '^[.'       insert-last-word
 bindkey -M menuselect '^[[Z'	reverse-menu-complete
 # For solving some problematic bindkey
 # http://unix.stackexchange.com/questions/140770/how-can-i-get-back-into-normal-edit-mode-after-pressing-esc-in-zsh-vi-mode
