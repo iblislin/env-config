@@ -67,6 +67,3 @@ do
 	$LN $f $HOME/bin/
 done
 
-git submodule update --init --recursive
-git submodule sync
-
