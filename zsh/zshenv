@@ -3,6 +3,9 @@
 # ==================================
 setopt appendhistory
 setopt autocd
+setopt auto_pushd
+setopt pushd_minus
+setopt pushd_ignore_dups
 setopt extended_glob
 setopt nomatch
 setopt prompt_subst
