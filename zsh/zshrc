@@ -168,8 +168,10 @@ bindkey '^A'	beginning-of-line
 bindkey '^E'	end-of-line
 bindkey '^[[A'	up-line-or-search
 bindkey '^[OA'	up-line-or-search               # For gnome terminal
+bindkey '^K'    up-line-or-search
 bindkey '^[[B'	down-line-or-search
 bindkey '^[OB'	down-line-or-search             # For gnome terminal
+bindkey '^J'	down-line-or-search
 bindkey -M viins '^R'	history-incremental-pattern-search-backward
 bindkey -M viins '^F'	history-incremental-pattern-search-forward
 bindkey -M vicmd '/'	history-incremental-pattern-search-backward
