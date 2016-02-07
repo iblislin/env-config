@@ -119,11 +119,15 @@ then
 fi
 if ( isExist npm )
 then
-	alias="CFLAGS='-I/usr/local/include -L/usr/local/lib' npm"
+	alias npm="CFLAGS='-I/usr/local/include -L/usr/local/lib' npm"
 fi
 if ( isExist irssi )
 then
-	alias="TERM=xterm irssi"
+	alias irssi="TERM=xterm irssi"
+fi
+if ( isExist git )
+then
+    alias g="git"
 fi
 # ==================================
 # Alias > Suffix Alias
