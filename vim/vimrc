@@ -696,3 +696,8 @@ set listchars=tab:>-,trail:-,eol:$,nbsp:%,extends:>,precedes:<
 autocmd BufReadPost * silent! normal! g`"zv
 
 autocmd BufRead,BufNewFile *.todo set filetype=rst.todo
+
+if exists(":NERDTreeTabsToggle")
+    autocmd VimEnter * NERDTreeTabsToggle
+    autocmd VimEnter * NERDTreeFocusToggle
+endif
