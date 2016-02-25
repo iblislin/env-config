@@ -1,22 +1,22 @@
 [core]
-	editor = vim
-	pager = less
+    editor = vim
+    pager = less
 [color]
-	ui = auto
+    ui = auto
 [user]
-	name = Iblis Lin
-	email = e196819@hotmail.com
+    name = Iblis Lin
+    email = e196819@hotmail.com
 [alias]
-	ci = commit -v
-	co = checkout
+    ci = commit -v
+    co = checkout
     cp = cherry-pick
-	df = diff
-	st = status
-	lg = log --abbrev-commit --name-status --graph
-	unstage = reset HEAD --
+    df = diff
+    st = status
+    lg = log --abbrev-commit --name-status --graph
+    unstage = reset HEAD --
 [push]
-	default = matching
+    default = matching
 [merge]
-	tool = vimdiff
+    tool = vimdiff
 ; [https]
 ; 	proxy = socks5://140.113.54.46:10000
