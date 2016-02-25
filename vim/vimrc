@@ -421,7 +421,8 @@ nmap <F9> :QFix<CR>
 	" q       Close the nerd tree split window
 	let g:NERDTreeWinSize = 22
 	let NERDTreeIgnore = ['\.pyc$', '\.pyo$', '^__pycache__$', '\~$']
-    let g:NERDTreeDirArrows = 0
+    let g:NERDTreeDirArrowExpandable="+"
+    let g:NERDTreeDirArrowCollapsible="~"
 	nnoremap <F3> :NERDTreeTabsToggle<CR>
 
 	""""""""""""""""""""""""""""""""""""""""
@@ -574,7 +575,7 @@ nmap <F9> :QFix<CR>
 	" utils
 	"" completion
 	Plug 'ervandew/supertab'
-	Plug 'iblis17/ultisnips' | Plug 'iblis17/vim-snippets'
+	Plug 'SirVer/ultisnips' | Plug 'iblis17/vim-snippets'
 	Plug 'vim-scripts/AutoComplPop'
 	"" git
 	Plug 'tpope/vim-fugitive'
