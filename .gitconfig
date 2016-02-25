@@ -9,6 +9,7 @@
 [alias]
 	ci = commit -v
 	co = checkout
+    cp = cherry-pick
 	df = diff
 	st = status
 	lg = log --abbrev-commit --name-status --graph
