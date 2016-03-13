@@ -1,0 +1,3 @@
+#!/bin/sh
+
+curl curl.kobe.ga/img -d "message=$1"
