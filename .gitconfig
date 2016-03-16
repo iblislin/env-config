@@ -18,6 +18,7 @@
     loog = log --pretty=full
     looog = log --pretty=fuller
     unstage = reset HEAD --
+    p = push
 [push]
     default = matching
 [merge]
