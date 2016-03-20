@@ -2,4 +2,4 @@
 "  General
 """"""""""""""""""""""""""""""""""""""""""""""
 
-setlocal tabstop=8
+setlocal tabstop=4
