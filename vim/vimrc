@@ -587,7 +587,11 @@ nmap <F9> :QFix<CR>
 	Plug 'jistr/vim-nerdtree-tabs', {'on': 'NERDTreeTabsToggle'}
 	Plug 'tomtom/tcomment_vim'
 	Plug 'kshenoy/vim-signature'
-	Plug 'powerline/powerline', {'rtp': 'powerline/bindings/vim/'}
+    if has('nvim')
+        Plug 'vim-airline/vim-airline'
+    else
+        Plug 'powerline/powerline', {'rtp': 'powerline/bindings/vim/'}
+    endif
 	Plug 'michaeljsmith/vim-indent-object'
 	Plug 'vim-scripts/L9'
 	Plug 'vim-scripts/renumber.vim'
