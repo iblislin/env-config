@@ -269,7 +269,7 @@ then
 		local dir=1
 		local session_name=`tmux_sess_prefix`
 
-        if [ -n $_CODE_DIR ]
+        if [[ -n $_CODE_DIR ]]
         then
             echo ${_CODE_DIR}
             return
@@ -282,13 +282,13 @@ then
 
 		for _path in "$HOME/git" "$HOME/code" "$HOME/www"
 		do
-			if [ -d $_path/$session_name ]
+			if [ -d ${_path}/${session_name} ]
 			then
 				break
 			fi
 		done
 
-		echo $_path/$session_name
+		echo ${_path}/${session_name}
 	}
 
 	function jail_attach() {
