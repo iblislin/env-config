@@ -20,7 +20,7 @@ colors
 # ==================================
 # Enviroment Variable
 # ==================================
-path=(/sbin /bin /usr/sbin /usr/bin /usr/games /usr/local/sbin /usr/local/bin $HOME/bin)
+path=($HOME/bin /sbin /bin /usr/sbin /usr/bin /usr/games /usr/local/sbin /usr/local/bin)
 
 export ZSH="$HOME/.zsh"
 
