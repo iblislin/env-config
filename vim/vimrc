@@ -626,6 +626,7 @@ set listchars=tab:>-,trail:-,eol:$,nbsp:%,extends:>,precedes:<
 autocmd BufReadPost * silent! normal! g`"zv
 
 autocmd BufRead,BufNewFile *.todo set filetype=rst.todo
+autocmd BufRead,BufNewFile *.tex setlocal filetype=tex
 
 if exists(":NERDTreeTabsToggle")
     autocmd VimEnter * NERDTreeTabsToggle
