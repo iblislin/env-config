@@ -1,0 +1,15 @@
+#!/bin/sh
+
+echo "venv=$1"
+echo "_CODE_DIR=$2"
+
+VENV_DIR=$HOME/venv/$1
+ACTIVE_FILE=$VENV_DIR/bin/activate
+
+if [ ! -f $ACTIVE_FILE ]
+then
+    echo "venv file '$ACTIVE_FILE' not found"
+    exit 1
+fi
+
+echo "export _CODE_DIR=$2" >> $ACTIVE_FILE
