@@ -254,7 +254,7 @@ then
 
 	function tmux_sess_prefix() {
 		# grep tmux session without _venv suffix
-		local patterns='_venv _vhost _code'
+		local patterns='_venv _vhost _code _ws'
 
 		for patt in $patterns
 		do
@@ -280,7 +280,7 @@ then
 			return 0
 		fi
 
-		for _path in "$HOME/git" "$HOME/code" "$HOME/www"
+		for _path in "$HOME/git" "$HOME/code" "$HOME/www" "$HOME/ws"
 		do
 			if [ -d ${_path}/${session_name} ]
 			then
