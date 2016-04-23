@@ -67,3 +67,4 @@ do
 	$LN $f $HOME/bin/
 done
 
+$BASE/bin/fetch-pubkeys

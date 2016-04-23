@@ -1,0 +1,19 @@
+#!/bin/sh
+
+SSH_DIR="$HOME/.ssh"
+KEYS_FILE="${SSH_DIR}/authorized_keys"
+
+if [ ! -d ${SSH_DIR} ]
+then
+    echo "create ssh dir"
+    mkdir ${SSH_DIR}
+    chmod 700 ${SSH_DIR}
+fi
+
+if [ -f ${KEYS_FILE} ]
+then
+    echo "file exists: ${KEYS_FILE}"
+    exit 1
+fi
+
+wget -O ${KEYS_FILE} https://github.com/iblis.keys
