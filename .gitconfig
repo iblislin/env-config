@@ -5,7 +5,7 @@
     ui = auto
 [user]
     name = Iblis Lin
-    email = e196819@hotmail.com
+    email = iblis@hs.ntnu.edu.tw
 [alias]
     ci = commit -v
     co = checkout
