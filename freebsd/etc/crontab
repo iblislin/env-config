@@ -1,4 +1,4 @@
 0	3	*	*	*	root	/usr/sbin/portsnap -I cron && /usr/sbin/portsnap update && /usr/sbin/portsnap -I auto
 0	5	*	*	*	root	cd /usr/ports/ && make fetchindex
 
-*/5	*	*	*	*	root	ntpdate -bu time.stdtime.gov.tw
+0	3	*	*	*	root	ntpdate -bu time.stdtime.gov.tw
