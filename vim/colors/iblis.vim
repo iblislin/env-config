@@ -147,7 +147,7 @@ else
     hi String           cterm=NONE      ctermfg=gray     ctermbg=235
     hi Error            cterm=NONE      ctermfg=white     ctermbg=red
 " 131 > blue
-    hi Identifier       cterm=NONE      ctermfg=blue     ctermbg=NONE
+    hi Identifier       cterm=NONE      ctermfg=blue    ctermbg=NONE
     hi Ignore           cterm=NONE
     hi Number           cterm=NONE      ctermfg=lightcyan     ctermbg=NONE
     hi PreProc          cterm=NONE      ctermfg=blue      ctermbg=NONE
