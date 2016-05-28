@@ -28,9 +28,9 @@ export TERM='screen-256color'
 
 export PAGER=less
 
-export LSCOLORS="ExFxcxdxbxegedabagacad"
+export LSCOLORS="GxFxcxdxbxegedabagacad"
 
-export ZLS_COLORS="di=01;34:ln=01;35:ex=31:so=32"
+export ZLS_COLORS="di=01;36:ln=01;35:ex=31:so=32"
 
 local encode=en_US.UTF-8
 export LANG=$encode
