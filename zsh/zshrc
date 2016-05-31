@@ -62,7 +62,8 @@ alias ssh-passwd='ssh -o PubkeyAuthentication=no'
 alias wget='wget --no-check-certificate'
 alias py='python'
 alias sudo='sudo -E' # https://wiki.archlinux.org/index.php/Sudo#Passing_aliases
-alias httpserver='python -m SimpleHTTPServer'
+alias httpserver='python -m http.server'
+alias l='less'
 
 if ( isExist vim )
 then
