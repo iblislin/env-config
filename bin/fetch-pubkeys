@@ -16,4 +16,4 @@ then
     exit 1
 fi
 
-wget -O ${KEYS_FILE} https://github.com/iblis17.keys
+curl ${KEYS_FILE} https://github.com/iblis17.keys > ${KEYS_FILE}
