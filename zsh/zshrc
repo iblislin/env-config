@@ -64,6 +64,7 @@ alias py='python'
 alias sudo='sudo -E' # https://wiki.archlinux.org/index.php/Sudo#Passing_aliases
 alias httpserver='python -m http.server'
 alias l='less'
+alias z='zdict'
 
 if ( isExist vim )
 then
