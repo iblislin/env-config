@@ -2,7 +2,7 @@
 "  General
 """"""""""""""""""""""""""""""""""""""""""""""
 
-setlocal tabstop=4
+setlocal tabstop=8
 setlocal dictionary+=~/.vim/dict/make
 setlocal complete+=k
 setlocal iskeyword+=.
