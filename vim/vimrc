@@ -291,6 +291,7 @@ set stal=2
 " Temp and Backups
 """"""""""""""""""""""""""""""""""""""""""""""""""
 set backup
+set backupcopy=yes
 
 set backupdir=~/.vim/backup
 set directory=~/.vim/tmp
