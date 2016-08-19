@@ -112,7 +112,7 @@ nnoremap <silent> <M-Down>	:wincmd j<CR>
 nnoremap <silent> <M-Left>	:wincmd h<CR>
 nnoremap <silent> <M-Right>	:wincmd l<CR>
 nnoremap <silent> <F6> :set paste!<CR>:set paste?<CR>
-nnoremap <F7> :set number!<CR>:set number?<CR>
+nnoremap <F7> :Codi!!<CR>
 imap <F6> <ESC><F6>
 imap <F7> <ESC><F7>i
 
@@ -556,6 +556,13 @@ nmap <F9> :QFix<CR>
 	let g:todo_checkbox_switch_style = 'menu'
 
 	""""""""""""""""""""""""""""""""""""""""
+	" Codi
+	""""""""""""""""""""""""""""""""""""""""
+	let g:codi#rightalign = 0
+	let g:codi#autoclose = 1
+	let g:codi#width = 35
+
+	""""""""""""""""""""""""""""""""""""""""
 	"  vim-plug
 	""""""""""""""""""""""""""""""""""""""""
 	call plug#begin('~/.vim/plugged')
@@ -600,6 +607,7 @@ nmap <F9> :QFix<CR>
 	Plug 'vim-scripts/taglist.vim', {'on': 'TlistToggle'}
 	Plug 'vim-scripts/matchit.zip'
 	Plug 'pi314/todo-or-not-todo.vim', {'branch': 'menu'}
+	Plug 'metakirby5/codi.vim'
 
 	" julia
 	Plug 'JuliaLang/julia-vim'

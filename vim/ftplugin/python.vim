@@ -18,8 +18,8 @@ setlocal foldmethod=indent
 setlocal expandtab
 
 " nnoremap <buffer> <F5> :w<CR>:pyfile %<CR>
-nnoremap <buffer> <leader>e :w<CR>:!${VIRTUAL_ENV}/bin/python hier_triangle.py %<CR>
-imap <buffer> <F5> <ESC><F5>
+" nnoremap <buffer> <leader>e :w<CR>:!${VIRTUAL_ENV}/bin/python hier_triangle.py %<CR>
+imap <buffer> <F5> <ESC><F7>
 
 nnoremap <expr> <CR> SmartNewLine() ? "i<CR><Esc>" : "i^<C-D><CR><Esc>"
 
@@ -30,3 +30,8 @@ autocmd BufWritePre *.py :call StripTrailingWhitespaces()
 " SuperTab
 """"""""""""""""""""""""""""""""""""""""""""""
 let g:SuperTabDefaultCompletionType = "<c-x><c-o>"
+
+""""""""""""""""""""""""""""""""""""""""""""""
+" Codi
+""""""""""""""""""""""""""""""""""""""""""""""
+Codi
