@@ -30,8 +30,3 @@ autocmd BufWritePre *.py :call StripTrailingWhitespaces()
 " SuperTab
 """"""""""""""""""""""""""""""""""""""""""""""
 let g:SuperTabDefaultCompletionType = "<c-x><c-o>"
-
-""""""""""""""""""""""""""""""""""""""""""""""
-" Codi
-""""""""""""""""""""""""""""""""""""""""""""""
-Codi
