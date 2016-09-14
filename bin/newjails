@@ -1,0 +1,29 @@
+#!/bin/sh
+
+SHARE_DIR='/home/iblis/env-config/freebsd/'
+MAKE_CONF="$SHARE_DIR/etc/make.conf"
+PORTMASTER_RC="$SHARE_DIR/usr/local/etc/portmaster.rc"
+TARGET_DIR='/home/jails/'
+
+usage(){
+	echo "Usage: $0 <dir>"
+}
+
+if [ -z $1 ]
+then
+	usage
+	exit 0
+fi
+
+cd $TARGET_DIR
+
+sudo mkdir -p $1/usr/ports
+
+sudo bsdinstall jail $1
+
+# make.conf
+cat $MAKE_CONF | sudo tee -a $1/etc/make.conf
+
+# portmaster rc
+sudo mkdir -p $1/usr/local/etc
+sudo cp $PORTMASTER_RC $1/usr/local/etc/portmaster.rc
