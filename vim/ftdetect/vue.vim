@@ -1,1 +1,1 @@
-au BufNewFile,BufRead *.vue setlocal filetype=html
+au BufNewFile,BufRead *.vue setlocal filetype=jade
