@@ -26,7 +26,7 @@ def tmux_new(session):
     env = '/usr/bin/env'
     os.execv(env, (env, 'tmux',
                    '-f', '{}/.tmux-inner.conf'.format(os.environ['HOME']),
-                   '-S', '/tmp/tmux-1001-inner',
+                   '-S', '/tmp/tmux-{}-inner'.format(os.environ['UID']),
                    'new', '-s', session))
 
 
@@ -39,18 +39,3 @@ if __name__ == '__main__':
     name, suffix = get_name(full_name)
     set_tmux_sname(name)
     tmux_new(full_name)
-
-
-# usage() {
-#     echo "$0 <session name>"
-#     exit
-# }
-#
-# if [ -z $1 ]
-# then
-#     usage
-# fi
-#
-#
-# printf "\033k$1\033\\"
-# exec tmux -f ~/.tmux-inner.conf -S /tmp/tmux-1001-inner new -s $1
