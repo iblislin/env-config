@@ -3,7 +3,7 @@
 import os
 import sys
 
-from subprocess import call
+from subprocess import call, check_output
 
 
 def usage():
@@ -22,11 +22,15 @@ def get_name(name):
     return name, sufix
 
 
+def uid():
+    return check_output(['id', '-u']).strip().decode()
+
+
 def tmux_new(session):
     env = '/usr/bin/env'
     os.execv(env, (env, 'tmux',
                    '-f', '{}/.tmux-inner.conf'.format(os.environ['HOME']),
-                   '-S', '/tmp/tmux-{}-inner'.format(os.environ['UID']),
+                   '-S', '/tmp/tmux-{}-inner'.format(uid()),
                    'new', '-s', session))
 
 
