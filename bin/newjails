@@ -1,6 +1,6 @@
 #!/bin/sh
 
-SHARE_DIR='/home/iblis/env-config/freebsd/'
+SHARE_DIR="$HOME/env-config/freebsd/"
 MAKE_CONF="$SHARE_DIR/etc/make.conf"
 PORTMASTER_RC="$SHARE_DIR/usr/local/etc/portmaster.rc"
 TARGET_DIR='/home/jails/'
