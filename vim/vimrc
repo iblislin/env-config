@@ -602,6 +602,7 @@ nmap <F9> :QFix<CR>
         Plug 'powerline/powerline', {'rtp': 'powerline/bindings/vim/'}
         " Arch linux issue
         " just increasing inotify limit
+        "   echo fs.inotify.max_user_watches=524288 | sudo tee /etc/sysctl.d/40-max-user-watches.conf && sudo sysctl --system
         " https://github.com/guard/listen/wiki/Increasing-the-amount-of-inotify-watchers
     endif
 	Plug 'michaeljsmith/vim-indent-object'
