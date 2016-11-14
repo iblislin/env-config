@@ -600,6 +600,9 @@ nmap <F9> :QFix<CR>
         Plug 'vim-airline/vim-airline'
     else
         Plug 'powerline/powerline', {'rtp': 'powerline/bindings/vim/'}
+        " Arch linux issue
+        " just increasing inotify limit
+        " https://github.com/guard/listen/wiki/Increasing-the-amount-of-inotify-watchers
     endif
 	Plug 'michaeljsmith/vim-indent-object'
 	Plug 'vim-scripts/L9'
