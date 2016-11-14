@@ -619,7 +619,7 @@ nmap <F9> :QFix<CR>
     Plug 'Glench/Vim-Jinja2-Syntax'
 
 	" c/cpp
-	Plug 'myint/clang-complete', {'for': ['c', 'opencl', 'cpp']}
+	" Plug 'myint/clang-complete', {'for': ['c', 'opencl', 'cpp']}
 	"" opencl
 	Plug 'petRUShka/vim-opencl', {'for': ['c', 'opencl', 'cpp']}
 
