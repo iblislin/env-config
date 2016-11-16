@@ -134,7 +134,7 @@ fi
 # ==================================
 # Alias > Suffix Alias
 # ==================================
-suf_editor=(c cpp h html css)
+suf_editor=(c cpp h hpp html css vue erl)
 for i in $suf_editor
 do
 	alias -s $i=$EDITOR
