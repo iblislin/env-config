@@ -220,6 +220,8 @@ compinit -u
 
 zstyle ':completion:*' menu select=2
 zstyle ':completion:*:default' list-colors $ZLS_COLORS
+zstyle ':completion:*:*:vim:*:*files' ignored-patterns '*.(o|beam|py[co])'
+
 compdef mosh=ssh
 
 # pip zsh completion start
