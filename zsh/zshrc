@@ -132,7 +132,13 @@ then
     alias g="git"
 fi
 # ==================================
-# Alias > Suffix Alias
+# Alias > Global Aliases
+# ==================================
+alias -g G='| egrep'
+alias -g W='| wc -l'
+alias -g L='| less'
+# ==================================
+# Alias > Suffix Aliases
 # ==================================
 suf_editor=(c cpp h hpp html css vue erl)
 for i in $suf_editor
