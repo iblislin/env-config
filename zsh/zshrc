@@ -140,7 +140,7 @@ alias -g L='| less'
 # ==================================
 # Alias > Suffix Aliases
 # ==================================
-suf_editor=(c cpp h hpp html css vue erl)
+suf_editor=(c cpp h hpp html css vue)
 for i in $suf_editor
 do
 	alias -s $i=$EDITOR
