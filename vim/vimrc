@@ -421,7 +421,7 @@ nmap <F9> :QFix<CR>
 	" e       Open a netrw for the current dir
 	" q       Close the nerd tree split window
 	let g:NERDTreeWinSize = 22
-	let NERDTreeIgnore = ['\.pyc$', '\.pyo$', '^__pycache__$', '\~$']
+	let NERDTreeIgnore = ['\.pyc$', '\.pyo$', '^__pycache__$', '\~$', '\.beam$']
     let g:NERDTreeDirArrowExpandable="+"
     let g:NERDTreeDirArrowCollapsible="~"
 	nnoremap <F3> :NERDTreeTabsToggle<CR>
@@ -600,6 +600,10 @@ nmap <F9> :QFix<CR>
         Plug 'vim-airline/vim-airline'
     else
         Plug 'powerline/powerline', {'rtp': 'powerline/bindings/vim/'}
+        " Arch linux issue
+        " just increasing inotify limit
+        "   echo fs.inotify.max_user_watches=524288 | sudo tee /etc/sysctl.d/40-max-user-watches.conf && sudo sysctl --system
+        " https://github.com/guard/listen/wiki/Increasing-the-amount-of-inotify-watchers
     endif
 	Plug 'michaeljsmith/vim-indent-object'
 	Plug 'vim-scripts/L9'
@@ -616,14 +620,18 @@ nmap <F9> :QFix<CR>
 	Plug 'davidhalter/jedi-vim', {'for': 'python'}
 	Plug 'tmhedberg/SimpylFold', {'for': 'python'}
 	Plug 'vim-scripts/indentpython.vim', {'for': 'python'}
+    Plug 'Glench/Vim-Jinja2-Syntax'
 
 	" c/cpp
-	Plug 'myint/clang-complete', {'for': ['c', 'opencl', 'cpp']}
+	" Plug 'myint/clang-complete', {'for': ['c', 'opencl', 'cpp']}
 	"" opencl
 	Plug 'petRUShka/vim-opencl', {'for': ['c', 'opencl', 'cpp']}
 
     " nim
     " Plug 'iblis17/nim.vim'
+
+    " erlang
+    Plug 'vim-erlang/vim-erlang-omnicomplete', {'for': ['erlang']}
 
 	call plug#end()
 

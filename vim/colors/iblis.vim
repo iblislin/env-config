@@ -174,5 +174,5 @@ else
 
 	hi ColorColumn ctermbg=4
     hi def BadWhitespace term=reverse ctermfg=16 ctermbg=001 gui=reverse guifg=#dc322f
-    match BadWhitespace /\s\+$/
+    autocmd BufWinEnter * match BadWhitespace /\s\+$/
 endif
