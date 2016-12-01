@@ -66,6 +66,8 @@ fi
 # ==================================
 # Prompt
 # ==================================
+export VIRTUAL_ENV_DISABLE_PROMPT=1
+
 function set_prompt {
 	local prompt_corner_up="┌─"
 	local prompt_corner_down="└─"
