@@ -7,6 +7,7 @@
     name = Iblis Lin
     email = iblis@hs.ntnu.edu.tw
 [alias]
+    a = add
     ci = commit -v
     co = checkout
     cp = cherry-pick
