@@ -20,7 +20,7 @@ colors
 # ==================================
 # Enviroment Variable
 # ==================================
-path=($HOME/bin /sbin /bin /usr/sbin /usr/bin /usr/games /usr/local/sbin /usr/local/bin)
+path=($HOME/bin $HOME/node/bin /sbin /bin /usr/sbin /usr/bin /usr/games /usr/local/sbin /usr/local/bin)
 
 export ZSH="$HOME/.zsh"
 
@@ -29,6 +29,8 @@ export TERM='screen-256color'
 export PAGER=less
 
 export LSCOLORS="GxFxcxdxbxegedabagacad"
+
+export LS_COLORS="di=01;36" # for linux
 
 export ZLS_COLORS="di=01;36:ln=01;35:ex=31:so=32"
 
