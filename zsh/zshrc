@@ -132,9 +132,15 @@ then
     alias g="git"
 fi
 # ==================================
-# Alias > Suffix Alias
+# Alias > Global Aliases
 # ==================================
-suf_editor=(c cpp h html css)
+alias -g G='| egrep'
+alias -g W='| wc -l'
+alias -g L='| less'
+# ==================================
+# Alias > Suffix Aliases
+# ==================================
+suf_editor=(c cpp h hpp html css vue)
 for i in $suf_editor
 do
 	alias -s $i=$EDITOR
@@ -207,13 +213,18 @@ SAVEHIST=1000
 # ==================================
 # Completion setting
 # ==================================
-fpath=($ZSH/repo/zdict.sh $ZSH/completions/src $fpath)
+fpath=($ZSH/repo/zsh-completions/src $fpath $ZSH/repo/zdict.sh)
 
 autoload -Uz compinit
 compinit -u
 
 zstyle ':completion:*' menu select=2
+zstyle ':completion:*' verbose yes
 zstyle ':completion:*:default' list-colors $ZLS_COLORS
+zstyle ':completion:*:descriptions' format "$fg[yellow]%B--- %d%b"
+zstyle ':completion:*:urls' urls ~/.zsh/urls
+zstyle ':completion:*:*:vim:*:*files' ignored-patterns '*.(o|beam|py[co])'
+
 compdef mosh=ssh
 
 # pip zsh completion start

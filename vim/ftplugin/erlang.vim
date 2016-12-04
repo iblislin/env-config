@@ -16,6 +16,13 @@ hi def BadWhitespace term=reverse ctermfg=16 ctermbg=001 gui=reverse guifg=#dc32
 match LeadingTab /^\t\+/
 match BadWhitespace /\s\+$/
 
-
 " purge trailing space
 autocmd BufWritePre *.erl :call StripTrailingWhitespaces()
+
+""""""""""""""""""""""""""""""""""""""""""""""
+"  General
+""""""""""""""""""""""""""""""""""""""""""""""
+
+setlocal tabstop=2
+setlocal shiftwidth=2
+setlocal expandtab

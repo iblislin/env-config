@@ -7,7 +7,7 @@ from subprocess import call, check_output
 
 
 def usage():
-    print('Usage: {} <session name>'.format(sys.argv[0]))
+    print('Usage: {} <session name> [alias]'.format(sys.argv[0]))
 
 
 def set_tmux_sname(name):
@@ -41,5 +41,6 @@ if __name__ == '__main__':
 
     full_name = sys.argv[1]
     name, suffix = get_name(full_name)
+    name = sys.argv[2] if len(sys.argv) >= 3 else name
     set_tmux_sname(name)
     tmux_new(full_name)
