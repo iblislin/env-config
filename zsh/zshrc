@@ -1,4 +1,4 @@
-# zshrc is or interacive shell
+# zshrc is for interacive shell
 
 # ==================================
 # Function
@@ -130,6 +130,10 @@ fi
 if ( isExist git )
 then
     alias g="git"
+fi
+if ( isExist mutt )
+then
+    alias mutt='TERM=xterm-256color mutt'
 fi
 # ==================================
 # Alias > Global Aliases
