@@ -639,6 +639,10 @@ nmap <F9> :QFix<CR>
     " erlang
     Plug 'vim-erlang/vim-erlang-omnicomplete', {'for': ['erlang']}
 
+    " golang
+    Plug 'fatih/vim-go', {'for': ['go']}  " completion require `gocode`
+                                          " https://github.com/nsf/gocode
+
 	call plug#end()
 
 set listchars=tab:>-,trail:-,eol:$,nbsp:%,extends:>,precedes:<
