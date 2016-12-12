@@ -563,6 +563,11 @@ nmap <F9> :QFix<CR>
 	let g:codi#width = 35
 
 	""""""""""""""""""""""""""""""""""""""""
+	" Codi
+	""""""""""""""""""""""""""""""""""""""""
+    let g:indentLine_char = '|'
+
+	""""""""""""""""""""""""""""""""""""""""
 	"  vim-plug
 	""""""""""""""""""""""""""""""""""""""""
 	call plug#begin('~/.vim/plugged')
@@ -612,6 +617,7 @@ nmap <F9> :QFix<CR>
 	Plug 'vim-scripts/matchit.zip'
 	Plug 'pi314/todo-or-not-todo.vim', {'branch': 'menu'}
 	Plug 'metakirby5/codi.vim'
+    Plug 'Yggdroot/indentLine'
 
 	" julia
 	Plug 'JuliaLang/julia-vim'
