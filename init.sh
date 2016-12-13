@@ -67,4 +67,10 @@ do
 	$LN $f $HOME/bin/
 done
 
+# folders
+for f in git node go code
+do
+    mkdir -p $HOME/${f}
+done
+
 $BASE/bin/fetch-pubkeys
