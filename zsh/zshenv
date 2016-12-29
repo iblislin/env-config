@@ -20,7 +20,7 @@ colors
 # ==================================
 # Enviroment Variable
 # ==================================
-path=($HOME/bin $HOME/node/bin /sbin /bin /usr/sbin /usr/bin /usr/games /usr/local/sbin /usr/local/bin)
+path=($HOME/bin $HOME/go/bin $HOME/node/bin /sbin /bin /usr/sbin /usr/bin /usr/games /usr/local/sbin /usr/local/bin)
 
 export ZSH="$HOME/.zsh"
 
@@ -67,6 +67,9 @@ fi
 
 # nodejs
 export NODE_PATH=$HOME/node/lib/node_modules
+
+# golang
+export GOPATH=$HOME/go
 
 # ==================================
 # Prompt
