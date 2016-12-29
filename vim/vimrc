@@ -638,6 +638,7 @@ nmap <F9> :QFix<CR>
 
     " erlang
     Plug 'vim-erlang/vim-erlang-omnicomplete', {'for': ['erlang']}
+    Plug 'edkolev/erlang-motions.vim', {'for': ['erlang']}
 
     " golang
     Plug 'fatih/vim-go', {'for': ['go']}  " completion require `gocode`
