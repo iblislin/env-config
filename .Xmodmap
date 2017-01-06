@@ -1,5 +1,8 @@
 clear Control
 
+remove Mod1 = Alt_L
+
+keycode 64 = Super_L Alt_L Alt_L
 keycode 66 = Control_L Caps_Lock Caps_Lock
 keycode 135 = Super_R
 
