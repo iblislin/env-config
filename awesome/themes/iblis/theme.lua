@@ -8,7 +8,7 @@
 
 -- {{{ Main
 theme = {}
-theme.wallpaper = "/home/iblis/picture/737512-arch-wallpaper.jpg.png"
+theme.wallpaper = "/home/iblis/picture/arch.png"
 -- }}}
 
 -- {{{ Styles
