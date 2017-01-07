@@ -119,6 +119,7 @@ imap <F7> <ESC><F7>i
 " tab page jumping
 nnoremap <silent> <C-V><C-PageUp> :tabp<CR>
 nnoremap <silent> <C-V><C-PageDown> :tabn<CR>
+nnoremap <silent> gr :tabp<CR>
 
 " Keyword completion
 " imap <M-Up> <C-N>
