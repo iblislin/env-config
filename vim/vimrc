@@ -422,7 +422,11 @@ nmap <F9> :QFix<CR>
 	" e       Open a netrw for the current dir
 	" q       Close the nerd tree split window
 	let g:NERDTreeWinSize = 22
-	let NERDTreeIgnore = ['\.pyc$', '\.pyo$', '^__pycache__$', '\~$', '\.beam$']
+    let NERDTreeIgnore = ['\~$']  " vim temp files
+	let NERDTreeIgnore += ['\.pyc$', '\.pyo$', '^__pycache__$']  " python
+    let NERDTreeIgnore += ['\.beam$']  " erlang
+    let NERDTreeIgnore += ['\.a$', '\.so$', '\.o$']  " some native stuff
+    let NERDTreeIgnore += ['^cscope\.out$']
     let g:NERDTreeDirArrowExpandable="+"
     let g:NERDTreeDirArrowCollapsible="~"
 	nnoremap <F3> :NERDTreeTabsToggle<CR>
