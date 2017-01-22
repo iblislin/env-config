@@ -577,6 +577,11 @@ nmap <F9> :QFix<CR>
     """"""""""""""""""""""""""""""""""""""""
     let g:rainbow_active = 1
 
+    """"""""""""""""""""""""""""""""""""""""
+    "  vim-hy
+    """"""""""""""""""""""""""""""""""""""""
+    let g:hy_enable_conceal = 1
+
 	""""""""""""""""""""""""""""""""""""""""
 	"  vim-plug
 	""""""""""""""""""""""""""""""""""""""""
@@ -654,6 +659,9 @@ nmap <F9> :QFix<CR>
     " golang
     Plug 'fatih/vim-go', {'for': ['go']}  " completion require `gocode`
                                           " https://github.com/nsf/gocode
+
+    " hylang
+    Plug 'hylang/vim-hy'
 
 	call plug#end()
 
