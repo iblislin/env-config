@@ -568,9 +568,14 @@ nmap <F9> :QFix<CR>
 	let g:codi#width = 35
 
 	""""""""""""""""""""""""""""""""""""""""
-	" Codi
+	" IndentLine
 	""""""""""""""""""""""""""""""""""""""""
     let g:indentLine_char = '|'
+
+    """"""""""""""""""""""""""""""""""""""""
+    "  Rainbow parentheses improved
+    """"""""""""""""""""""""""""""""""""""""
+    let g:rainbow_active = 1
 
 	""""""""""""""""""""""""""""""""""""""""
 	"  vim-plug
@@ -623,6 +628,7 @@ nmap <F9> :QFix<CR>
 	Plug 'pi314/todo-or-not-todo.vim', {'branch': 'menu'}
 	Plug 'metakirby5/codi.vim'
     Plug 'Yggdroot/indentLine'
+    Plug 'luochen1990/rainbow'
 
 	" julia
 	Plug 'JuliaLang/julia-vim'
