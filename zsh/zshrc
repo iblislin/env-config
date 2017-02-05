@@ -286,12 +286,6 @@ then
 		local dir=1
 		local session_name=`tmux_sess_prefix`
 
-        if [[ -n $_CODE_DIR ]]
-        then
-            echo ${_CODE_DIR}
-            return
-        fi
-
 		if [ ! $session_name ]
 		then
 			return 0
@@ -340,7 +334,13 @@ then
 		source ${_VENV_DIR}/bin/activate >& /dev/null
 	}
 
-    cd `tmux_sess_route` >& /dev/null && {}
+
+    if [[ -n $_CODE_DIR ]]
+    then
+        cd ${_CODE_DIR}
+    else
+        cd `tmux_sess_route` >& /dev/null
+    fi
 
 fi
 
