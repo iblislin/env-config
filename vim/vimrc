@@ -675,6 +675,7 @@ autocmd BufReadPost * silent! normal! g`"zv
 
 autocmd BufRead,BufNewFile *.todo set filetype=rst.todo
 autocmd BufRead,BufNewFile *.tex setlocal filetype=tex
+autocmd BufRead,BufNewFile *.tac setlocal filetype=python
 
 if exists(":NERDTreeTabsToggle")
     autocmd VimEnter * NERDTreeTabsToggle
