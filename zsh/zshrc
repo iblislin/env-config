@@ -271,7 +271,7 @@ then
 
 	function tmux_sess_prefix() {
 		# grep tmux session without _venv suffix
-		local patterns='_venv _vhost _code _ws _p'
+		local patterns='_v _venv _vhost _c _code _ws _p'
 
 		for patt in $patterns
 		do
