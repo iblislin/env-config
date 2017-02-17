@@ -164,6 +164,11 @@ else
     hi PmenuSbar    cterm=BOLD      ctermfg=253     ctermbg=63
     hi PmenuThumb   cterm=BOLD      ctermfg=253     ctermbg=63
 
+    hi clear SpellBad
+    hi clear SpellCap
+    hi clear SpellLocal
+    hi clear SpellRare
+
     hi SpellBad     cterm=underline ctermfg=red
     hi SpellRare    cterm=underline                 ctermbg=53
     hi SpellLocal   cterm=underline                 ctermbg=58
