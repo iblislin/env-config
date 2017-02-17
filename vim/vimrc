@@ -336,11 +336,6 @@ autocmd Filetype scheme set expandtab nocindent
 set nospell
 set spelllang=en
 
-hi clear SpellBad
-hi clear SpellCap
-hi clear SpellLocal
-hi clear SpellRare
-
 "map <LEADER>sn ]s
 "map <LEADER>sp [s
 "map <LEADER>sa zg
@@ -676,6 +671,10 @@ autocmd BufReadPost * silent! normal! g`"zv
 autocmd BufRead,BufNewFile *.todo set filetype=rst.todo
 autocmd BufRead,BufNewFile *.tex setlocal filetype=tex
 autocmd BufRead,BufNewFile *.tac setlocal filetype=python
+autocmd BufRead,BufNewFile *.txt setlocal spell
+autocmd FileType markdown  setlocal spell
+autocmd FileType gitcommit setlocal spell
+
 
 if exists(":NERDTreeTabsToggle")
     autocmd VimEnter * NERDTreeTabsToggle
