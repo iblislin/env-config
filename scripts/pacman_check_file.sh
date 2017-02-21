@@ -1,0 +1,1 @@
+pacman -Qo $1
