@@ -321,7 +321,7 @@ then
     # select venv dir: py36 first, py35, py3
     _VENV_BASE="$HOME/venv"
     _VENV_DIR=${_VENV_BASE}/py3
-    for i in 'py36' 'py35'
+    for i in 'py37' 'py36' 'py35'
     do
         if [ -d ${_VENV_BASE}/${i} ]
         then
