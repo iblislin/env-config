@@ -2,7 +2,7 @@
 ! color settings
 URxvt*termName:              rxvt-256color
 URxvt*depth:                 32
-URxvt*background:            [25]#000000
+URxvt*background:            [50]#000000
 URxvt*foreground:            white
 Urxvt*underlineurls:         true
 
@@ -14,7 +14,8 @@ URxvt*scrollWithBuffer:      true
 URxvt*scrollTtyKeypress:     true
 
 ! font
-URxvt*font:                  xft:Droid Sans Mono for Powerline:size=14:style=Regular,xft:Noto Sans CJK TC:size=14:style=Regular
+URxvt*font:                  xft:Droid Sans Mono for Powerline:size=16:style=Regular,xft:Noto Sans CJK TC:size=16:style=Regular
+! URxvt*font:                  xft:Ubuntu Mono derivative Powerline:size=14:style=Regular,xft:Noto Sans CJK TC:size=14:style=Regular,xft:Noto Color Emoji:size=14:style:Regular
 URxvt*internalBorder:        1
 URxvt*letterSpace:           -1
 

@@ -159,18 +159,22 @@ else
     hi Underlined       cterm=BOLD      ctermfg=227     ctermbg=NONE
     hi TaglistTagName   cterm=BOLD      ctermfg=63      ctermbg=NONE
 
-    if v:version >= 700
-        hi Pmenu        cterm=NONE      ctermfg=253     ctermbg=242
-        hi PmenuSel     cterm=BOLD      ctermfg=253     ctermbg=4
-        hi PmenuSbar    cterm=BOLD      ctermfg=253     ctermbg=63
-        hi PmenuThumb   cterm=BOLD      ctermfg=253     ctermbg=63
+    hi Pmenu        cterm=NONE      ctermfg=253     ctermbg=242
+    hi PmenuSel     cterm=BOLD      ctermfg=253     ctermbg=4
+    hi PmenuSbar    cterm=BOLD      ctermfg=253     ctermbg=63
+    hi PmenuThumb   cterm=BOLD      ctermfg=253     ctermbg=63
 
-        hi SpellBad     cterm=underline ctermfg=red       ctermbg=NONE
-        hi SpellRare    cterm=NONE                      ctermbg=53
-        hi SpellLocal   cterm=NONE                      ctermbg=58
-        hi SpellCap     cterm=NONE                      ctermbg=23
-        hi MatchParen   cterm=NONE      ctermfg=NONE    ctermbg=172
-    endif
+    hi clear SpellBad
+    hi clear SpellCap
+    hi clear SpellLocal
+    hi clear SpellRare
+
+    hi SpellBad     cterm=underline ctermfg=red
+    hi SpellRare    cterm=underline                 ctermbg=53
+    hi SpellLocal   cterm=underline                 ctermbg=58
+    hi SpellCap     cterm=underline                 ctermbg=23
+
+    hi MatchParen   cterm=NONE      ctermfg=NONE    ctermbg=172
 
 	hi ColorColumn ctermbg=4
     hi def BadWhitespace term=reverse ctermfg=16 ctermbg=001 gui=reverse guifg=#dc322f

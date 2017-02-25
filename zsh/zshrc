@@ -271,7 +271,7 @@ then
 
 	function tmux_sess_prefix() {
 		# grep tmux session without _venv suffix
-		local patterns='_venv _vhost _code _ws _p'
+		local patterns='_v _venv _vhost _c _code _ws _p'
 
 		for patt in $patterns
 		do
@@ -285,12 +285,6 @@ then
 	function tmux_sess_route() {
 		local dir=1
 		local session_name=`tmux_sess_prefix`
-
-        if [[ -n $_CODE_DIR ]]
-        then
-            echo ${_CODE_DIR}
-            return
-        fi
 
 		if [ ! $session_name ]
 		then
@@ -327,7 +321,7 @@ then
     # select venv dir: py36 first, py35, py3
     _VENV_BASE="$HOME/venv"
     _VENV_DIR=${_VENV_BASE}/py3
-    for i in 'py36' 'py35'
+    for i in 'py37' 'py36' 'py35'
     do
         if [ -d ${_VENV_BASE}/${i} ]
         then
@@ -340,7 +334,13 @@ then
 		source ${_VENV_DIR}/bin/activate >& /dev/null
 	}
 
-    cd `tmux_sess_route` >& /dev/null && {}
+
+    if [[ -n $_CODE_DIR ]]
+    then
+        cd ${_CODE_DIR}
+    else
+        cd `tmux_sess_route` >& /dev/null
+    fi
 
 fi
 
