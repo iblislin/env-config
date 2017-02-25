@@ -48,6 +48,10 @@ do
 	$LN $BASE/$f ~/$_rename
 done
 
+# X config
+cp $BASE/.Xmodmap ~/
+cp $BASE/.Xresources ~/
+
 # vim pager
 mkdir -p ~/bin
 $LN $BASE/vimpager/vimpager ~/bin/
