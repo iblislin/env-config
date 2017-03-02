@@ -631,7 +631,7 @@ nmap <F9> :QFix<CR>
     Plug 'luochen1990/rainbow'
 
 	" julia
-	Plug 'JuliaLang/julia-vim'
+    Plug 'JuliaEditorSupport/julia-vim'
 
 	" python
 	Plug 'davidhalter/jedi-vim', {'for': 'python'}
