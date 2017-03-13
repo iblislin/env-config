@@ -67,3 +67,5 @@
 (require 'powerline)
 (require 'moe-theme)
 (moe-dark)
+
+(global-set-key (kbd "C-z") 'set-mark-command)
