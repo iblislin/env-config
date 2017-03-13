@@ -11,7 +11,7 @@
      ("gnu" . "http://elpa.gnu.org/packages/"))))
  '(package-selected-packages
    (quote
-    (powerline moe-theme ein company company-c-headers company-emoji company-erlang company-go company-math company-shell company-web julia-shell julia-mode))))
+    (rainbow-delimiters powerline moe-theme ein company company-c-headers company-emoji company-erlang company-go company-math company-shell company-web julia-shell julia-mode))))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -100,3 +100,6 @@
 
 ;; original: kill-region
 (global-set-key (kbd "C-w") 'backward-kill-word)
+
+;; rainbow-delimiters
+(add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
