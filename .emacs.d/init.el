@@ -83,3 +83,6 @@
 
 (global-set-key (kbd "C-d") 'scroll-up-half)
 (global-set-key (kbd "C-f") 'scroll-down-half)
+
+;; original keybind: count-words-region
+(global-set-key (kbd "M-=") 'indent-region)
