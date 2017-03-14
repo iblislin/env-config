@@ -106,3 +106,9 @@
 
 ;; trailing whitespace
 (setq show-trailing-whitespace 'default)
+
+;; original: transpose-char
+(defun term-zsh()
+  (interactive)
+  (term (getenv "SHELL")))
+(global-set-key (kbd "C-t") 'term-zsh)
