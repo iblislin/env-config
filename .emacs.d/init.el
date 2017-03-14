@@ -110,5 +110,5 @@
 ;; original: transpose-char
 (defun term-zsh()
   (interactive)
-  (term (getenv "SHELL")))
+  (ansi-term (getenv "SHELL")))
 (global-set-key (kbd "C-t") 'term-zsh)
