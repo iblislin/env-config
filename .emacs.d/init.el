@@ -103,3 +103,6 @@
 
 ;; rainbow-delimiters
 (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
+
+;; trailing whitespace
+(setq show-trailing-whitespace 'default)
