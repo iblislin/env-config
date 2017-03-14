@@ -114,5 +114,12 @@
   (ansi-term (getenv "SHELL")))
 (global-set-key (kbd "C-t") 'term-zsh)
 
-;; disable newline
-(setq require-final-newline nil)
+;; disable newline, it causes no-EOL
+;; (setq require-final-newline nil)
+
+;; nyan cat
+(require 'nyan-mode)
+(nyan-mode)
+
+;; line number
+(global-linum-mode t)
