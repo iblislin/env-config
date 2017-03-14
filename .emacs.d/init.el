@@ -11,7 +11,7 @@
      ("gnu" . "http://elpa.gnu.org/packages/"))))
  '(package-selected-packages
    (quote
-    (rainbow-delimiters powerline moe-theme ein company company-c-headers company-emoji company-erlang company-go company-math company-shell company-web julia-shell julia-mode))))
+    (nyan-mode rainbow-delimiters powerline moe-theme ein company company-c-headers company-emoji company-erlang company-go company-math company-shell company-web julia-shell julia-mode))))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -112,3 +112,6 @@
   (interactive)
   (ansi-term (getenv "SHELL")))
 (global-set-key (kbd "C-t") 'term-zsh)
+
+;; disable newline
+(setq require-final-newline nil)
