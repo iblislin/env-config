@@ -95,9 +95,9 @@
 (set-face-attribute 'default nil :height 200)  ; 20 pt
 
 ;; transparent background
-(set-frame-parameter (selected-frame) 'alpha '.5)
-(set-face-attribute 'default nil :background "black"
-    :foreground "white")
+; (set-frame-parameter (selected-frame) 'alpha '.5)
+; (set-face-attribute 'default nil :background "black"
+;     :foreground "white")
 
 ;; original: kill-region
 (global-set-key (kbd "C-w") 'backward-kill-word)
