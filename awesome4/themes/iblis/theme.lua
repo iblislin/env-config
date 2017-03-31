@@ -11,7 +11,7 @@ theme.wallpaper = "/home/iblis/picture/desk.jpg"
 -- }}}
 
 -- {{{ Styles
-theme.font      = "Droid Sans Mono 12"
+theme.font      = "Droid Sans Mono 11"
 
 -- {{{ Colors
 theme.fg_normal  = "#DCDCCC"
