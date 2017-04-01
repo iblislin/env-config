@@ -1,5 +1,8 @@
 
-PACMAN='sudo pacman -Sy'
+PACMAN='sudo pacman -S'
+
+# upgrade system first
+sudo pacman -Syu
 
 $PACMAN xorg \
         xorg-drivers \
@@ -20,4 +23,4 @@ $PACMAN xdg-utils
 $PACMAN ttf-droid noto-fonts noto-fonts-cjk noto-fonts-emoji
 
 # browser
-$PACMAN firefox thunderbird
+$PACMAN firefox thunderbird evince
