@@ -140,17 +140,46 @@ vicious.register(clock, vicious.widgets.date, "%Y/%m/%d %p %I:%M:%S", 1)
 clock = wibox.container.background(clock, theme.bg_noalpha)
 
 -- Memory widget
-local mem_widget = wibox.widget.textbox()
+local mem_icon = wibox.widget.imagebox(theme.widget_mem)
+local mem_widget = lain.widget.mem({
+    settings = function()
+        widget:set_markup(mem_now.used .. "M ")
+    end
+})
+local mem_line = wibox.container.background(
+    wibox.container.margin(
+        wibox.widget({
+            mem_icon,
+            mem_widget,
+            layout = wibox.layout.align.horizontal
+        }),
+        2, 3),
+    "#777E76"
+)
 
 -- CPU widget
-local cpu_widget = lain.widget.cpu {
+local cpu_icon = wibox.widget.imagebox(theme.widget_cpu)
+local cpu_widget = lain.widget.cpu({
     settings = function()
-        widget:set_markup('🖥' .. cpu_now.usage .. '%')
+        widget:set_markup(cpu_now.usage .. '% ')
     end
-}
+})
+local cpu_line = wibox.container.background(
+    wibox.container.margin(
+        wibox.widget({
+            cpu_icon,
+            cpu_widget,
+            layout = wibox.layout.align.horizontal
+        }),
+        3, 4),
+    "#4B696D"
+)
 
 -- Separator widget
-local separator = wibox.widget.textbox(' ')
+local spr = wibox.container.background(wibox.widget.textbox(' '), theme.bg_noalpha)
+local arrow = separators.arrow_left
+local arrl_dl = separators.arrow_left(theme.bg_focus, "alpha")
+local arrl_ld = separators.arrow_left("alpha", theme.bg_focus)
 
 -- Volume widget
 
@@ -262,10 +291,13 @@ awful.screen.connect_for_each_screen(function(s)
             layout = wibox.layout.fixed.horizontal,
             mykeyboardlayout,
             wibox.widget.systray(),
-            separator,
-            cpu_widget,
-            separator,
-            mytextclock,
+            arrow("#343434", "#777E76"),
+            mem_line,
+            arrow("#777E76", "#4B696D"),
+            cpu_line,
+            arrow("#4B696D", theme.bg_noalpha),
+            spr,
+            clock,
             s.mylayoutbox,
         },
     }
