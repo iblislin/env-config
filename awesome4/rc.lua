@@ -152,10 +152,29 @@ mykeyboardlayout = awful.widget.keyboardlayout()
 
 -- Clock
 local clock = wibox.widget.textclock()
-vicious.register(clock, vicious.widgets.date, " %Y/%m/%d %p %I:%M:%S ", 1)
+vicious.register(clock, vicious.widgets.date, " %Y/%m/%d %p %I:%M:%S", 1)
 clock = wibox.container.background(clock, theme.bg_noalpha)
 
--- Memory widget
+-- Calendar
+local cal_cmd
+
+if platform == 'Linux' then
+    cal_cmd = "cal --color=always"
+else -- in case of FreeBSD
+    cal_cmd = "cal"
+end
+
+local cal_widget = lain.widget.calendar({
+    cal = cal_cmd,
+    attach_to = { clock },
+    notification_preset = {
+        font = "Droid Sans Mono 16",
+        fg   = theme.fg_normal,
+        bg   = theme.bg_normal
+    }
+})
+
+-- Memory
 local mem_icon = wibox.widget.imagebox(theme.widget_mem)
 local mem_widget = lain.widget.mem({
     settings = function()
@@ -173,7 +192,7 @@ local mem_line = wibox.container.background(
     "#777E76"
 )
 
--- CPU widget
+-- CPU
 local cpu_icon = wibox.widget.imagebox(theme.widget_cpu)
 local cpu_widget = lain.widget.cpu({
     settings = function()
@@ -285,10 +304,9 @@ local net_widget = lain.widget.net({
         )
     end
 })
-local net_line =  wibox.container.background(
+local net_line = wibox.container.background(
     wibox.container.margin(
         wibox.widget({
-            nil,
             net_icon,
             net_widget,
             layout = wibox.layout.align.horizontal
