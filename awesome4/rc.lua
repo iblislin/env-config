@@ -46,11 +46,27 @@ do
         in_error = false
     end)
 end
+
+function os.capture(cmd, raw)
+    local f = assert(io.popen(cmd, 'r'))
+    local s = assert(f:read('*a'))
+    f:close()
+
+    if raw then
+        return s
+    end
+
+    s = string.gsub(s, '^%s+', '')
+    s = string.gsub(s, '%s+$', '')
+    s = string.gsub(s, '[\n\r]+', ' ')
+    return s
+end
 -- }}}
 
 -- {{{ Variable definitions
 local home_dir = os.getenv("HOME") .. "/"
 local awesome_dir = home_dir .. ".config/awesome/"
+local platform = os.capture('uname -s')
 
 -- Themes define colours, icons, font and wallpapers.
 beautiful.init(awesome_dir .. "themes/iblis/theme.lua")
@@ -193,6 +209,38 @@ local temp_line = wibox.container.background(
     "#4B3B51"
 )
 
+-- FS
+local df_option
+
+if platform == 'Linux' then
+    df_option = '--type=ext2 --type=ext3 --type=ext4'
+else  -- in case of FreeBSD
+    df_option = '--type=ufs --type=zfs'
+end
+
+local fs_icon = wibox.widget.imagebox(theme.widget_hdd)
+local fs_widget = lain.widget.fs({
+    options = df_option,
+    notification_preset = {
+        fg = theme.fg_normal,
+        bg = theme.bg_normal,
+        -- font = "xos4 Terminus 10"
+    },
+    settings = function()
+        widget:set_markup(fs_now.available_gb .. 'GB ')
+    end
+})
+local fs_line = wibox.container.background(
+    wibox.container.margin(
+        wibox.widget({
+            fs_icon,
+            fs_widget,
+            layout = wibox.layout.align.horizontal
+        }),
+        3, 3),
+    "#A36530"
+)
+
 -- Separator widget
 local spr = wibox.container.background(wibox.widget.textbox(' '), theme.bg_noalpha)
 local arrow = separators.arrow_left
@@ -313,7 +361,9 @@ awful.screen.connect_for_each_screen(function(s)
             cpu_line,
             arrow("#4B696D", "#4B3B51"),
             temp_line,
-            arrow("#4B3B51", "#CB755B"),
+            arrow("#4B3B51", "#A36530"),
+            fs_line,
+            arrow("#A36530", "#8DAA9A"),
             clock,
             s.mylayoutbox,
         },
