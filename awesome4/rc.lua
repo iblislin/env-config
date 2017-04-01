@@ -16,6 +16,7 @@ local hotkeys_popup = require("awful.hotkeys_popup").widget
 
 -- Third party library
 local vicious = require("vicious")
+local lain = require("lain")
 
 -- Enable VIM help for hotkeys widget when client with matching name is opened:
 require("awful.hotkeys_popup.keys.vim")
@@ -130,6 +131,7 @@ menubar.utils.terminal = terminal -- Set the terminal for applications that requ
 mykeyboardlayout = awful.widget.keyboardlayout()
 
 -- {{{ Wibar
+
 -- Create a textclock widget
 mytextclock = wibox.widget.textclock()
 vicious.register(mytextclock, vicious.widgets.date, "%Y/%m/%d %p %I:%M:%S", 1)
