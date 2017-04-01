@@ -14,7 +14,8 @@ $PACMAN rxvt-unicode
 $PACMAN awesome
 
 # sound
-$PACMAN alsa-oss alsa-plugins alsa-tools alsa-utils
+$PACMAN alsa-oss alsa-plugins alsa-tools alsa-utils \
+        pulseaudio-alsa pulseaudio
 
 # utils
 $PACMAN xdg-utils
