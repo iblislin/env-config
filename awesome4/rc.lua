@@ -47,8 +47,8 @@ end
 -- }}}
 
 -- {{{ Variable definitions
-home_dir = os.getenv("HOME") .. "/"
-awesome_dir = home_dir .. ".config/awesome/"
+local home_dir = os.getenv("HOME") .. "/"
+local awesome_dir = home_dir .. ".config/awesome/"
 
 -- Themes define colours, icons, font and wallpapers.
 beautiful.init(awesome_dir .. "themes/iblis/theme.lua")
@@ -133,8 +133,23 @@ mykeyboardlayout = awful.widget.keyboardlayout()
 -- {{{ Wibar
 
 -- Create a textclock widget
-mytextclock = wibox.widget.textclock()
+local mytextclock = wibox.widget.textclock()
 vicious.register(mytextclock, vicious.widgets.date, "%Y/%m/%d %p %I:%M:%S", 1)
+
+-- Memory widget
+local mem_widget = wibox.widget.textbox()
+
+-- CPU widget
+local cpu_widget = lain.widget.cpu {
+    settings = function()
+        widget:set_markup('🖥' .. cpu_now.usage .. '%')
+    end
+}
+
+-- Separator widget
+local separator = wibox.widget.textbox(' ')
+
+-- Volume widget
 
 -- Create a wibox for each screen and add it
 local taglist_buttons = gears.table.join(
@@ -244,6 +259,9 @@ awful.screen.connect_for_each_screen(function(s)
             layout = wibox.layout.fixed.horizontal,
             mykeyboardlayout,
             wibox.widget.systray(),
+            separator,
+            cpu_widget,
+            separator,
             mytextclock,
             s.mylayoutbox,
         },
