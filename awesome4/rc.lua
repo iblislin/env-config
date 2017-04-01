@@ -315,11 +315,50 @@ local net_line = wibox.container.background(
     "#7B8F1B"
 )
 
+-- Volume
+local vol_icon = wibox.widget.imagebox(theme.widget_vol)
+local vol_widget = lain.widget.alsabar({
+    -- --togglechannel = "IEC958,3",
+    ticks = true,
+    width = 67,
+})
+local vol_bar = wibox.container.margin(
+    vol_widget.bar,
+    -5, 7, 5, 5
+)
+vol_bar:buttons(awful.util.table.join(
+    awful.button({}, 1, function()
+        awful.spawn(string.format("%s set %s toggle", vol_widget.cmd, vol_widget.togglechannel or vol_widget.channel))
+        vol_widget.update()
+    end),
+    awful.button({}, 2, function()
+        awful.spawn(string.format("%s set %s 100%%", vol_widget.cmd, vol_widget.channel))
+        vol_widget.update()
+    end),
+    awful.button({}, 3, function()
+        awful.spawn.with_shell(string.format("%s -e alsamixer", terminal))
+    end),
+    awful.button({}, 4, function()
+        awful.spawn(string.format("%s set %s 3%%+", vol_widget.cmd, vol_widget.channel))
+        vol_widget.update()
+    end),
+    awful.button({}, 5, function()
+        awful.spawn(string.format("%s set %s 3%%-", vol_widget.cmd, vol_widget.channel))
+        vol_widget.update()
+    end)
+))
+local vol_line = wibox.container.background(
+    wibox.widget({
+        vol_icon,
+        vol_bar,
+        layout = wibox.layout.align.horizontal
+    }),
+    "#7493D2"
+)
+
 -- Separator widget
 local spr = wibox.container.background(wibox.widget.textbox(' '), theme.bg_noalpha)
 local arrow = separators.arrow_left
-
--- Volume widget
 
 -- Create a wibox for each screen and add it
 local taglist_buttons = gears.table.join(
@@ -441,7 +480,9 @@ awful.screen.connect_for_each_screen(function(s)
             bat_line,
             arrow("#A36530", "#7B8F1B"),
             net_line,
-            arrow("#7B8F1B", theme.bg_noalpha),
+            arrow("#7B8F1B", "#7493D2"),
+            vol_line,
+            arrow("#7493D2", theme.bg_noalpha),
             clock,
             s.mylayoutbox,
         },
