@@ -31,3 +31,6 @@ $PACMAN ttf-droid \
 
 # browser
 $PACMAN firefox thunderbird evince chromium
+
+# IME
+$PACMAN fcitx-im fcitx-rime librime fcitx-configtool
