@@ -15,6 +15,7 @@ URxvt*scrollTtyKeypress:     true
 
 ! font
 URxvt*font:                  xft:Droid Sans Mono for Powerline:size=16:style=Regular,xft:Noto Sans CJK TC:size=16:style=Regular
+! URxvt*font:                  xft:Droid Sans Mono:size=20:style=Regular,xft:Noto Sans CJK TC:size=18:style=Regular,xft:PowerlineSymbols:style=Medium
 ! URxvt*font:                  xft:Ubuntu Mono derivative Powerline:size=14:style=Regular,xft:Noto Sans CJK TC:size=14:style=Regular,xft:Noto Color Emoji:size=14:style:Regular
 URxvt*internalBorder:        1
 URxvt*letterSpace:           -1
