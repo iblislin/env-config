@@ -83,6 +83,7 @@ mkdir -p $XCONFIG
 
 $LN $BASE/powerline $XCONFIG
 $LN $BASE/awesome4 $XCONFIG/awesome
+$LN $BASE/.emacs.d $HOME
 
 
 $BASE/bin/fetch-pubkeys
