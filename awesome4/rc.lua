@@ -238,6 +238,40 @@ local fs_line = wibox.container.background(
             layout = wibox.layout.align.horizontal
         }),
         3, 3),
+    "#B63B3B"
+)
+
+-- Battery
+local bat_icon = wibox.widget.imagebox(theme.widget_battery)
+local bat_widget = lain.widget.bat({
+    settings = function()
+        if bat_now.status ~= "N/A" then
+            if bat_now.ac_status == 1 then
+                widget:set_markup(" AC ")
+                bat_icon:set_image(theme.widget_ac)
+                return
+            elseif not bat_now.perc and tonumber(bat_now.perc) <= 5 then
+                bat_icon:set_image(theme.widget_battery_empty)
+            elseif not bat_now.perc and tonumber(bat_now.perc) <= 15 then
+                bat_icon:set_image(theme.widget_battery_low)
+            else
+                bat_icon:set_image(theme.widget_battery)
+            end
+            widget:set_markup(bat_now.perc .. "% ")
+        else
+            widget:set_markup()
+            bat_icon:set_image(theme.widget_ac)
+        end
+    end
+})
+local bat_line = wibox.container.background(
+    wibox.container.margin(
+        wibox.widget({
+            bat_icon,
+            bat_widget,
+            layout = wibox.layout.align.horizontal
+        }),
+        3, 3),
     "#A36530"
 )
 
@@ -361,9 +395,11 @@ awful.screen.connect_for_each_screen(function(s)
             cpu_line,
             arrow("#4B696D", "#4B3B51"),
             temp_line,
-            arrow("#4B3B51", "#A36530"),
+            arrow("#4B3B51", "#B63B3B"),
             fs_line,
-            arrow("#A36530", "#8DAA9A"),
+            arrow("#B63B3B", "#A36530"),
+            bat_line,
+            -- arrow("#A36530", ""),
             clock,
             s.mylayoutbox,
         },
