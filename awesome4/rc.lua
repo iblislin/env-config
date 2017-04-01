@@ -17,6 +17,8 @@ local hotkeys_popup = require("awful.hotkeys_popup").widget
 -- Third party library
 local vicious = require("vicious")
 local lain = require("lain")
+local markup = lain.util.markup
+local separators = lain.util.separators
 
 -- Enable VIM help for hotkeys widget when client with matching name is opened:
 require("awful.hotkeys_popup.keys.vim")
@@ -52,7 +54,7 @@ local awesome_dir = home_dir .. ".config/awesome/"
 
 -- Themes define colours, icons, font and wallpapers.
 beautiful.init(awesome_dir .. "themes/iblis/theme.lua")
--- beautiful.init(awful.util.get_themes_dir() .. "default/theme.lua")
+local theme = beautiful.get()
 
 -- This is used later as the default terminal and editor to run.
 terminal = "urxvt"
@@ -132,9 +134,10 @@ mykeyboardlayout = awful.widget.keyboardlayout()
 
 -- {{{ Wibar
 
--- Create a textclock widget
-local mytextclock = wibox.widget.textclock()
-vicious.register(mytextclock, vicious.widgets.date, "%Y/%m/%d %p %I:%M:%S", 1)
+-- Clock
+local clock = wibox.widget.textclock()
+vicious.register(clock, vicious.widgets.date, "%Y/%m/%d %p %I:%M:%S", 1)
+clock = wibox.container.background(clock, theme.bg_noalpha)
 
 -- Memory widget
 local mem_widget = wibox.widget.textbox()
