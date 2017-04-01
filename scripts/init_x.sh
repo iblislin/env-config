@@ -25,7 +25,8 @@ $PACMAN ttf-droid \
         adobe-source-code-pro-fonts adobe-source-sans-pro-fonts \
         adobe-source-serif-pro-fonts adobe-source-han-sans-tw-fonts \
         adobe-source-han-sans-jp-fonts \
-        powerline-fonts
+        powerline-fonts \
+        wqy-bitmapfont wqy-microhei wqy-microhei-lite wqy-zenhei
 
 # browser
 $PACMAN firefox thunderbird evince chromium
