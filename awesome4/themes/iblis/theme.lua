@@ -3,7 +3,7 @@
 --    By Adrian C. (anrxc)   --
 -------------------------------
 
-local themes_path = require("gears.filesystem").get_themes_dir()
+local themes_path = os.getenv("HOME") .. "/.config/awesome/themes/iblis"
 
 -- {{{ Main
 local theme = {}
@@ -83,14 +83,35 @@ theme.menu_width  = 150
 -- }}}
 
 -- {{{ Icons
+
+-- {{{ Widgets
+theme.widget_ac             = themes_path .. "/icons/ac.png"
+theme.widget_battery        = themes_path .. "/icons/battery.png"
+theme.widget_battery_low    = themes_path .. "/icons/battery_low.png"
+theme.widget_battery_empty  = themes_path .. "/icons/battery_empty.png"
+theme.widget_mem            = themes_path .. "/icons/mem.png"
+theme.widget_cpu            = themes_path .. "/icons/cpu.png"
+theme.widget_temp           = themes_path .. "/icons/temp.png"
+theme.widget_net            = themes_path .. "/icons/net.png"
+theme.widget_hdd            = themes_path .. "/icons/hdd.png"
+theme.widget_music          = themes_path .. "/icons/note.png"
+theme.widget_music_on       = themes_path .. "/icons/note_on.png"
+theme.widget_vol            = themes_path .. "/icons/vol.png"
+theme.widget_vol_low        = themes_path .. "/icons/vol_low.png"
+theme.widget_vol_no         = themes_path .. "/icons/vol_no.png"
+theme.widget_vol_mute       = themes_path .. "/icons/vol_mute.png"
+theme.widget_mail           = themes_path .. "/icons/mail.png"
+theme.widget_mail_on        = themes_path .. "/icons/mail_on.png"
+-- }}}
+
 -- {{{ Taglist
-theme.taglist_squares_sel   = themes_path .. "zenburn/taglist/squarefz.png"
-theme.taglist_squares_unsel = themes_path .. "zenburn/taglist/squarez.png"
+theme.taglist_squares_sel   = themes_path .. "/taglist/squarefz.png"
+theme.taglist_squares_unsel = themes_path .. "/taglist/squarez.png"
 --theme.taglist_squares_resize = "false"
 -- }}}
 
 -- {{{ Misc
-theme.awesome_icon           = themes_path .. "zenburn/awesome-icon.png"
+-- theme.awesome_icon           = themes_path .. "/awesome-icon.png"
 theme.menu_submenu_icon      = themes_path .. "default/submenu.png"
 -- }}}
 
@@ -114,31 +135,31 @@ theme.layout_cornerse   = themes_path .. "zenburn/layouts/cornerse.png"
 -- }}}
 
 -- {{{ Titlebar
-theme.titlebar_close_button_focus  = themes_path .. "zenburn/titlebar/close_focus.png"
-theme.titlebar_close_button_normal = themes_path .. "zenburn/titlebar/close_normal.png"
+theme.titlebar_close_button_focus  = themes_path .. "/titlebar/close_focus.png"
+theme.titlebar_close_button_normal = themes_path .. "/titlebar/close_normal.png"
 
-theme.titlebar_minimize_button_normal = themes_path .. "default/titlebar/minimize_normal.png"
-theme.titlebar_minimize_button_focus  = themes_path .. "default/titlebar/minimize_focus.png"
+theme.titlebar_minimize_button_normal = themes_path .. "/titlebar/minimize_normal.png"
+theme.titlebar_minimize_button_focus  = themes_path .. "/titlebar/minimize_focus.png"
 
-theme.titlebar_ontop_button_focus_active  = themes_path .. "zenburn/titlebar/ontop_focus_active.png"
-theme.titlebar_ontop_button_normal_active = themes_path .. "zenburn/titlebar/ontop_normal_active.png"
-theme.titlebar_ontop_button_focus_inactive  = themes_path .. "zenburn/titlebar/ontop_focus_inactive.png"
-theme.titlebar_ontop_button_normal_inactive = themes_path .. "zenburn/titlebar/ontop_normal_inactive.png"
+theme.titlebar_ontop_button_focus_active  = themes_path .. "/titlebar/ontop_focus_active.png"
+theme.titlebar_ontop_button_normal_active = themes_path .. "/titlebar/ontop_normal_active.png"
+theme.titlebar_ontop_button_focus_inactive  = themes_path .. "/titlebar/ontop_focus_inactive.png"
+theme.titlebar_ontop_button_normal_inactive = themes_path .. "/titlebar/ontop_normal_inactive.png"
 
-theme.titlebar_sticky_button_focus_active  = themes_path .. "zenburn/titlebar/sticky_focus_active.png"
-theme.titlebar_sticky_button_normal_active = themes_path .. "zenburn/titlebar/sticky_normal_active.png"
-theme.titlebar_sticky_button_focus_inactive  = themes_path .. "zenburn/titlebar/sticky_focus_inactive.png"
-theme.titlebar_sticky_button_normal_inactive = themes_path .. "zenburn/titlebar/sticky_normal_inactive.png"
+theme.titlebar_sticky_button_focus_active  = themes_path .. "/titlebar/sticky_focus_active.png"
+theme.titlebar_sticky_button_normal_active = themes_path .. "/titlebar/sticky_normal_active.png"
+theme.titlebar_sticky_button_focus_inactive  = themes_path .. "/titlebar/sticky_focus_inactive.png"
+theme.titlebar_sticky_button_normal_inactive = themes_path .. "/titlebar/sticky_normal_inactive.png"
 
-theme.titlebar_floating_button_focus_active  = themes_path .. "zenburn/titlebar/floating_focus_active.png"
-theme.titlebar_floating_button_normal_active = themes_path .. "zenburn/titlebar/floating_normal_active.png"
-theme.titlebar_floating_button_focus_inactive  = themes_path .. "zenburn/titlebar/floating_focus_inactive.png"
-theme.titlebar_floating_button_normal_inactive = themes_path .. "zenburn/titlebar/floating_normal_inactive.png"
+theme.titlebar_floating_button_focus_active  = themes_path .. "/titlebar/floating_focus_active.png"
+theme.titlebar_floating_button_normal_active = themes_path .. "/titlebar/floating_normal_active.png"
+theme.titlebar_floating_button_focus_inactive  = themes_path .. "/titlebar/floating_focus_inactive.png"
+theme.titlebar_floating_button_normal_inactive = themes_path .. "/titlebar/floating_normal_inactive.png"
 
-theme.titlebar_maximized_button_focus_active  = themes_path .. "zenburn/titlebar/maximized_focus_active.png"
-theme.titlebar_maximized_button_normal_active = themes_path .. "zenburn/titlebar/maximized_normal_active.png"
-theme.titlebar_maximized_button_focus_inactive  = themes_path .. "zenburn/titlebar/maximized_focus_inactive.png"
-theme.titlebar_maximized_button_normal_inactive = themes_path .. "zenburn/titlebar/maximized_normal_inactive.png"
+theme.titlebar_maximized_button_focus_active  = themes_path .. "/titlebar/maximized_focus_active.png"
+theme.titlebar_maximized_button_normal_active = themes_path .. "/titlebar/maximized_normal_active.png"
+theme.titlebar_maximized_button_focus_inactive  = themes_path .. "/titlebar/maximized_focus_inactive.png"
+theme.titlebar_maximized_button_normal_inactive = themes_path .. "/titlebar/maximized_normal_inactive.png"
 -- }}}
 -- }}}
 
