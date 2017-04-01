@@ -28,4 +28,4 @@ $PACMAN ttf-droid \
         powerline-fonts
 
 # browser
-$PACMAN firefox thunderbird evince
+$PACMAN firefox thunderbird evince chromium
