@@ -20,7 +20,12 @@ $PACMAN alsa-oss alsa-plugins alsa-tools alsa-utils
 $PACMAN xdg-utils
 
 # font
-$PACMAN ttf-droid noto-fonts noto-fonts-cjk noto-fonts-emoji
+$PACMAN ttf-droid \
+        noto-fonts noto-fonts-cjk noto-fonts-emoji \
+        adobe-source-code-pro-fonts adobe-source-sans-pro-fonts \
+        adobe-source-serif-pro-fonts adobe-source-han-sans-tw-fonts \
+        adobe-source-han-sans-jp-fonts \
+        powerline-fonts
 
 # browser
 $PACMAN firefox thunderbird evince
