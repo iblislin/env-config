@@ -275,6 +275,28 @@ local bat_line = wibox.container.background(
     "#A36530"
 )
 
+-- Net
+local net_icon = wibox.widget.imagebox(theme.widget_net)
+local net_widget = lain.widget.net({
+    settings = function()
+        widget:set_markup(
+            markup("#FEFEFE",
+                   net_now.received .. "↓↑" .. net_now.sent .. " ")
+        )
+    end
+})
+local net_line =  wibox.container.background(
+    wibox.container.margin(
+        wibox.widget({
+            nil,
+            net_icon,
+            net_widget,
+            layout = wibox.layout.align.horizontal
+        }),
+        3, 3),
+    "#7B8F1B"
+)
+
 -- Separator widget
 local spr = wibox.container.background(wibox.widget.textbox(' '), theme.bg_noalpha)
 local arrow = separators.arrow_left
@@ -389,7 +411,7 @@ awful.screen.connect_for_each_screen(function(s)
             layout = wibox.layout.fixed.horizontal,
             mykeyboardlayout,
             wibox.widget.systray(),
-            arrow("#343434", "#777E76"),
+            arrow(theme.bg_noalpha, "#777E76"),
             mem_line,
             arrow("#777E76", "#4B696D"),
             cpu_line,
@@ -399,7 +421,9 @@ awful.screen.connect_for_each_screen(function(s)
             fs_line,
             arrow("#B63B3B", "#A36530"),
             bat_line,
-            -- arrow("#A36530", ""),
+            arrow("#A36530", "#7B8F1B"),
+            net_line,
+            arrow("#7B8F1B", theme.bg_noalpha),
             clock,
             s.mylayoutbox,
         },
