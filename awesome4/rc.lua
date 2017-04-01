@@ -101,6 +101,7 @@ myawesomemenu = {
    { "manual", terminal .. " -e man awesome" },
    { "edit config", editor_cmd .. " " .. awesome.conffile },
    { "restart", awesome.restart },
+   { "suspend", function() awful.spawn.with_shell('sudo pm-suspend') end },
    { "quit", function() awesome.quit() end}
 }
 
