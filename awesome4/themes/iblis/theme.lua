@@ -18,9 +18,10 @@ theme.fg_normal  = "#DCDCCC"
 theme.fg_focus   = "#F0DFAF"
 theme.fg_urgent  = theme.fg_normal
 theme.bg_normal  = "#3F3F3F55"
+theme.bg_noalpha = "#1F1F1F"
 theme.bg_focus   = "#1E232099"
 theme.bg_urgent  = "#E14646"
-theme.bg_systray = theme.bg_normal
+theme.bg_systray = theme.bg_noalpha
 -- }}}
 
 -- {{{ Borders
