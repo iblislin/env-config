@@ -51,6 +51,7 @@ done
 # X config
 cp $BASE/.Xmodmap ~/
 cp $BASE/.Xresources ~/
+cp $BASE/.xinitrc ~/
 
 # vim pager
 mkdir -p ~/bin
