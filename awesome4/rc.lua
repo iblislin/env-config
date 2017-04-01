@@ -136,7 +136,7 @@ mykeyboardlayout = awful.widget.keyboardlayout()
 
 -- Clock
 local clock = wibox.widget.textclock()
-vicious.register(clock, vicious.widgets.date, "%Y/%m/%d %p %I:%M:%S", 1)
+vicious.register(clock, vicious.widgets.date, " %Y/%m/%d %p %I:%M:%S ", 1)
 clock = wibox.container.background(clock, theme.bg_noalpha)
 
 -- Memory widget
@@ -175,11 +175,27 @@ local cpu_line = wibox.container.background(
     "#4B696D"
 )
 
+--  Temp
+local temp_icon = wibox.widget.imagebox(theme.widget_temp)
+local temp_widget = lain.widget.temp({
+    settings = function()
+        widget:set_markup(coretemp_now .. "°C ")
+    end
+})
+local temp_line = wibox.container.background(
+    wibox.container.margin(
+        wibox.widget({
+            temp_icon,
+            temp_widget,
+            layout = wibox.layout.align.horizontal
+        }),
+        4, 4),
+    "#4B3B51"
+)
+
 -- Separator widget
 local spr = wibox.container.background(wibox.widget.textbox(' '), theme.bg_noalpha)
 local arrow = separators.arrow_left
-local arrl_dl = separators.arrow_left(theme.bg_focus, "alpha")
-local arrl_ld = separators.arrow_left("alpha", theme.bg_focus)
 
 -- Volume widget
 
@@ -295,8 +311,9 @@ awful.screen.connect_for_each_screen(function(s)
             mem_line,
             arrow("#777E76", "#4B696D"),
             cpu_line,
-            arrow("#4B696D", theme.bg_noalpha),
-            spr,
+            arrow("#4B696D", "#4B3B51"),
+            temp_line,
+            arrow("#4B3B51", "#CB755B"),
             clock,
             s.mylayoutbox,
         },
