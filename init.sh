@@ -77,4 +77,12 @@ do
     mkdir -p $HOME/${f}
 done
 
+# X11 related
+XCONFIG="$HOME/.config"
+mkdir -p $XCONFIG
+
+$LN $BASE/powerline $XCONFIG
+$LN $BASE/awesome4 $XCONFIG/awesome
+
+
 $BASE/bin/fetch-pubkeys
