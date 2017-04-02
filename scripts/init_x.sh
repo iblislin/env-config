@@ -34,3 +34,6 @@ $PACMAN firefox thunderbird evince chromium
 
 # IME
 $PACMAN fcitx-im fcitx-rime librime fcitx-configtool
+
+# musci
+$PACMAN mpd mpc ncmpc
