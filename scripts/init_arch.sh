@@ -5,7 +5,8 @@ sudo pacman -Syu
 
 $PACMAN git wget curl net-tools iotop rsync nload unzip \
         openssh mosh \
-        feh imagemagick
+        feh imagemagick \
+        cmake
 
 # python
 $PACMAN python python-pip
