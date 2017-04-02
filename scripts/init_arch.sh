@@ -3,10 +3,9 @@ PACMAN='sudo pacman -S'
 # upgrade system first
 sudo pacman -Syu
 
-$PACMAN git wget curl net-tools iotop rsync \
+$PACMAN git wget curl net-tools iotop rsync nload unzip \
         openssh mosh \
-        feh imagemagick \
-        unzip
+        feh imagemagick
 
 # python
 $PACMAN python python-pip
