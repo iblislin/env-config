@@ -424,6 +424,7 @@ tag_names = {
     'λ', 'μ', 'ν', 'ξ', 'ο', 'π', 'ρ', 'ς', 'σ', 'τ',
     'υ', 'φ', 'χ', 'ψ', 'ω'
 }
+tag_number = 25
 
 awful.screen.connect_for_each_screen(function(s)
     -- Wallpaper
@@ -500,6 +501,7 @@ root.buttons(gears.table.join(
 
 -- {{{ Key bindings
 globalkeys = gears.table.join(
+    -- Tage movement
     awful.key({ modkey,           }, "a",      awful.tag.viewprev,
               {description = "view previous", group = "tag"}),
     awful.key({ modkey,           }, "s",      awful.tag.viewnext,
@@ -508,10 +510,17 @@ globalkeys = gears.table.join(
               {description = "view previous", group = "tag"}),
     awful.key({ modkey,           }, "Right",  awful.tag.viewnext,
               {description = "view next", group = "tag"}),
-
+    -- Tag larger movement
     awful.key({ modkey, "Mod1"    }, "Left",   function() awful.tag.viewidx(-3) end ),
     awful.key({ modkey, "Mod1"    }, "Right",  function() awful.tag.viewidx( 3) end ),
-
+    -- Screen movement
+    awful.key({ modkey,           }, "Up",   function ()
+                                                awful.screen.focus_relative( 1)
+                                             end),
+    awful.key({ modkey,           }, "Down", function ()
+                                                awful.screen.focus_relative(-1)
+                                              end),
+    -- Tag restore
     awful.key({ modkey,           }, "Escape", awful.tag.history.restore,
               {description = "go back", group = "tag"}),
     awful.key({ modkey,           }, "`",      awful.tag.history.restore,
@@ -601,10 +610,10 @@ globalkeys = gears.table.join(
                     history_path = awful.util.get_cache_dir() .. "/history_eval"
                   }
               end,
-              {description = "lua execute prompt", group = "awesome"}),
+              {description = "lua execute prompt", group = "awesome"})
     -- Menubar
-    awful.key({ modkey }, "p", function() menubar.show() end,
-              {description = "show the menubar", group = "launcher"})
+    -- awful.key({ modkey }, "p", function() menubar.show() end,
+    --           {description = "show the menubar", group = "launcher"})
 )
 
 clientkeys = gears.table.join(
@@ -614,15 +623,17 @@ clientkeys = gears.table.join(
             c:raise()
         end,
         {description = "toggle fullscreen", group = "client"}),
-    awful.key({ modkey, "Shift"   }, "c",      function (c) c:kill()                         end,
+    awful.key({ modkey, "Shift"   }, "c",      function (c) c:kill() end,
               {description = "close", group = "client"}),
-    awful.key({ modkey, "Control" }, "space",  awful.client.floating.toggle                     ,
+    awful.key({ modkey, "Control" }, "c",      function (c) c:kill() end,
+              {description = "close", group = "client"}),
+    awful.key({ modkey, "Control" }, "space",  awful.client.floating.toggle,
               {description = "toggle floating", group = "client"}),
     awful.key({ modkey, "Control" }, "Return", function (c) c:swap(awful.client.getmaster()) end,
               {description = "move to master", group = "client"}),
-    awful.key({ modkey,           }, "o",      function (c) c:move_to_screen()               end,
+    awful.key({ modkey,           }, "o",      function (c) c:move_to_screen() end,
               {description = "move to screen", group = "client"}),
-    awful.key({ modkey,           }, "t",      function (c) c.ontop = not c.ontop            end,
+    awful.key({ modkey,           }, "t",      function (c) c.ontop = not c.ontop end,
               {description = "toggle keep on top", group = "client"}),
     awful.key({ modkey,           }, "n",
         function (c)
@@ -648,7 +659,33 @@ clientkeys = gears.table.join(
             c.maximized_horizontal = not c.maximized_horizontal
             c:raise()
         end ,
-        {description = "(un)maximize horizontally", group = "client"})
+        {description = "(un)maximize horizontally", group = "client"}),
+
+	-- client movement between tag
+	awful.key({ modkey, "Control" }, "Left",
+		function (c)
+            if not client.focus then
+                return
+            end
+
+            local curidx = awful.tag.getidx()
+            local tags = awful.screen.focused().tags
+
+			client.focus:move_to_tag(tags[((curidx - 2) % tag_number) + 1])
+			awful.tag.viewprev()
+		end),
+	awful.key({ modkey, "Control" }, "Right",
+		function (c)
+            if not client.focus then
+                return
+            end
+
+            local curidx = awful.tag.getidx()
+            local tags = awful.screen.focused().tags
+
+			client.focus:move_to_tag(tags[((curidx) % tag_number) + 1])
+			awful.tag.viewnext()
+		end)
 )
 
 -- Bind all key numbers to tags.
