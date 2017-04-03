@@ -213,6 +213,7 @@ local cpu_line = wibox.container.background(
 --  Temp
 local temp_icon = wibox.widget.imagebox(theme.widget_temp)
 local temp_widget = lain.widget.temp({
+    tempfile = "/sys/class/thermal/thermal_zone2/temp",
     settings = function()
         widget:set_markup(coretemp_now .. "°C ")
     end
