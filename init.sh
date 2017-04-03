@@ -51,6 +51,7 @@ done
 # X config
 cp $BASE/.Xmodmap ~/
 cp $BASE/.Xresources ~/
+cp $BASE/.xinitrc ~/
 
 # vim pager
 mkdir -p ~/bin
@@ -76,5 +77,14 @@ for f in git node go code
 do
     mkdir -p $HOME/${f}
 done
+
+# X11 related
+XCONFIG="$HOME/.config"
+mkdir -p $XCONFIG
+
+$LN $BASE/powerline $XCONFIG
+$LN $BASE/awesome4 $XCONFIG/awesome
+$LN $BASE/.emacs.d $HOME
+
 
 $BASE/bin/fetch-pubkeys

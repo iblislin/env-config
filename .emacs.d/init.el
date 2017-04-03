@@ -95,9 +95,9 @@
 (set-face-attribute 'default nil :height 200)  ; 20 pt
 
 ;; transparent background
-(set-frame-parameter (selected-frame) 'alpha '.5)
-(set-face-attribute 'default nil :background "black"
-    :foreground "white")
+; (set-frame-parameter (selected-frame) 'alpha '.5)
+; (set-face-attribute 'default nil :background "black"
+;     :foreground "white")
 
 ;; original: kill-region
 (global-set-key (kbd "C-w") 'backward-kill-word)
@@ -123,3 +123,13 @@
 
 ;; line number
 (global-linum-mode t)
+
+;;change backup dir
+(setq
+  backup-by-copying t      ; don't clobber symlinks
+  backup-directory-alist
+  '(("." . "~/.emacs.d/backup"))    ; don't litter my fs tree
+  delete-old-versions t
+  kept-new-versions 9
+  kept-old-versions 2
+  version-control t)       ; use versioned backups
