@@ -6,7 +6,7 @@ sudo pacman -Syu
 $PACMAN git wget curl net-tools iotop rsync nload unzip \
         openssh mosh \
         feh imagemagick \
-        cmake
+        cmake lm_sensors
 
 # python
 $PACMAN python python-pip
