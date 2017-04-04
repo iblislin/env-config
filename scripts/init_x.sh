@@ -37,3 +37,6 @@ $PACMAN fcitx-im fcitx-rime librime fcitx-configtool
 
 # musci
 $PACMAN mpd mpc ncmpc
+
+# latex
+# $PACMAN texlive-most texlive-lang texlive-langcjk
