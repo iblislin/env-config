@@ -807,6 +807,28 @@ awful.rules.rules = {
             size_hints_honor = false,
         },
     },
+    -- feh
+    {
+        rule = { name = "feh" },
+        properties = {
+            maximized_vertical = false,
+            maximized_horizontal = false,
+            floating = true,
+            focus = false,
+            width = 1366,
+            height = 742,
+            x = 1610,
+            y = 150,
+            below = true,
+            sticky = true,
+            focusable = false,
+            skip_taskbar = true,
+            type = "dock",
+            border_width = 0,
+            raise = false,
+            buttons = photoframebutton,
+        },
+    },
 }
 -- }}}
 
