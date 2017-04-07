@@ -615,6 +615,12 @@ globalkeys = gears.table.join(
     -- Menubar
     -- awful.key({ modkey }, "p", function() menubar.show() end,
     --           {description = "show the menubar", group = "launcher"})
+
+    -- custom shortcut
+	awful.key({ modkey }, "e", function() awful.spawn.with_shell('thunar') end),
+	awful.key({ modkey }, "l", function() awful.spawn.with_shell('/home/iblis/bin/lock.sh') end),
+	awful.key({ modkey }, "Print", function() awful.spawn.with_shell('gnome-screenshot') end),
+    awful.key({ modkey }, "p", function() awful.util.spawn_with_shell('pkill --signal USR1 feh') end)
 )
 
 clientkeys = gears.table.join(
