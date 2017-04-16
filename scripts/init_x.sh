@@ -40,3 +40,6 @@ $PACMAN mpd mpc ncmpc
 
 # latex
 # $PACMAN texlive-most texlive-lang texlive-langcjk
+
+# wine
+# $PACMAN wine winetricks wine-mono
