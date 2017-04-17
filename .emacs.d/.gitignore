@@ -1,5 +1,5 @@
 eshell
 auto-save-list/*
 
-.emacs.d/backup/*
-!.emacs.d/backup/.PADDING
+backup/*
+!backup/.PADDING
