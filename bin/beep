@@ -1,0 +1,11 @@
+#!/bin/sh
+
+if [ -n "$1"  ]
+then
+    echo beep after $1 s
+    sleep $1
+fi
+
+echo -ne '\007'
+
+
