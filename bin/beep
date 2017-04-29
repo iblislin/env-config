@@ -6,6 +6,4 @@ then
     sleep $1
 fi
 
-echo -ne '\007'
-
-
+printf '\007'
