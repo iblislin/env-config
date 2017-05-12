@@ -625,7 +625,7 @@ nmap <F9> :QFix<CR>
 	Plug 'vim-scripts/renumber.vim'
 	Plug 'vim-scripts/taglist.vim', {'on': 'TlistToggle'}
 	Plug 'vim-scripts/matchit.zip'
-	Plug 'pi314/todo-or-not-todo.vim', {'branch': 'menu'}
+	Plug 'pi314/todo-or-not-todo.vim'
 	Plug 'metakirby5/codi.vim'
     Plug 'Yggdroot/indentLine'
     Plug 'luochen1990/rainbow'
