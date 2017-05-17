@@ -30,3 +30,8 @@ try:
     import scipy
 except:
     pass
+
+try:
+    import tensorflow as tf
+except:
+    pass
