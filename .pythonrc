@@ -6,9 +6,6 @@ else:
     import rlcompleter
     readline.parse_and_bind("tab: complete")
 
-PACKAGE_PARENT = '..'
-
-
 try:
     import numpy as np
     import numpy.matlib as mat
@@ -30,6 +27,6 @@ except:
 
 
 try:
-    import scipy 
+    import scipy
 except:
     pass
