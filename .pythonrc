@@ -27,7 +27,7 @@ except:
 
 
 try:
-    import scipy
+    import scipy as sp
 except:
     pass
 
