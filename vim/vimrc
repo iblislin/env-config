@@ -584,6 +584,7 @@ nmap <F9> :QFix<CR>
     "  julia-vim
     """"""""""""""""""""""""""""""""""""""""
     let g:julia_syntax_highlight_deprecated = 1
+    let g:default_julia_version = "devel"
 
     """"""""""""""""""""""""""""""""""""""""
     "  vim-plug
