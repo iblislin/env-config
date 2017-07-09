@@ -191,7 +191,7 @@ endif
 " hi MatchParen ctermbg=11
 
 " column ruler
-set colorcolumn=80
+set colorcolumn=80,92
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " File formats
