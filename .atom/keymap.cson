@@ -1,0 +1,9 @@
+'.platform-win32 .julia-console.julia atom-text-editor, .platform-linux .julia-console.julia, .platform-linux .julia-console.julia atom-text-editor':
+  'ctrl-w': 'editor:delete-to-beginning-of-word'
+  'ctrl-e': 'vim-mode-plus:move-to-last-character-of-line'
+  'ctrl-a': 'vim-mode-plus:move-to-first-character-of-line'
+  'ctrl-l': 'julia-client:clear-console'
+
+'atom-text-editor.vim-mode-plus:':
+  'ctrl-e': 'vim-mode-plus:move-to-last-character-of-line'
+  'ctrl-a': 'vim-mode-plus:move-to-first-character-of-line'

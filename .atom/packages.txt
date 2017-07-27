@@ -1,0 +1,13 @@
+busy-signal
+clean-context-menu
+ink
+intentions
+julia-client
+language-julia
+latex-completions
+linter
+linter-julia
+linter-ui-default
+tool-bar
+uber-juno
+vim-mode-plus

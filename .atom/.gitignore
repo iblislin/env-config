@@ -1,0 +1,9 @@
+*
+!.gitignore
+
+!config.cson
+!keymap.cson
+!styles.less
+
+!Makefile
+!packages.txt

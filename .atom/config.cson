@@ -1,0 +1,24 @@
+"*":
+  "clean-context-menu":
+    editorEdit: "hidden"
+    treeEdit: "hidden"
+    treeEdit2: "hidden"
+  core:
+    disabledPackages: [
+      "linter-julia"
+    ]
+    telemetryConsent: "no"
+  editor:
+    fontSize: 22
+    invisibles: {}
+    tabLength: 4
+  "exception-reporting":
+    userId: "48ee30d6-2d99-4399-88c9-906fba8017d4"
+  "julia-client":
+    enableMenu: true
+    enableToolBar: true
+    launchOnStartup: true
+  "tool-bar":
+    position: "Left"
+  "uber-juno":
+    disable: true
