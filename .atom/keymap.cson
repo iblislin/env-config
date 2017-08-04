@@ -1,9 +1,20 @@
+'body':
+  'ctrl-tab': 'pane:show-next-item'
+  'ctrl-shift-tab': 'pane:show-previous-item'
+
 '.platform-win32 .julia-console.julia atom-text-editor, .platform-linux .julia-console.julia, .platform-linux .julia-console.julia atom-text-editor':
   'ctrl-w': 'editor:delete-to-beginning-of-word'
-  'ctrl-e': 'vim-mode-plus:move-to-last-character-of-line'
   'ctrl-a': 'vim-mode-plus:move-to-first-character-of-line'
+  'ctrl-e': 'vim-mode-plus:move-to-last-character-of-line'
   'ctrl-l': 'julia-client:clear-console'
 
-'atom-text-editor.vim-mode-plus:':
-  'ctrl-e': 'vim-mode-plus:move-to-last-character-of-line'
+'atom-text-editor.vim-mode-plus':
   'ctrl-a': 'vim-mode-plus:move-to-first-character-of-line'
+  'ctrl-e': 'vim-mode-plus:move-to-last-character-of-line'
+
+'atom-text-editor.vim-mode-plus.insert-mode':
+  'ctrl-a': 'vim-mode-plus:move-to-first-character-of-line'
+  'ctrl-e': 'vim-mode-plus:move-to-last-character-of-line'
+
+'atom-workspace atom-text-editor':
+  'ctrl-a': 'unset!'
