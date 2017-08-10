@@ -593,6 +593,30 @@ nmap <F9> :QFix<CR>
     let g:default_julia_version = "devel"
 
     """"""""""""""""""""""""""""""""""""""""
+    "  nvim-completion-manager
+    """"""""""""""""""""""""""""""""""""""""
+    if has('nvim')
+        inoremap <expr> <CR>    (pumvisible() ? "\<c-y>" : "\<CR>")
+        inoremap <expr> <Tab>   (pumvisible() ? "\<c-n>" : "\<Tab>")
+        inoremap <expr> <S-Tab> (pumvisible() ? "\<c-p>" : "\<S-Tab>")
+    endif
+
+    """"""""""""""""""""""""""""""""""""""""
+    "  LanguageClient-neovim
+    """"""""""""""""""""""""""""""""""""""""
+    let g:LanguageClient_autoStart = 1
+    let g:LanguageClient_autoStart = 1
+    let g:LanguageClient_serverCommands = {
+    \   'julia': ['julia', '--startup-file=no', '--history-file=no', '-e', '
+    \       using LanguageServer;
+    \       server = LanguageServer.LanguageServerInstance(STDIN, STDOUT, false);
+    \       server.runlinter = true;
+    \       run(server);
+    \   '],
+    \ }
+    nnoremap <silent> gd :call LanguageClient_textDocument_definition()<CR>
+
+    """"""""""""""""""""""""""""""""""""""""
     "  vim-plug
     """"""""""""""""""""""""""""""""""""""""
     call plug#begin('~/.vim/plugged')
@@ -613,9 +637,15 @@ nmap <F9> :QFix<CR>
 
     " utils
     "" completion
-    Plug 'ervandew/supertab'
+    if !has('nvim')
+        Plug 'ervandew/supertab'
+        Plug 'vim-scripts/AutoComplPop'
+    endif
     Plug 'SirVer/ultisnips' | Plug 'iblis17/vim-snippets'
-    Plug 'vim-scripts/AutoComplPop'
+    if has('nvim')
+        Plug 'roxma/nvim-completion-manager'
+        Plug 'autozimu/LanguageClient-neovim', {'do': ':UpdateRemotePlugins'}
+    endif
     "" git
     Plug 'tpope/vim-fugitive'
     Plug 'airblade/vim-gitgutter'
