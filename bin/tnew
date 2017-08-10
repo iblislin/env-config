@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import socket
 import sys
 
 from subprocess import call, check_output
@@ -26,11 +27,23 @@ def uid():
     return check_output(['id', '-u']).strip().decode()
 
 
+def get_socket():
+    if socket.gethostname() == 'kaladbolg':
+        i = 1
+        f = '/tmp/tmux-{}-inner-{}'.format(uid(), i)
+        while os.path.exists(f):
+            i += 1
+            f = '/tmp/tmux-{}-inner-{}'.format(uid(), i)
+        return f
+
+    return '/tmp/tmux-{}-inner'.format(uid())
+
+
 def tmux_new(session):
     env = '/usr/bin/env'
     os.execv(env, (env, 'tmux',
                    '-f', '{}/.tmux-inner.conf'.format(os.environ['HOME']),
-                   '-S', '/tmp/tmux-{}-inner'.format(uid()),
+                   '-S', get_socket(),
                    'new', '-s', session))
 
 
