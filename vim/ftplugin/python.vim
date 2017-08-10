@@ -17,7 +17,9 @@ setlocal expandtab
 " nnoremap <buffer> <leader>e :w<CR>:!${VIRTUAL_ENV}/bin/python hier_triangle.py %<CR>
 imap <buffer> <F5> <ESC><F7>
 
-nnoremap <expr> <CR> SmartNewLine() ? "i<CR><Esc>" : "i^<C-D><CR><Esc>"
+if !has('nvim')  " vim only
+    nnoremap <expr> <CR> SmartNewLine() ? "i<CR><Esc>" : "i^<C-D><CR><Esc>"
+endif
 
 " purge trailing space
 autocmd BufWritePre *.py :call StripTrailingWhitespaces()
