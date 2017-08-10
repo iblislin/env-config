@@ -101,7 +101,7 @@ imap <M-Right> <C-Right>
 nmap <C-A> ^
 imap <C-A> <Esc>^i
 nmap <C-E> $
-inoremap <expr> <C-E> pumvisible() ? "<C-E>" : "<End>"
+inoremap <expr> <C-E> pumvisible() ? "<C-Y>" : "<End>"
 " imap <C-D> <End>
 noremap ' `
 noremap ` '
