@@ -581,6 +581,12 @@ nmap <F9> :QFix<CR>
     let g:hy_enable_conceal = 1
 
     """"""""""""""""""""""""""""""""""""""""
+    "  vim-airline
+    """"""""""""""""""""""""""""""""""""""""
+    let g:airline_powerline_fonts = 1
+    let g:airline_theme = 'powerlineish'
+
+    """"""""""""""""""""""""""""""""""""""""
     "  julia-vim
     """"""""""""""""""""""""""""""""""""""""
     let g:julia_syntax_highlight_deprecated = 1
@@ -622,6 +628,7 @@ nmap <F9> :QFix<CR>
     Plug 'kshenoy/vim-signature'
     if has('nvim')
         Plug 'vim-airline/vim-airline'
+        Plug 'vim-airline/vim-airline-themes'
     else
         Plug 'powerline/powerline', {'rtp': 'powerline/bindings/vim/'}
         " Arch linux issue
