@@ -15,9 +15,11 @@
     treeEdit: "hidden"
     treeEdit2: "hidden"
   core:
+    autoHideMenuBar: true
     disabledPackages: [
       "linter-julia"
     ]
+    projectHome: "/home/iblis/git"
     telemetryConsent: "no"
     themes: [
       "atom-material-ui"
@@ -56,6 +58,12 @@
   "vim-mode-plus":
     ignoreCaseForSearch: true
     ignoreCaseForSearchCurrentWord: true
+".coffee.source":
+  editor:
+    tabLength: 2
+".console.julia.source":
+  editor:
+    preferredLineLength: 92
 ".julia.source":
   editor:
     preferredLineLength: 92

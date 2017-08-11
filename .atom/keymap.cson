@@ -3,7 +3,7 @@
   'ctrl-shift-tab': 'pane:show-previous-item'
 
 '.platform-win32 .julia-console.julia atom-text-editor, .platform-linux .julia-console.julia, .platform-linux .julia-console.julia atom-text-editor':
-  'ctrl-w': 'editor:delete-to-beginning-of-word'
+  'ctrl-w': 'editor:delete-to-previous-word-boundary'
   'ctrl-a': 'vim-mode-plus:move-to-first-character-of-line'
   'ctrl-e': 'vim-mode-plus:move-to-last-character-of-line'
   'ctrl-l': 'julia-client:clear-console'
