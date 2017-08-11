@@ -10,11 +10,12 @@
 
 'atom-text-editor.vim-mode-plus':
   'ctrl-a': 'vim-mode-plus:move-to-first-character-of-line'
-  'ctrl-e': 'vim-mode-plus:move-to-last-character-of-line'
+  'ctrl-e': 'custom:break-autocomplete-pluse-or-end-of-file'
+  'ctrl-[': 'vim-mode-plus:reset-normal-mode'
 
 'atom-text-editor.vim-mode-plus.insert-mode':
   'ctrl-a': 'vim-mode-plus:move-to-first-character-of-line'
-  'ctrl-e': 'vim-mode-plus:move-to-last-character-of-line'
+  'ctrl-e': 'custom:break-autocomplete-pluse-or-end-of-file'
 
 'atom-workspace atom-text-editor':
   'ctrl-a': 'unset!'
