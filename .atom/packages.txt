@@ -1,3 +1,7 @@
+atom-material-syntax
+atom-material-syntax-dark
+atom-material-syntax-light
+atom-material-ui
 busy-signal
 clean-context-menu
 file-icons

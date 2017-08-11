@@ -1,4 +1,12 @@
 "*":
+  "atom-material-ui":
+    colors: {}
+    fonts: {}
+    tabs:
+      tintedTabBar: true
+    ui:
+      panelContrast: true
+      panelShadows: true
   "autocomplete-plus":
     confirmCompletion: "tab always, enter when suggestion explicitly selected"
     enableExtendedUnicodeSupport: true
@@ -12,12 +20,12 @@
     ]
     telemetryConsent: "no"
     themes: [
-      "one-dark-ui"
-      "base16-tomorrow-dark-theme"
+      "atom-material-ui"
+      "atom-material-syntax"
     ]
   editor:
     fontFamily: "Fira Code"
-    fontSize: 22
+    fontSize: 24
     invisibles: {}
     showInvisibles: true
     tabLength: 4
