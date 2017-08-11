@@ -1,5 +1,7 @@
 busy-signal
 clean-context-menu
+file-icons
+highlight-selected
 ink
 intentions
 julia-client
@@ -8,6 +10,13 @@ latex-completions
 linter
 linter-julia
 linter-ui-default
+minimap
+minimap-cursorline
+minimap-find-and-replace
+minimap-git-diff
+minimap-highlight-selected
+pigments
 tool-bar
 uber-juno
 vim-mode-plus
+vim-mode-plus-keymaps-for-surround
