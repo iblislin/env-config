@@ -605,7 +605,6 @@ nmap <F9> :QFix<CR>
     "  LanguageClient-neovim
     """"""""""""""""""""""""""""""""""""""""
     let g:LanguageClient_autoStart = 1
-    let g:LanguageClient_autoStart = 1
     let g:LanguageClient_serverCommands = {
     \   'julia': ['julia', '--startup-file=no', '--history-file=no', '-e', '
     \       using LanguageServer;
@@ -614,7 +613,11 @@ nmap <F9> :QFix<CR>
     \       run(server);
     \   '],
     \ }
-    nnoremap <silent> gd :call LanguageClient_textDocument_definition()<CR>
+
+    " LanguageClient currently is nvim only
+    if has('nvim')
+        nnoremap <silent> gd :call LanguageClient_textDocument_definition()<CR>
+    endif
 
     """"""""""""""""""""""""""""""""""""""""
     "  vim-plug
