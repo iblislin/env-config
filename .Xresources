@@ -44,7 +44,11 @@ urxvt*color15:               rgb:eeee/eeee/ecec
 ! misc
 URxvt*saveLines:             65535
 URxvt*urgentOnBell:          true
-URxvt.iso14755: true
-URxvt.iso14755_52: false
+URxvt.iso14755:              true
+URxvt.iso14755_52:           false
+
+! copy/paste
+URxvt.perl-ext-common:       default,selection-autotransform
+URxvt.selection-autotransform.0: s/ +$//gm
 
 ! Urxvt }}}
