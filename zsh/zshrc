@@ -115,6 +115,19 @@ then
 	alias tmux-inner="tmux -f ~/.tmux-inner.conf -S /tmp/tmux-`id -u`-inner"
 	alias ti=tmux-inner
 	alias r='tmux attach -d'
+
+    # ti with new socket, new server
+    function tin()
+    {
+        local i=1
+        local f="/tmp/tmux-`id -u`-inner-$i"
+        if [[ -e $f ]]
+        then
+            i=`expr $i + 1`
+            f="/tmp/tmux-`id -u`-inner-$i"
+        fi
+        exec tmux -f ~/.tmux-inner.conf -S $f
+    }
 fi
 if ( isExist cmdwatch && isExist figlet )
 then
