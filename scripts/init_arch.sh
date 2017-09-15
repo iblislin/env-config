@@ -8,7 +8,8 @@ $PACMAN git wget curl net-tools iotop rsync nload unzip \
         feh imagemagick \
         cmake lm_sensors \
         smartmontools \
-        syslog-ng
+        syslog-ng \
+        dosfstools
 
 # python
 $PACMAN python python-pip
