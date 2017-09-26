@@ -151,7 +151,7 @@ then
 fi
 if ( isExist julia )
 then
-    alias j='julia -p 8'
+    alias j="julia"
 fi
 # ==================================
 # Alias > Global Aliases
