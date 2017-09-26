@@ -149,6 +149,10 @@ if ( isExist mutt )
 then
     alias mutt='TERM=xterm-256color mutt'
 fi
+if ( isExist julia )
+then
+    alias j='julia -p 8'
+fi
 # ==================================
 # Alias > Global Aliases
 # ==================================
