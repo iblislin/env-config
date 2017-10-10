@@ -2,3 +2,6 @@
 
 
 clang -dM -E - < /dev/null
+
+echo "cpp"
+clang++ -dM -E -x c++ /dev/null
