@@ -1,15 +1,15 @@
 
 # pip install -U jupyterthemes
 
-jt\
+jt \
     -f firacode \
     -t monokai \
-    -fs 14 \
+    -fs 16 \
     -cursc x \
-    -cursw 10 \
+    -cursw 12 \
     -T \
     -altp \
-    -ofs 13 \
+    -ofs 16 \
     -N \
     -cellw 100% \
     -altout \
