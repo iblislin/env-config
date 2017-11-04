@@ -78,6 +78,15 @@ do
     mkdir -p $HOME/${f}
 done
 
+# GPG
+if [ ! -d "$HOME/.gnupg" ]
+then
+    mkdir "$HOME/.gnupg"
+    chmod 700 "$HOME/.gnupg"
+fi
+$LN "$BASE/gnupg/gpg.conf" "$HOME/.gnupg/"
+$LN "$BASE/gnupg/gpg-agent.conf" "$HOME/.gnupg/"
+
 # X11 related
 XCONFIG="$HOME/.config"
 mkdir -p $XCONFIG
