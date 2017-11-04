@@ -153,6 +153,10 @@ if ( isExist julia )
 then
     alias j="julia"
 fi
+if ( isExist gpg )
+then
+    export GPG_TTY=$(tty)
+fi
 # ==================================
 # Alias > Global Aliases
 # ==================================
