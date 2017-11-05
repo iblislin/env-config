@@ -112,7 +112,7 @@ nnoremap <silent> <M-Down>  :wincmd j<CR>
 nnoremap <silent> <M-Left>  :wincmd h<CR>
 nnoremap <silent> <M-Right> :wincmd l<CR>
 nnoremap <silent> <F6> :set paste!<CR>:set paste?<CR>
-nnoremap <F7> :Codi!!<CR>
+nnoremap <silent> <F7> :Codi!!<CR>
 imap <F6> <ESC><F6>
 imap <F7> <ESC><F7>i
 
@@ -684,6 +684,7 @@ nmap <F9> :QFix<CR>
     Plug 'Yggdroot/indentLine'
     Plug 'luochen1990/rainbow'
     Plug 'dhruvasagar/vim-table-mode'
+    Plug 'jpalardy/vim-slime'
 
     " julia
     Plug 'JuliaEditorSupport/julia-vim'
