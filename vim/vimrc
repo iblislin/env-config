@@ -620,6 +620,11 @@ nmap <F9> :QFix<CR>
     endif
 
     """"""""""""""""""""""""""""""""""""""""
+    "  vim-table-mode
+    """"""""""""""""""""""""""""""""""""""""
+    nnoremap <silent> <LEADER>tm :TableModeToggle<CR>
+
+    """"""""""""""""""""""""""""""""""""""""
     "  vim-plug
     """"""""""""""""""""""""""""""""""""""""
     call plug#begin('~/.vim/plugged')
