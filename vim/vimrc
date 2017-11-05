@@ -369,205 +369,205 @@ nmap <F9> :QFix<CR>
 " Plugins
 """"""""""""""""""""""""""""""""""""""""""""""""""
 
-	""""""""""""""""""""""""""""""""""""""""
-	" Taglist
-	""""""""""""""""""""""""""""""""""""""""
-	" Usage
-	" t		Open target in tab
-	" o		Open target in window
-	" u		Update taglist
-	" q		Close taglist
-	" <tab>	Jump to next file
-	" <backspace>	Jump to previous file
-	"
-	" let Tlist_Ctags_Cmd = '/usr/local/bin/exctags'
-	let Tlist_Auto_Update = 1
-	" let Tlist_Auto_Open = 1
-	let Tlist_Sort_Type = "name"
-	let Tlist_WinWidth = 30
-	" let Tlist_Show_One_File = 0
-	" let Tlist_Exit_OnlyWindow = 1
-	" let Tlist_Use_SingleClick = 1
-	" let Tlist_File_Fold_Auto_Close = 1
-	" let Tlist_Process_File_Always = 1
-	" let Tlist_Enable_Fold_Column = 0
-	let Tlist_Use_Right_Window = 1
-	let tlist_python_settings = 'python;c:class;f:function;m:member;v:variable;i:import'
-	nnoremap <F4> :TlistToggle<CR>
+    """"""""""""""""""""""""""""""""""""""""
+    " Taglist
+    """"""""""""""""""""""""""""""""""""""""
+    " Usage
+    " t		Open target in tab
+    " o		Open target in window
+    " u		Update taglist
+    " q		Close taglist
+    " <tab>	Jump to next file
+    " <backspace>	Jump to previous file
+    "
+    " let Tlist_Ctags_Cmd = '/usr/local/bin/exctags'
+    let Tlist_Auto_Update = 1
+    " let Tlist_Auto_Open = 1
+    let Tlist_Sort_Type = "name"
+    let Tlist_WinWidth = 30
+    " let Tlist_Show_One_File = 0
+    " let Tlist_Exit_OnlyWindow = 1
+    " let Tlist_Use_SingleClick = 1
+    " let Tlist_File_Fold_Auto_Close = 1
+    " let Tlist_Process_File_Always = 1
+    " let Tlist_Enable_Fold_Column = 0
+    let Tlist_Use_Right_Window = 1
+    let tlist_python_settings = 'python;c:class;f:function;m:member;v:variable;i:import'
+    nnoremap <F4> :TlistToggle<CR>
 
-	""""""""""""""""""""""""""""""""""""""""
-	" Slippery Snippet
-	""""""""""""""""""""""""""""""""""""""""
-	" let g:snip_start_tag = "«"
-	" let g:snip_end_tag = "»"
-	" let g:snippetsEmu_key = "<C-B>"
+    """"""""""""""""""""""""""""""""""""""""
+    " Slippery Snippet
+    """"""""""""""""""""""""""""""""""""""""
+    " let g:snip_start_tag = "«"
+    " let g:snip_end_tag = "»"
+    " let g:snippetsEmu_key = "<C-B>"
 
-	""""""""""""""""""""""""""""""""""""""""
-	" Nerd Tree
-	""""""""""""""""""""""""""""""""""""""""
-	" How to use?
-	"
-	" o       Open selected file, or expand selected dir
-	" go      Open selected file, but leave cursor in the NERDTree
-	" t       Open selected node in a new tab
-	" T       Same as 't' but keep the focus on the current tab
-	" <tab>   Open selected file in a split window
-	" g<tab>  Same as <tab>, but leave the cursor on the NERDTree
-	" !       Execute the current file
-	" O       Recursively open the selected directory
-	" x       Close the current nodes parent
-	" X       Recursively close all children of the current node
-	" e       Open a netrw for the current dir
-	" q       Close the nerd tree split window
-	let g:NERDTreeWinSize = 22
+    """"""""""""""""""""""""""""""""""""""""
+    " Nerd Tree
+    """"""""""""""""""""""""""""""""""""""""
+    " How to use?
+    "
+    " o       Open selected file, or expand selected dir
+    " go      Open selected file, but leave cursor in the NERDTree
+    " t       Open selected node in a new tab
+    " T       Same as 't' but keep the focus on the current tab
+    " <tab>   Open selected file in a split window
+    " g<tab>  Same as <tab>, but leave the cursor on the NERDTree
+    " !       Execute the current file
+    " O       Recursively open the selected directory
+    " x       Close the current nodes parent
+    " X       Recursively close all children of the current node
+    " e       Open a netrw for the current dir
+    " q       Close the nerd tree split window
+    let g:NERDTreeWinSize = 22
     let NERDTreeIgnore = ['\~$']  " vim temp files
-	let NERDTreeIgnore += ['\.pyc$', '\.pyo$', '^__pycache__$']  " python
+    let NERDTreeIgnore += ['\.pyc$', '\.pyo$', '^__pycache__$']  " python
     let NERDTreeIgnore += ['\.beam$']  " erlang
     let NERDTreeIgnore += ['\.a$', '\.so$', '\.o$']  " some native stuff
     let NERDTreeIgnore += ['^cscope\.out$']
     let g:NERDTreeDirArrowExpandable="+"
     let g:NERDTreeDirArrowCollapsible="~"
-	nnoremap <F3> :NERDTreeTabsToggle<CR>
+    nnoremap <F3> :NERDTreeTabsToggle<CR>
 
-	""""""""""""""""""""""""""""""""""""""""
-	" Nerd Commenter
-	""""""""""""""""""""""""""""""""""""""""
-	" let g:NERDMapleader = ";c"
+    """"""""""""""""""""""""""""""""""""""""
+    " Nerd Commenter
+    """"""""""""""""""""""""""""""""""""""""
+    " let g:NERDMapleader = ";c"
 
-	""""""""""""""""""""""""""""""""""""""""
-	" SuperTab
-	""""""""""""""""""""""""""""""""""""""""
-	let g:SuperTabDefaultCompletionType = "<c-n>"
-	let g:SuperTabContextDefaultCompletionType = "<c-n>"
-	let g:SuperTabCrMapping = 1
+    """"""""""""""""""""""""""""""""""""""""
+    " SuperTab
+    """"""""""""""""""""""""""""""""""""""""
+    let g:SuperTabDefaultCompletionType = "<c-n>"
+    let g:SuperTabContextDefaultCompletionType = "<c-n>"
+    let g:SuperTabCrMapping = 1
 
-	""""""""""""""""""""""""""""""""""""""""
-	" OmniCppComplete
-	""""""""""""""""""""""""""""""""""""""""
-	" map <F12> :!exctags -R --c-kinds=+p --fields=+iaS --extra=+q .<CR>
+    """"""""""""""""""""""""""""""""""""""""
+    " OmniCppComplete
+    """"""""""""""""""""""""""""""""""""""""
+    " map <F12> :!exctags -R --c-kinds=+p --fields=+iaS --extra=+q .<CR>
 
-	""""""""""""""""""""""""""""""""""""""""
-	" code_complete
-	""""""""""""""""""""""""""""""""""""""""
-	" autocmd BufNewFile,BufRead *.c,*.cpp set tags=~/.vim/tags
-	" map <F12> :!exctags -R --c-kinds=+p --fields=+S .<CR>
-	" let g:rs = "'<"	" Default `< >` caused problem in php indent
-	" let g:re = ">'"
-	" let g:completekey = "<c-p>"
+    """"""""""""""""""""""""""""""""""""""""
+    " code_complete
+    """"""""""""""""""""""""""""""""""""""""
+    " autocmd BufNewFile,BufRead *.c,*.cpp set tags=~/.vim/tags
+    " map <F12> :!exctags -R --c-kinds=+p --fields=+S .<CR>
+    " let g:rs = "'<"	" Default `< >` caused problem in php indent
+    " let g:re = ">'"
+    " let g:completekey = "<c-p>"
 
-	""""""""""""""""""""""""""""""""""""""""
-	" Emmet (zenconding)
-	""""""""""""""""""""""""""""""""""""""""
-	let g:user_emmet_leader_key = "<c-c>"
+    """"""""""""""""""""""""""""""""""""""""
+    " Emmet (zenconding)
+    """"""""""""""""""""""""""""""""""""""""
+    let g:user_emmet_leader_key = "<c-c>"
 
-	""""""""""""""""""""""""""""""""""""""""
-	" Fugitive
-	""""""""""""""""""""""""""""""""""""""""
-	" set statusline=%<%f\ %h%m%r\ %{fugitive#statusline()}%=%-15(%c%V\ %p%%%)
-	nnoremap <silent> <leader>s :Gwrite<CR>:GitGutter<CR>
+    """"""""""""""""""""""""""""""""""""""""
+    " Fugitive
+    """"""""""""""""""""""""""""""""""""""""
+    " set statusline=%<%f\ %h%m%r\ %{fugitive#statusline()}%=%-15(%c%V\ %p%%%)
+    nnoremap <silent> <leader>s :Gwrite<CR>:GitGutter<CR>
 
-	""""""""""""""""""""""""""""""""""""""""
-	" js-lib-syntax
-	""""""""""""""""""""""""""""""""""""""""
-	let g:used_javascript_libs = 'jquery,angularjs,angularui'
+    """"""""""""""""""""""""""""""""""""""""
+    " js-lib-syntax
+    """"""""""""""""""""""""""""""""""""""""
+    let g:used_javascript_libs = 'jquery,angularjs,angularui'
 
-	""""""""""""""""""""""""""""""""""""""""
-	" vim-css3-syntax
-	""""""""""""""""""""""""""""""""""""""""
-	augroup VimCSS3Syntax
-		autocmd!
-		autocmd FileType css setlocal iskeyword+=-
-	augroup END
+    """"""""""""""""""""""""""""""""""""""""
+    " vim-css3-syntax
+    """"""""""""""""""""""""""""""""""""""""
+    augroup VimCSS3Syntax
+        autocmd!
+        autocmd FileType css setlocal iskeyword+=-
+    augroup END
 
-	""""""""""""""""""""""""""""""""""""""""
-	" nodejs-complete
-	""""""""""""""""""""""""""""""""""""""""
-	let g:nodejs_complete_config = { 'js_compl_fn': 'syntaxcomplete#Complete' }
+    """"""""""""""""""""""""""""""""""""""""
+    " nodejs-complete
+    """"""""""""""""""""""""""""""""""""""""
+    let g:nodejs_complete_config = { 'js_compl_fn': 'syntaxcomplete#Complete' }
 
-	""""""""""""""""""""""""""""""""""""""""
-	" jedi-vim
-	""""""""""""""""""""""""""""""""""""""""
-	let g:jedi#popup_select_first = 0
-	let g:jedi#popup_on_dot = 0
-	let g:jedi#use_tabs_not_buffers = 1
-	let g:jedi#show_call_signatures = 0
+    """"""""""""""""""""""""""""""""""""""""
+    " jedi-vim
+    """"""""""""""""""""""""""""""""""""""""
+    let g:jedi#popup_select_first = 0
+    let g:jedi#popup_on_dot = 0
+    let g:jedi#use_tabs_not_buffers = 1
+    let g:jedi#show_call_signatures = 0
 
-	""""""""""""""""""""""""""""""""""""""""""""""
-	"  Pep8
-	""""""""""""""""""""""""""""""""""""""""""""""
-	let g:pep8_map='<F8>'
+    """"""""""""""""""""""""""""""""""""""""""""""
+    "  Pep8
+    """"""""""""""""""""""""""""""""""""""""""""""
+    let g:pep8_map='<F8>'
 
-	""""""""""""""""""""""""""""""""""""""""
-	" YouCompleteMe
-	""""""""""""""""""""""""""""""""""""""""
-	" let g:ycm_add_preview_to_completeopt = 1
-	" let g:ycm_autoclose_preview_window_after_completion = 1
-	" let g:ycm_autoclose_preview_window_after_insertion = 1
-	" let g:ycm_complete_in_comments = 1
-	" let g:ycm_key_list_previous_completion = ['<S-TAB>', '<Up>']
-	" let g:ycm_filepath_completion_use_working_dir = 1
-	" let g:ycm_filetype_blacklist = {
-	" 	\ 'python': 1
-	" 	\}
+    """"""""""""""""""""""""""""""""""""""""
+    " YouCompleteMe
+    """"""""""""""""""""""""""""""""""""""""
+    " let g:ycm_add_preview_to_completeopt = 1
+    " let g:ycm_autoclose_preview_window_after_completion = 1
+    " let g:ycm_autoclose_preview_window_after_insertion = 1
+    " let g:ycm_complete_in_comments = 1
+    " let g:ycm_key_list_previous_completion = ['<S-TAB>', '<Up>']
+    " let g:ycm_filepath_completion_use_working_dir = 1
+    " let g:ycm_filetype_blacklist = {
+    " 	\ 'python': 1
+    " 	\}
 
-	""""""""""""""""""""""""""""""""""""""""
-	" ultisnips
-	""""""""""""""""""""""""""""""""""""""""
-	let g:UltiSnipsExpandTrigger = "<c-p>"
-	" let g:UltiSnipsJumpForwardTrigger = "<c-j>"
-	" let g:UltiSnipsJumpBackwardTrigger = "<c-k>"
-	let g:UltiSnipsEditSplit = "vertical"
-	let g:UltiSnipsSaveVisualTrigger = "<c-w>"
-	let g:UltiSnipsSnippetsDir = '~/.vim/plugged/vim-snippets/UltiSnips'
-	snoremap <silent> <s-tab> <Esc>:call UltiSnips#JumpBackwards()<cr>
-	inoremap <c-x><c-k> <c-x><c-k>
+    """"""""""""""""""""""""""""""""""""""""
+    " ultisnips
+    """"""""""""""""""""""""""""""""""""""""
+    let g:UltiSnipsExpandTrigger = "<c-p>"
+    " let g:UltiSnipsJumpForwardTrigger = "<c-j>"
+    " let g:UltiSnipsJumpBackwardTrigger = "<c-k>"
+    let g:UltiSnipsEditSplit = "vertical"
+    let g:UltiSnipsSaveVisualTrigger = "<c-w>"
+    let g:UltiSnipsSnippetsDir = '~/.vim/plugged/vim-snippets/UltiSnips'
+    snoremap <silent> <s-tab> <Esc>:call UltiSnips#JumpBackwards()<cr>
+    inoremap <c-x><c-k> <c-x><c-k>
 
-	""""""""""""""""""""""""""""""""""""""""
-	" vim-autocomplpop
-	""""""""""""""""""""""""""""""""""""""""
-	let g:AutoComplPopDontSelectFirst = 0
+    """"""""""""""""""""""""""""""""""""""""
+    " vim-autocomplpop
+    """"""""""""""""""""""""""""""""""""""""
+    let g:AutoComplPopDontSelectFirst = 0
 
-	""""""""""""""""""""""""""""""""""""""""
-	" Renumber
-	""""""""""""""""""""""""""""""""""""""""
-	vnoremap <C-A> :Renumber a<CR>
+    """"""""""""""""""""""""""""""""""""""""
+    " Renumber
+    """"""""""""""""""""""""""""""""""""""""
+    vnoremap <C-A> :Renumber a<CR>
 
-	""""""""""""""""""""""""""""""""""""""""
-	" Gitgutter
-	""""""""""""""""""""""""""""""""""""""""
-	hi SignColumn cterm=Bold ctermbg=None
-	hi GitGutterAdd cterm=Bold ctermfg=green  ctermbg=None
-	hi GitGutterChange cterm=Bold ctermfg=yellow ctermbg=None
-	hi GitGutterDelete cterm=Bold ctermfg=red ctermbg=None
-	hi GitGutterChangeDelete cterm=Bold ctermfg=yellow ctermbg=None
+    """"""""""""""""""""""""""""""""""""""""
+    " Gitgutter
+    """"""""""""""""""""""""""""""""""""""""
+    hi SignColumn cterm=Bold ctermbg=None
+    hi GitGutterAdd cterm=Bold ctermfg=green  ctermbg=None
+    hi GitGutterChange cterm=Bold ctermfg=yellow ctermbg=None
+    hi GitGutterDelete cterm=Bold ctermfg=red ctermbg=None
+    hi GitGutterChangeDelete cterm=Bold ctermfg=yellow ctermbg=None
 
-	""""""""""""""""""""""""""""""""""""""""
-	" vim-slime
-	""""""""""""""""""""""""""""""""""""""""
-	let g:slime_target = "tmux"
-	let g:slime_default_config = { "socket_name": "default", "target_pane": ":.1" }
-	let g:slime_python_ipython = 1
+    """"""""""""""""""""""""""""""""""""""""
+    " vim-slime
+    """"""""""""""""""""""""""""""""""""""""
+    let g:slime_target = "tmux"
+    let g:slime_default_config = { "socket_name": "default", "target_pane": ":.1" }
+    let g:slime_python_ipython = 1
 
-	""""""""""""""""""""""""""""""""""""""""
-	" SimpylFold
-	""""""""""""""""""""""""""""""""""""""""
-	let g:SimpylFold_docstring_preview = 1
+    """"""""""""""""""""""""""""""""""""""""
+    " SimpylFold
+    """"""""""""""""""""""""""""""""""""""""
+    let g:SimpylFold_docstring_preview = 1
 
-	""""""""""""""""""""""""""""""""""""""""
-	"  todo-or-not-todo
-	""""""""""""""""""""""""""""""""""""""""
-	let g:todo_checkbox_switch_style = 'menu'
+    """"""""""""""""""""""""""""""""""""""""
+    "  todo-or-not-todo
+    """"""""""""""""""""""""""""""""""""""""
+    let g:todo_checkbox_switch_style = 'menu'
 
-	""""""""""""""""""""""""""""""""""""""""
-	" Codi
-	""""""""""""""""""""""""""""""""""""""""
-	let g:codi#rightalign = 0
-	let g:codi#autoclose = 1
-	let g:codi#width = 35
+    """"""""""""""""""""""""""""""""""""""""
+    " Codi
+    """"""""""""""""""""""""""""""""""""""""
+    let g:codi#rightalign = 0
+    let g:codi#autoclose = 1
+    let g:codi#width = 35
 
-	""""""""""""""""""""""""""""""""""""""""
-	" IndentLine
-	""""""""""""""""""""""""""""""""""""""""
+    """"""""""""""""""""""""""""""""""""""""
+    " IndentLine
+    """"""""""""""""""""""""""""""""""""""""
     let g:indentLine_char = '|'
 
     """"""""""""""""""""""""""""""""""""""""
