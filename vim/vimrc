@@ -678,6 +678,7 @@ nmap <F9> :QFix<CR>
     Plug 'metakirby5/codi.vim'
     Plug 'Yggdroot/indentLine'
     Plug 'luochen1990/rainbow'
+    Plug 'dhruvasagar/vim-table-mode'
 
     " julia
     Plug 'JuliaEditorSupport/julia-vim'
