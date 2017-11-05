@@ -41,10 +41,10 @@ imap <F1> <nop>
 
 " Remove indenting on empty lines
 fun! StripTrailingWhitespaces()
-	let l = line(".")
-	let c = col(".")
-	%s/\s\+$//ge
-	call cursor(l, c)
+    let l = line(".")
+    let c = col(".")
+    %s/\s\+$//ge
+    call cursor(l, c)
 endfun
 nnoremap <F2> :call StripTrailingWhitespaces()<CR>
 
@@ -92,7 +92,7 @@ endfunction
 " indent shortcut
 nmap <Tab> >>
 nmap <S-Tab> <<
-xnoremap <Tab>	>gv
+xnoremap <Tab>   >gv
 xnoremap <S-Tab> <gv
 
 " Word jumping
@@ -107,10 +107,10 @@ noremap ' `
 noremap ` '
 
 " split window jumping
-nnoremap <silent> <M-UP>		:wincmd k<CR>
-nnoremap <silent> <M-Down>	:wincmd j<CR>
-nnoremap <silent> <M-Left>	:wincmd h<CR>
-nnoremap <silent> <M-Right>	:wincmd l<CR>
+nnoremap <silent> <M-UP>    :wincmd k<CR>
+nnoremap <silent> <M-Down>  :wincmd j<CR>
+nnoremap <silent> <M-Left>  :wincmd h<CR>
+nnoremap <silent> <M-Right> :wincmd l<CR>
 nnoremap <silent> <F6> :set paste!<CR>:set paste?<CR>
 nnoremap <F7> :Codi!!<CR>
 imap <F6> <ESC><F6>
@@ -167,18 +167,18 @@ colorscheme iblis
 
 " Highlight current line in insert mode
 function! s:EnterInsert()
-	set cursorline
+    set cursorline
 endfunction
 
 function! s:LeaveInsert()
-	set nocursorline
+    set nocursorline
 endfunction
 
 autocmd InsertLeave * call s:LeaveInsert()
 autocmd InsertEnter * call s:EnterInsert()
 
 if has("gui_running")
-	set guifont=Droid\ Sans\ Mono\ 14
+    set guifont=Droid\ Sans\ Mono\ 14
 endif
 
 " Set cursorline
@@ -353,13 +353,13 @@ set spelllang=en
 command! -bang -nargs=? QFix call QFixToggle(<bang>0)
 
 function! QFixToggle(forced)
-	if exists("g:qfix_win") && a:forced == 0
-		cclose
-		unlet g:qfix_win
-	else
-		copen 6
-		let g:qfix_win = bufnr("$")
-	endif
+    if exists("g:qfix_win") && a:forced == 0
+        cclose
+        unlet g:qfix_win
+    else
+        copen 6
+        let g:qfix_win = bufnr("$")
+    endif
 endfunction
 
 nnoremap <leader>q :QFix<CR>
@@ -373,12 +373,12 @@ nmap <F9> :QFix<CR>
     " Taglist
     """"""""""""""""""""""""""""""""""""""""
     " Usage
-    " t		Open target in tab
-    " o		Open target in window
-    " u		Update taglist
-    " q		Close taglist
-    " <tab>	Jump to next file
-    " <backspace>	Jump to previous file
+    " t     Open target in tab
+    " o     Open target in window
+    " u     Update taglist
+    " q     Close taglist
+    " <tab> Jump to next file
+    " <backspace>   Jump to previous file
     "
     " let Tlist_Ctags_Cmd = '/usr/local/bin/exctags'
     let Tlist_Auto_Update = 1
@@ -451,7 +451,7 @@ nmap <F9> :QFix<CR>
     """"""""""""""""""""""""""""""""""""""""
     " autocmd BufNewFile,BufRead *.c,*.cpp set tags=~/.vim/tags
     " map <F12> :!exctags -R --c-kinds=+p --fields=+S .<CR>
-    " let g:rs = "'<"	" Default `< >` caused problem in php indent
+    " let g:rs = "'<" " Default `< >` caused problem in php indent
     " let g:re = ">'"
     " let g:completekey = "<c-p>"
 
@@ -507,8 +507,8 @@ nmap <F9> :QFix<CR>
     " let g:ycm_key_list_previous_completion = ['<S-TAB>', '<Up>']
     " let g:ycm_filepath_completion_use_working_dir = 1
     " let g:ycm_filetype_blacklist = {
-    " 	\ 'python': 1
-    " 	\}
+    "     \ 'python': 1
+    "     \ }
 
     """"""""""""""""""""""""""""""""""""""""
     " ultisnips
