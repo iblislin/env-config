@@ -130,6 +130,9 @@ nnoremap <silent> gr :tabp<CR>
 " open help in new tab
 cabbrev help tab help
 
+" syntax concealing
+set conceallevel=0
+
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Encoding
 """"""""""""""""""""""""""""""""""""""""""""""""""

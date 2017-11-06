@@ -9,6 +9,8 @@ setlocal iskeyword+=\
 setlocal ts=2
 setlocal shiftwidth=2
 
+let g:tex_conceal=""
+
 " purge trailing space
 autocmd BufWritePre *.latex :call StripTrailingWhitespaces()
 autocmd BufWritePre *.tex :call StripTrailingWhitespaces()
