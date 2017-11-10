@@ -21,6 +21,8 @@
     looog = log --pretty=fuller
     unstage = reset HEAD --
     p = push
+    ri = rebase -i --autosquash
+    fix = commit -v --fix
 [push]
     default = matching
 [merge]
