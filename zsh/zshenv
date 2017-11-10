@@ -101,7 +101,7 @@ function set_prompt {
 	}
 
 	( git symbolic-ref HEAD >& /dev/null ) && {
-		git_prompt=" %B[%b ${fg_bold[green]}$(git symbolic-ref HEAD | cut -d'/' -f3)${reset_color}%B]%b"
+		git_prompt=" %B[%b ${fg_bold[green]}$(git symbolic-ref HEAD | cut -d'/' -f3-)${reset_color}%B]%b"
 	}
 
 	if [ $VIRTUAL_ENV ]
