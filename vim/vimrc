@@ -430,7 +430,7 @@ nmap <F9> :QFix<CR>
     let NERDTreeIgnore += ['^cscope\.out$']
     let g:NERDTreeDirArrowExpandable="+"
     let g:NERDTreeDirArrowCollapsible="~"
-    nnoremap <F3> :NERDTreeTabsToggle<CR>
+    nnoremap <leader>n :NERDTreeTabsToggle<CR>
 
     """"""""""""""""""""""""""""""""""""""""
     " Nerd Commenter
