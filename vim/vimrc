@@ -688,7 +688,7 @@ nmap <F9> :QFix<CR>
     Plug 'luochen1990/rainbow'
     Plug 'dhruvasagar/vim-table-mode'
     Plug 'jpalardy/vim-slime'
-    Plug 'ryanoasis/vim-devicons'
+    " Plug 'ryanoasis/vim-devicons'
 
     " julia
     Plug 'JuliaEditorSupport/julia-vim'
