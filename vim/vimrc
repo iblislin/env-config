@@ -691,7 +691,8 @@ nmap <F9> :QFix<CR>
     " Plug 'ryanoasis/vim-devicons'
 
     " julia
-    Plug 'JuliaEditorSupport/julia-vim'
+    " Plug 'JuliaEditorSupport/julia-vim'
+    Plug 'iblis17/julia-vim'
 
     " python
     Plug 'davidhalter/jedi-vim', {'for': 'python'}
