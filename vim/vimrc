@@ -553,7 +553,7 @@ nmap <F9> :QFix<CR>
     let g:slime_python_ipython = 1
     " ctrl-enter
     nnoremap <script> <LF> :SlimeSend<CR>j
-    inoremap <script> <LF> :SlimeSend<CR>j
+    inoremap <script> <LF> <C-O>:SlimeSend<CR>
     " shift-enter
     " nnoremap <script> <SO> <Plug>SlimeParagraphSend
 
