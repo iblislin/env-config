@@ -22,6 +22,8 @@ URxvt*letterSpace:           -1
 
 ! key
 Urxvt*modifier:              alt
+! map Ctrl-Return to <LF>
+URxvt.keysym.C-Return:       \012
 
 ! Tango Color Theme
 urxvt*color0:                rgba:1b1b/0808/0202/CCCC
