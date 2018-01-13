@@ -6,12 +6,13 @@ sudo pacman -Syu
 
 $PACMAN xorg \
         xorg-drivers \
-        xorg-utils
+        xorg-utils \
+        xorg-xinit
 
 $PACMAN rxvt-unicode
 
 # wm
-$PACMAN awesome
+$PACMAN awesome xcompmgr
 
 # sound
 $PACMAN alsa-oss alsa-plugins alsa-tools alsa-utils \
