@@ -188,7 +188,7 @@ then
 
 	if (isExist yaourt)
 	then
-		alias alias yu='yaourt -Sy --noconfirm --needed'
+		alias yu='yaourt -S --noconfirm --needed'
 	fi
 fi
 # ==================================
