@@ -623,10 +623,9 @@ nmap <F9> :QFix<CR>
     \   '],
     \ }
 
-    " LanguageClient currently is nvim only
-    if has('nvim')
-        nnoremap <silent> gd :call LanguageClient_textDocument_definition()<CR>
-    endif
+    nnoremap <silent> K :call LanguageClient_textDocument_hover()<CR>
+    nnoremap <silent> gd :call LanguageClient_textDocument_definition()<CR>
+    nnoremap <silent> <leader>r :call LanguageClient_textDocument_rename()<CR>
 
     """"""""""""""""""""""""""""""""""""""""
     "  vim-table-mode
@@ -661,8 +660,11 @@ nmap <F9> :QFix<CR>
     Plug 'SirVer/ultisnips' | Plug 'iblis17/vim-snippets'
     if has('nvim')
         Plug 'roxma/nvim-completion-manager'
-        Plug 'autozimu/LanguageClient-neovim', {'do': ':UpdateRemotePlugins'}
     endif
+    Plug 'autozimu/LanguageClient-neovim', {
+        \ 'branch': 'next',
+        \ 'do': 'bash install.sh',
+        \ 'for': 'julia'}
     "" git
     Plug 'tpope/vim-fugitive'
     Plug 'airblade/vim-gitgutter'
