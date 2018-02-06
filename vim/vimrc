@@ -633,6 +633,12 @@ nmap <F9> :QFix<CR>
     nnoremap <silent> <LEADER>tm :TableModeToggle<CR>
 
     """"""""""""""""""""""""""""""""""""""""
+    "  ime.vim
+    """"""""""""""""""""""""""""""""""""""""
+    let g:ime_plugins = ['pinyin']
+    let g:ime_toggle_english = '<leader>p'
+
+    """"""""""""""""""""""""""""""""""""""""
     "  vim-plug
     """"""""""""""""""""""""""""""""""""""""
     call plug#begin('~/.vim/plugged')
@@ -726,6 +732,10 @@ nmap <F9> :QFix<CR>
 
     " hylang
     Plug 'iblis17/vim-hy', {'for': ['hy']}
+
+    " IME
+    Plug 'pi314/ime.vim'
+    Plug 'pi314/ime-phonetic.vim'
 
     call plug#end()
 
