@@ -44,3 +44,7 @@ $PACMAN mpd mpc ncmpc
 
 # wine
 # $PACMAN wine winetricks wine-mono
+# $PACMAN multilib/lib32-mpg123
+
+# for HS
+# winetricks vcrun2015
