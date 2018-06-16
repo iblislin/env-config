@@ -48,3 +48,5 @@ $PACMAN mpd mpc ncmpc
 
 # for HS
 # winetricks vcrun2015
+# lib32-alsa-lib lib32-openal lib32-gnutls lib32-mpg123 lib32-libldap
+# samba multilib/lib32-krb5
