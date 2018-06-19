@@ -29,6 +29,7 @@ $PACMAN ttf-droid \
         adobe-source-han-sans-jp-fonts \
         powerline-fonts \
         wqy-bitmapfont wqy-microhei wqy-microhei-lite wqy-zenhei
+# yaourt -S aur/nerd-fonts-fira-code
 
 # browser
 $PACMAN firefox thunderbird evince chromium
