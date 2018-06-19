@@ -88,7 +88,8 @@ function set_prompt {
     if [ `uname -s` = 'Linux' ]
     then
         sys_icon=""
-    else if [ `uname -s` = 'Darwin' ]
+    elif [ `uname -s` = 'Darwin' ]
+    then
         sys_icon=""
     fi
 
@@ -119,7 +120,7 @@ function set_prompt {
 
 	prompt="%B$prompt_corner_up%b%B[${fg_bold[yellow]}%~${reset_color}%B]%b
 %B|%b${venv_prompt}${git_prompt} %B[-- $vi_mode --]%b
-%B$prompt_corner_down%b%B[%F{$user_color}%n%f@%m %b$sys_icon%B%(?.. %F{red}Oops%f)]%# %b"
+%B$prompt_corner_down%b%B[%F{$user_color}%n%f@%m%b $sys_icon%B%(?.. %F{red}Oops%f)]%# %b"
 }
 
 function zle-line-init zle-keymap-select {
