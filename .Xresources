@@ -17,6 +17,10 @@ URxvt*scrollTtyKeypress:     true
 URxvt*font:                  xft:Droid Sans Mono for Powerline:size=16:style=Regular,xft:Noto Sans CJK TC:size=16:style=Regular
 ! URxvt*font:                  xft:Droid Sans Mono:size=20:style=Regular,xft:Noto Sans CJK TC:size=18:style=Regular,xft:PowerlineSymbols:style=Medium
 ! URxvt*font:                  xft:Ubuntu Mono derivative Powerline:size=14:style=Regular,xft:Noto Sans CJK TC:size=14:style=Regular,xft:Noto Color Emoji:size=14:style:Regular
+
+! This works for `echo '\uf30e'`
+! xft:FuraCode Nerd Font:pixelsize=22:antialias=true:hinting=true:style=Regular 
+
 URxvt*internalBorder:        1
 URxvt*letterSpace:           -1
 
