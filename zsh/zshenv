@@ -83,6 +83,14 @@ function set_prompt {
 	local user_color
 	local git_prompt
 	local venv_prompt
+    local sys_icon=""
+
+    if [ `uname -s` = 'Linux' ]
+    then
+        sys_icon=""
+    else if [ `uname -s` = 'Darwin' ]
+        sys_icon=""
+    fi
 
 	if [[ $USER == 'root' ]]
 	then
@@ -111,7 +119,7 @@ function set_prompt {
 
 	prompt="%B$prompt_corner_up%b%B[${fg_bold[yellow]}%~${reset_color}%B]%b
 %B|%b${venv_prompt}${git_prompt} %B[-- $vi_mode --]%b
-%B$prompt_corner_down%b%B[%F{$user_color}%n%f@%m%(?.. %F{red}Oops%f)]%# %b"
+%B$prompt_corner_down%b%B[%F{$user_color}%n%f@%m %b$sys_icon%B%(?.. %F{red}Oops%f)]%# %b"
 }
 
 function zle-line-init zle-keymap-select {
