@@ -17,5 +17,8 @@
   'ctrl-a': 'vim-mode-plus:move-to-first-character-of-line'
   'ctrl-e': 'custom:break-autocomplete-pluse-or-end-of-file'
 
+'atom-text-editor.vim-mode-plus:not(.insert-mode)':
+  'g r': 'vim-mode-plus:previous-tab'
+
 'atom-workspace atom-text-editor':
   'ctrl-a': 'unset!'

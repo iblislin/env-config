@@ -18,6 +18,7 @@
     autoHideMenuBar: true
     disabledPackages: [
       "linter-julia"
+      "welcome"
     ]
     projectHome: "/home/iblis/git"
     telemetryConsent: "no"
@@ -39,7 +40,7 @@
     enableToolBar: true
     launchOnStartup: true
   "linter-ui-default":
-    showPanel: true
+    panelHeight: 323
   minimap:
     plugins:
       cursorline: true
@@ -58,6 +59,8 @@
   "vim-mode-plus":
     ignoreCaseForSearch: true
     ignoreCaseForSearchCurrentWord: true
+  welcome:
+    showOnStartup: false
 ".coffee.source":
   editor:
     tabLength: 2
