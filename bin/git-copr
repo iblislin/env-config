@@ -1,0 +1,13 @@
+#!/bin/sh
+
+if [ -z "$1" ]
+then
+    echo "which pr?"
+    exit 1
+fi
+
+N=$1
+BRANCH="pr-$N"
+
+git fetch origin pull/${N}/head:${BRANCH}
+git checkout ${BRANCH}
