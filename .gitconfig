@@ -27,5 +27,10 @@
     default = matching
 [merge]
     tool = vimdiff
-; [https]
-; 	proxy = socks5://140.113.54.46:10000
+[commit]
+	gpgsign = false
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
