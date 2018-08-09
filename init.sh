@@ -13,7 +13,7 @@ isLinix()
 	fi
 }
 
-file=".cshrc .screenrc .gitconfig .pythonrc vim zsh/zshenv zsh/zshrc .tmux.conf .tmux-inner.conf .npmrc .erlang .hgrc .juliarc.jl .atom"
+file=".cshrc .screenrc .gitconfig .pythonrc vim zsh/zshenv zsh/zshrc .tmux.conf .tmux-inner.conf .npmrc .erlang .hgrc .juliarc.jl .atom .latexmkrc"
 rename_vim='.vim'
 rename_zshenv='.zshenv'
 rename_zshrc='.zshrc'
