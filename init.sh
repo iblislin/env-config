@@ -13,7 +13,7 @@ isLinix()
 	fi
 }
 
-file=".cshrc .screenrc .gitconfig .pythonrc vim zsh/zshenv zsh/zshrc .tmux.conf .tmux-inner.conf .npmrc .erlang .hgrc .juliarc.jl .atom .latexmkrc"
+file=".cshrc .screenrc .gitconfig .pythonrc vim zsh/zshenv zsh/zshrc .tmux.conf .tmux-inner.conf .npmrc .erlang .hgrc .atom .latexmkrc"
 rename_vim='.vim'
 rename_zshenv='.zshenv'
 rename_zshrc='.zshrc'
@@ -71,6 +71,12 @@ for f in `find $BASE/bin -type f`
 do
 	$LN $f $HOME/bin/
 done
+
+
+# julia
+JLDIR=$HOME/julia/config
+mkdir -p $JLDIR
+LN $BASE/startup.jl $JLDIR/
 
 # folders
 for f in git node go code
