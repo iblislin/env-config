@@ -74,9 +74,9 @@ done
 
 
 # julia
-JLDIR=$HOME/julia/config
+JLDIR=$HOME/.julia/config
 mkdir -p $JLDIR
-LN $BASE/startup.jl $JLDIR/
+$LN $BASE/startup.jl $JLDIR/
 
 # folders
 for f in git node go code
