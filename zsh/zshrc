@@ -161,6 +161,10 @@ if ( isExist gpg )
 then
     export GPG_TTY=$(tty)
 fi
+if ( isExist drive )
+then
+    alias d="drive"
+fi
 # ==================================
 # Alias > Global Aliases
 # ==================================
