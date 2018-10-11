@@ -1,1 +1,4 @@
-using OhMyREPL
+try
+  using OhMyREPL
+catch
+end
