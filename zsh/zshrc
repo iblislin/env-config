@@ -321,7 +321,7 @@ then
 			return 0
 		fi
 
-		for _path in "$HOME/git" "$HOME/code" "$HOME/www" "$HOME/ws" "$HOME/ports"
+		for _path in "$HOME/git" "$HOME/code" "$HOME/.julia/dev" "$HOME/www" "$HOME/ws" "$HOME/ports"
 		do
 			if [ -d ${_path}/${session_name} ]
 			then
