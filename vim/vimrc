@@ -733,6 +733,9 @@ nmap <F9> :QFix<CR>
     " hylang
     Plug 'iblis17/vim-hy', {'for': ['hy']}
 
+    " toml
+    Plug 'cespare/vim-toml'
+
     " IME
     Plug 'pi314/ime.vim'
     Plug 'pi314/ime-phonetic.vim'
