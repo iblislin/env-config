@@ -1,6 +1,6 @@
 [core]
     editor = vim
-    pager = less
+    pager = diff-so-fancy | less --tabs=4 -RFX
 [color]
     ui = auto
 [user]
