@@ -9,7 +9,8 @@ $PACMAN git wget curl net-tools iotop rsync nload unzip tmux htop \
         cmake lm_sensors \
         smartmontools \
         syslog-ng \
-        dosfstools
+        dosfstools \
+        community/pacutils
 
 # python
 $PACMAN python python-pip
