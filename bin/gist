@@ -1,0 +1,52 @@
+#!/usr/bin/env python
+
+from os.path import split as splitpath
+from argparse import ArgumentParser
+from getpass import getpass
+
+import requests
+
+from requests.auth import HTTPBasicAuth
+
+
+def parse_args():
+    parser = ArgumentParser(description='Create gist via command line')
+    parser.add_argument('file', type=str)
+    return parser.parse_args()
+
+
+def readfile(path):
+    fname = splitpath(path)[-1]
+
+    with open(path, 'r') as f:
+        content = f.read()
+
+    return {
+        fname: {
+            'content': content,
+        }
+    }
+
+
+def main():
+    url = 'https://api.github.com/gists'
+    args = parse_args()
+
+    user = 'iblis17'
+    pw = getpass()
+    auth = HTTPBasicAuth(user, pw)
+
+    payload = {
+        'public': False,
+        'files': {
+        }
+    }
+    payload['files'].update(readfile(args.file))
+
+    res = requests.post(url, json=payload, auth=auth)
+    print(res.status_code)
+    print(res.json()['html_url'])
+
+
+if __name__ == '__main__':
+    main()
