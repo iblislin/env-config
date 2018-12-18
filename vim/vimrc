@@ -613,7 +613,7 @@ nmap <F9> :QFix<CR>
     """"""""""""""""""""""""""""""""""""""""
     "  LanguageClient-neovim
     """"""""""""""""""""""""""""""""""""""""
-    let g:LanguageClient_autoStart = 1
+    let g:LanguageClient_autoStart = 0
     let g:LanguageClient_serverCommands = {
     \   'julia': ['julia', '--startup-file=no', '--history-file=no', '-e', '
     \       using LanguageServer;
@@ -753,6 +753,7 @@ autocmd BufReadPost * silent! normal! g`"zv
 autocmd BufRead,BufNewFile *.todo set filetype=rst.todo
 autocmd BufRead,BufNewFile *.tex setlocal filetype=tex
 autocmd BufRead,BufNewFile *.tac setlocal filetype=python
+autocmd BufRead,BufNewFile rebar.config setlocal filetype=erlang
 autocmd BufRead,BufNewFile *.txt setlocal spell
 autocmd FileType markdown  setlocal spell
 autocmd FileType gitcommit setlocal spell
