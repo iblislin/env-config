@@ -16,7 +16,7 @@ $PACMAN awesome xcompmgr
 
 # sound
 $PACMAN alsa-oss alsa-plugins alsa-tools alsa-utils \
-        pulseaudio-alsa pulseaudio
+        pulseaudio-alsa pulseaudio pavucontrol
 
 # utils
 $PACMAN xdg-utils
