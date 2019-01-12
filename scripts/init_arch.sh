@@ -10,7 +10,11 @@ $PACMAN git wget curl net-tools iotop rsync nload unzip tmux htop \
         smartmontools \
         syslog-ng \
         dosfstools \
-        community/pacutils
+        community/pacutils \
+        diff-so-fancy
+
+# wireless tools
+$PACMAN iw wireless_tools wpa_supplicant
 
 # python
 $PACMAN python python-pip
