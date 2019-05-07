@@ -5,13 +5,13 @@ sudo pacman -Syu
 
 $PACMAN git wget curl net-tools iotop rsync nload unzip tmux htop \
         openssh mosh ntp \
-        feh imagemagick \
         cmake lm_sensors \
         smartmontools \
         syslog-ng \
         dosfstools \
         community/pacutils \
-        diff-so-fancy
+        diff-so-fancy \
+        vim zsh
 
 # wireless tools
 $PACMAN iw wireless_tools wpa_supplicant
