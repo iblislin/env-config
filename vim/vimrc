@@ -702,6 +702,7 @@ nmap <F9> :QFix<CR>
     Plug 'luochen1990/rainbow'
     Plug 'dhruvasagar/vim-table-mode'
     Plug 'jpalardy/vim-slime'
+    Plug 'editorconfig/editorconfig-vim'
     " Plug 'ryanoasis/vim-devicons'
 
     " julia
