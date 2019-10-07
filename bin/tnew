@@ -28,7 +28,7 @@ def uid():
 
 
 def get_socket():
-    if socket.gethostname() in ('kaladbolg', 'LooBahPng', 'abeing'):
+    if socket.gethostname() in ('kaladbolg', 'LooBahPng', 'GaeBuidhe'):
         i = 1
         f = '/tmp/tmux-{}-inner-{}'.format(uid(), i)
         while os.path.exists(f):
