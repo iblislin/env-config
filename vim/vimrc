@@ -649,7 +649,7 @@ nmap <F9> :QFix<CR>
     Plug 'hail2u/vim-css3-syntax', {'for': 'css'}
 
     " js
-    Plug 'pangloss/vim-javascript', {'for': 'javascript'}
+    Plug 'othree/yajs.vim', {'for': 'javascript'}
     Plug 'othree/javascript-libraries-syntax.vim', {'for': 'javascript'}
     Plug 'myhere/vim-nodejs-complete', {'for': 'javascript'}
     Plug 'statianzo/vim-jade'
@@ -702,6 +702,7 @@ nmap <F9> :QFix<CR>
     Plug 'luochen1990/rainbow'
     Plug 'dhruvasagar/vim-table-mode'
     Plug 'jpalardy/vim-slime'
+    Plug 'editorconfig/editorconfig-vim'
     " Plug 'ryanoasis/vim-devicons'
 
     " julia

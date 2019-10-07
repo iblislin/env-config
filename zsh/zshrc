@@ -169,6 +169,10 @@ if ( isExist rebar3 )
 then
     alias r3="rebar3"
 fi
+if ( isExist swapinfo )
+then
+    alias swapinfo='swapinfo -h'
+fi
 # ==================================
 # Alias > Global Aliases
 # ==================================
