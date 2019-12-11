@@ -538,6 +538,7 @@ nmap <F9> :QFix<CR>
     """"""""""""""""""""""""""""""""""""""""
     " Gitgutter
     """"""""""""""""""""""""""""""""""""""""
+    set updatetime=200
     hi SignColumn cterm=Bold ctermbg=None
     hi GitGutterAdd cterm=Bold ctermfg=green  ctermbg=None
     hi GitGutterChange cterm=Bold ctermfg=yellow ctermbg=None
