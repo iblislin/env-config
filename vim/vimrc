@@ -563,6 +563,7 @@ nnoremap <C-W>t :term<CR>
     " let g:slime_python_ipython = 1
 
     let g:slime_target = "vimterminal"
+    let g:slime_vimterminal_config = {"term_finish": "close"}
 
     " ctrl-enter
     xmap <LF> <Plug>SlimeRegionSend
