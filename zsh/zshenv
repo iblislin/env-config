@@ -81,8 +81,8 @@ function set_prompt {
 	local prompt_corner_down="└─"
 	local vi_mode='INSERT'
 	local user_color
-	local git_prompt
-	local venv_prompt
+	local get_git_prompt
+	local get_venv_prompt
     local sys_icon=""
 
     if [ `uname -s` = 'Linux' ]
@@ -109,20 +109,22 @@ function set_prompt {
 		fi
 	}
 
-	function _get_git_prompt() {
+	function get_git_prompt() {
 		( git symbolic-ref HEAD >& /dev/null ) && {
 			echo " %B[%b ${fg_bold[green]}$(git symbolic-ref HEAD | cut -d'/' -f3-)${reset_color}%B]%b"
-			return
 		}
 	}
 
-	if [ $VIRTUAL_ENV ]
-	then
-		venv_prompt=" %B[%bVenv(${fg_bold[magenta]}$(basename $VIRTUAL_ENV)${reset_color})%B]%b"
-	fi
+	function get_venv_prompt() {
+		if [ $VIRTUAL_ENV ]
+		then
+			echo " %B[%bVenv(${fg_bold[magenta]}$(basename $VIRTUAL_ENV)${reset_color})%B]%b"
+		fi
+	}
+
 
 	prompt="%B$prompt_corner_up%b%B[${fg_bold[yellow]}%~${reset_color}%B]%b
-%B|%b${venv_prompt}"'$(_get_git_prompt)'" %B[-- $vi_mode --]%b
+%B|%b"'$(get_venv_prompt)''$(get_git_prompt)'" %B[-- $vi_mode --]%b
 %B$prompt_corner_down%b%B[%F{$user_color}%n%f@%m%(?.. %F{red}Oops%f)]%# %b"
 }
 
