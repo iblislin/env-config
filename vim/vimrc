@@ -565,6 +565,7 @@ tmap <C-W>c <C-W><C-C>
 
     let g:slime_target = "vimterminal"
     let g:slime_vimterminal_config = {"term_finish": "close"}
+    set splitbelow
 
     " ctrl-enter
     xmap <LF> <Plug>SlimeRegionSend
