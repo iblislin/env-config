@@ -1,0 +1,18 @@
+#!/bin/sh
+
+VENV_NAME=$1
+
+echo $VENV_NAME
+
+if [ -z "$VENV_NAME" ]
+then
+    echo "Usage: $0 VENV_NAME"
+fi
+
+ACT_FILE="$HOME/venv/$VENV_NAME/bin/activate"
+if [ ! -e "$ACT_FILE" ]
+then
+    echo "venv \"$VENV_NAME\" not found"
+fi
+
+source $ACT_FILE
