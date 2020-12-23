@@ -1,6 +1,8 @@
 setlocal ts=2 sw=2 commentstring=#%s
 
-nnoremap <leader>j :setlocal ts=2 sw=2 commentstring=#%s<cr>
+nnoremap <leader>j :setlocal ts=2 sw=2 commentstring=#%s<CR>
+nnoremap <leader>f :JuliaFormatterFormat<CR>
+vnoremap <leader>f :JuliaFormatterFormat<CR>
 
 autocmd BufWritePre *.jl :call StripTrailingWhitespaces()
 
