@@ -147,17 +147,20 @@ else
     hi String           cterm=NONE      ctermfg=gray     ctermbg=235
     hi Error            cterm=NONE      ctermfg=white     ctermbg=red
 " 131 > blue
-    hi Identifier       cterm=NONE      ctermfg=11			ctermbg=NONE
-    hi Ignore           cterm=NONE
-    hi Number           cterm=NONE      ctermfg=lightcyan     ctermbg=NONE
-    hi PreProc          cterm=NONE      ctermfg=3			ctermbg=NONE
-    hi Special          cterm=NONE      ctermfg=lightred     ctermbg=NONE
-    hi SpecialChar      cterm=NONE      ctermfg=green     ctermbg=235
+    hi Identifier       cterm=NONE      ctermfg=11	      ctermbg=NONE
+    hi Function         cterm=NONE      ctermfg=81        ctermbg=NONE
+    hi Keyword          cterm=NONE      ctermfg=cyan      ctermbg=NONE
     hi Statement        cterm=NONE      ctermfg=cyan      ctermbg=NONE
-    hi Todo             cterm=BOLD      ctermfg=17      ctermbg=143
-    hi Type             cterm=NONE      ctermfg=13			ctermbg=NONE
-    hi Underlined       cterm=BOLD      ctermfg=227     ctermbg=NONE
-    hi TaglistTagName   cterm=BOLD      ctermfg=63      ctermbg=NONE
+    hi Ignore           cterm=NONE
+    hi Number           cterm=NONE      ctermfg=lightcyan ctermbg=NONE
+    hi PreProc          cterm=NONE      ctermfg=3         ctermbg=NONE
+    hi Special          cterm=NONE      ctermfg=lightred  ctermbg=NONE
+    hi SpecialChar      cterm=NONE      ctermfg=green     ctermbg=235
+    hi Todo             cterm=BOLD      ctermfg=17        ctermbg=143
+    hi Type             cterm=NONE      ctermfg=13        ctermbg=NONE
+    hi Structure        cterm=NONE      ctermfg=red       ctermbg=NONE
+    hi Underlined       cterm=BOLD      ctermfg=227       ctermbg=NONE
+    hi TaglistTagName   cterm=BOLD      ctermfg=63        ctermbg=NONE
 
     hi Pmenu        cterm=NONE      ctermfg=253     ctermbg=242
     hi PmenuSel     cterm=BOLD      ctermfg=253     ctermbg=4
