@@ -735,6 +735,7 @@ tmap <C-W>c <C-W><C-C>
 
     " c/cpp
     " Plug 'myint/clang-complete', {'for': ['c', 'opencl', 'cpp']}
+    Plug 'octol/vim-cpp-enhanced-highlight'
     "" opencl
     Plug 'petRUShka/vim-opencl', {'for': ['c', 'opencl', 'cpp']}
 
