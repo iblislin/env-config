@@ -10,4 +10,5 @@ autocmd BufWritePre *.jl :call StripTrailingWhitespaces()
 let g:slime_vimterminal_cmd = "julia"
 let g:slime_vimterminal_config = {"vertical": 1, "term_finish": "close"}
 
-hi Statement        cterm=NONE      ctermfg=9        ctermbg=NONE
+hi Statement    cterm=NONE      ctermfg=red     ctermbg=NONE
+hi Keyword      cterm=NONE      ctermfg=red     ctermbg=NONE
