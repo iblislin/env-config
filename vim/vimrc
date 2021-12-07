@@ -525,7 +525,7 @@ tmap <C-W>c <C-W><C-C>
     " ultisnips
     """"""""""""""""""""""""""""""""""""""""
     let g:UltiSnipsExpandTrigger = "<c-p>"
-    " let g:UltiSnipsJumpForwardTrigger = "<c-j>"
+    " let g:UltiSnipsJumpForwardTrigger = "<c-i>"
     " let g:UltiSnipsJumpBackwardTrigger = "<c-k>"
     let g:UltiSnipsEditSplit = "vertical"
     let g:UltiSnipsSaveVisualTrigger = "<c-w>"
@@ -559,14 +559,14 @@ tmap <C-W>c <C-W><C-C>
 
     " Case of tmux
     "
-    " let g:slime_target = "tmux"
-    " let g:slime_paste_file = "$HOME/.slime_paste"
+    let g:slime_target = "tmux"
+    let g:slime_paste_file = "$HOME/.slime_paste"
     " let g:slime_default_config = {"socket_name": split($TMUX, ",")[0], "target_pane": ":.1"}
     " let g:slime_python_ipython = 1
 
-    let g:slime_target = "vimterminal"
-    let g:slime_vimterminal_config = {"term_finish": "close"}
-    set splitbelow
+    " let g:slime_target = "vimterminal"
+    " let g:slime_vimterminal_config = {"term_finish": "close"}
+    " set splitbelow
 
     " ctrl-enter
     xmap <LF> <Plug>SlimeRegionSend
@@ -669,6 +669,11 @@ tmap <C-W>c <C-W><C-C>
     let g:ime_toggle_english = '<leader>p'
 
     """"""""""""""""""""""""""""""""""""""""
+    "  JuliaFormatter
+    """"""""""""""""""""""""""""""""""""""""
+    let g:JuliaFormatter_options = {'indent': 2}
+
+    """"""""""""""""""""""""""""""""""""""""
     "  vim-plug
     """"""""""""""""""""""""""""""""""""""""
     call plug#begin('~/.vim/plugged')
@@ -738,6 +743,7 @@ tmap <C-W>c <C-W><C-C>
     " julia
     " Plug 'JuliaEditorSupport/julia-vim'
     Plug 'iblis17/julia-vim'
+    Plug 'kdheepak/JuliaFormatter.vim'
 
     " python
     Plug 'davidhalter/jedi-vim', {'for': 'python'}
@@ -769,8 +775,8 @@ tmap <C-W>c <C-W><C-C>
     Plug 'cespare/vim-toml'
 
     " IME
-    Plug 'pi314/ime.vim'
-    Plug 'pi314/ime-phonetic.vim'
+    "Plug 'pi314/ime.vim'
+    "Plug 'pi314/ime-phonetic.vim'
 
     call plug#end()
 
