@@ -3,6 +3,8 @@
 """"""""""""""""""""""""""""""""""""""""""""""
 hi def LeadingTab term=reverse ctermfg=16 ctermbg=001 gui=reverse guifg=#dc322f
 hi def BadWhitespace term=reverse ctermfg=16 ctermbg=001 gui=reverse guifg=#dc322f
+hi Function           cterm=NONE ctermfg=11 ctermbg=NONE
+hi pythonFunctionCall cterm=NONE ctermfg=81 ctermbg=NONE
 
 match LeadingTab /^\t\+/
 match BadWhitespace /\s\+$/
