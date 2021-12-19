@@ -1,6 +1,6 @@
 [core]
     editor = vim
-    pager = less
+    pager = diff-so-fancy | less --tabs=4 -RFX
 [color]
     ui = auto
 [user]
@@ -21,9 +21,18 @@
     looog = log --pretty=fuller
     unstage = reset HEAD --
     p = push
+    ri = rebase -i --autosquash
+    fix = commit -v --fix
 [push]
     default = matching
 [merge]
     tool = vimdiff
-; [https]
-; 	proxy = socks5://140.113.54.46:10000
+[commit]
+	gpgsign = false
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+[pull]
+	rebase = false

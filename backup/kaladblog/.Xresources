@@ -14,20 +14,16 @@ URxvt*scrollWithBuffer:      true
 URxvt*scrollTtyKeypress:     true
 
 ! font
-URxvt*font:                  xft:Droid Sans Mono for Powerline:size=16:style=Regular,xft:Noto Sans CJK TC:size=16:style=Regular
-! URxvt*font:                  xft:Droid Sans Mono:size=20:style=Regular,xft:Noto Sans CJK TC:size=18:style=Regular,xft:PowerlineSymbols:style=Medium
-! URxvt*font:                  xft:Ubuntu Mono derivative Powerline:size=14:style=Regular,xft:Noto Sans CJK TC:size=14:style=Regular,xft:Noto Color Emoji:size=14:style:Regular
-
-! This works for `echo '\uf30e'`
-! xft:FuraCode Nerd Font:pixelsize=22:antialias=true:hinting=true:style=Regular 
-
+! URxvt*font:                  xft:Ubuntu Mono derivative Powerline:size=22:style=Regular,xft:Noto Sans CJK TC:size=22:style=Regular,xft:PowerlineSymbols:style=Medium
+URxvt*font:                  xft:FuraCode Nerd Font:pixelsize=22:antialias=true:hinting=true:style=Regular,xft:Noto Sans CJK TC:pixelsize=22:style=Regular
+! URxvt*font:                  xft:FuraCode Nerd Font:pixelsize=22:antialias=true:hinting=true:style=Regular,xft:Noto Sans CJK TC:pixelsize=22:style=Regular,xft:PowerlineSymbols:style=Medium
 URxvt*internalBorder:        1
 URxvt*letterSpace:           -1
 
 ! key
 Urxvt*modifier:              alt
-! map Ctrl-Return to <LF>
 URxvt.keysym.C-Return:       \012
+URxvt.keysym.S-Return:       \016
 
 ! Tango Color Theme
 urxvt*color0:                rgba:1b1b/0808/0202/CCCC

@@ -6,16 +6,17 @@ sudo pacman -Syu
 
 $PACMAN xorg \
         xorg-drivers \
-        xorg-utils
+        xorg-utils \
+        xorg-xinit
 
 $PACMAN rxvt-unicode
 
 # wm
-$PACMAN awesome
+$PACMAN awesome xcompmgr
 
 # sound
 $PACMAN alsa-oss alsa-plugins alsa-tools alsa-utils \
-        pulseaudio-alsa pulseaudio
+        pulseaudio-alsa pulseaudio pavucontrol
 
 # utils
 $PACMAN xdg-utils
@@ -28,6 +29,7 @@ $PACMAN ttf-droid \
         adobe-source-han-sans-jp-fonts \
         powerline-fonts \
         wqy-bitmapfont wqy-microhei wqy-microhei-lite wqy-zenhei
+# yaourt -S aur/nerd-fonts-fira-code aur/nerd-fonts-complete
 
 # browser
 $PACMAN firefox thunderbird evince chromium
@@ -43,3 +45,12 @@ $PACMAN mpd mpc ncmpc
 
 # wine
 # $PACMAN wine winetricks wine-mono
+# $PACMAN multilib/lib32-mpg123
+
+# for HS
+# winetricks vcrun2015
+# lib32-alsa-lib lib32-openal lib32-gnutls lib32-mpg123 lib32-libldap
+# samba multilib/lib32-krb5
+
+# image
+$PACMAN feh imagemagick

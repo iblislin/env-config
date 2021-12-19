@@ -1,0 +1,29 @@
+#!/bin/sh
+
+usage() {
+    echo "usage: $0 [remote] <pr-no.>"
+    exit 1
+}
+
+if [ -z "$1" ]
+then
+    echo "which pr?"
+    usage
+fi
+
+if [ $# -eq 1 ]
+then
+    N=$1
+    REMOTE=origin
+elif [ $# -eq 2 ]
+then
+    N=$2
+    REMOTE=$1
+else
+    usage
+fi
+
+BRANCH="pr-$N"
+
+git fetch ${REMOTE} pull/${N}/head:${BRANCH}
+git checkout ${BRANCH}

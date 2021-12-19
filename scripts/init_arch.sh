@@ -3,12 +3,18 @@ PACMAN='sudo pacman -S'
 # upgrade system first
 sudo pacman -Syu
 
-$PACMAN git wget curl net-tools iotop rsync nload unzip \
-        openssh mosh \
-        feh imagemagick \
+$PACMAN git wget curl net-tools iotop rsync nload unzip tmux htop \
+        openssh mosh ntp \
         cmake lm_sensors \
         smartmontools \
-        syslog-ng
+        syslog-ng \
+        dosfstools \
+        community/pacutils \
+        diff-so-fancy \
+        vim zsh
+
+# wireless tools
+$PACMAN iw wireless_tools wpa_supplicant
 
 # python
 $PACMAN python python-pip

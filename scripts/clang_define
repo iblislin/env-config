@@ -1,4 +1,8 @@
 #!/bin/sh
 
+# http://nadeausoftware.com/articles/2011/12/c_c_tip_how_list_compiler_predefined_macros
 
 clang -dM -E - < /dev/null
+
+echo "cpp"
+clang++ -dM -E -x c++ /dev/null
