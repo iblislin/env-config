@@ -37,6 +37,10 @@ function sufAlias()
 		alias -s $1=$2
 	fi
 } # }}}
+function aa()
+{
+    echo '¯\_(ツ)_/¯'
+}
 # ==================================
 # Alias
 # ==================================
@@ -115,6 +119,19 @@ then
 	alias tmux-inner="tmux -f ~/.tmux-inner.conf -S /tmp/tmux-`id -u`-inner"
 	alias ti=tmux-inner
 	alias r='tmux attach -d'
+
+    # ti with new socket, new server
+    function tin()
+    {
+        local i=1
+        local f="/tmp/tmux-`id -u`-inner-$i"
+        if [[ -e $f ]]
+        then
+            i=`expr $i + 1`
+            f="/tmp/tmux-`id -u`-inner-$i"
+        fi
+        exec tmux -f ~/.tmux-inner.conf -S $f
+    }
 fi
 if ( isExist cmdwatch && isExist figlet )
 then
@@ -135,6 +152,26 @@ fi
 if ( isExist mutt )
 then
     alias mutt='TERM=xterm-256color mutt'
+fi
+if ( isExist julia )
+then
+    alias j="julia"
+fi
+if ( isExist gpg )
+then
+    export GPG_TTY=$(tty)
+fi
+if ( isExist drive )
+then
+    alias d="drive"
+fi
+if ( isExist rebar3 )
+then
+    alias r3="rebar3"
+fi
+if ( isExist swapinfo )
+then
+    alias swapinfo='swapinfo -h'
 fi
 # ==================================
 # Alias > Global Aliases
@@ -167,7 +204,7 @@ then
 
 	if (isExist yaourt)
 	then
-		alias alias yu='yaourt -Sy --noconfirm --needed'
+		alias yu='yaourt -S --noconfirm --needed'
 	fi
 fi
 # ==================================
@@ -292,7 +329,7 @@ then
 			return 0
 		fi
 
-		for _path in "$HOME/git" "$HOME/code" "$HOME/www" "$HOME/ws" "$HOME/ports"
+		for _path in "$HOME/git" "$HOME/code" "$HOME/.julia/dev" "$HOME/www" "$HOME/ws" "$HOME/ports"
 		do
 			if [ -d ${_path}/${session_name} ]
 			then

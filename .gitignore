@@ -13,3 +13,5 @@ vim/autoload/plug.vim.old
 
 zsh/repo/*
 !zsh/repo/.PADDING
+
+*.py[co]

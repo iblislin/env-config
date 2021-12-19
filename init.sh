@@ -13,7 +13,7 @@ isLinix()
 	fi
 }
 
-file=".cshrc .screenrc .gitconfig .pythonrc vim zsh/zshenv zsh/zshrc .tmux.conf .tmux-inner.conf .npmrc .erlang .hgrc .juliarc.jl .atom"
+file=".cshrc .screenrc .gitconfig .pythonrc vim zsh/zshenv zsh/zshrc .tmux.conf .tmux-inner.conf .npmrc .erlang .hgrc .atom .latexmkrc .fonts.conf"
 rename_vim='.vim'
 rename_zshenv='.zshenv'
 rename_zshrc='.zshrc'
@@ -72,11 +72,26 @@ do
 	$LN $f $HOME/bin/
 done
 
+
+# julia
+JLDIR=$HOME/.julia/config
+mkdir -p $JLDIR
+$LN $BASE/startup.jl $JLDIR/
+
 # folders
 for f in git node go code
 do
     mkdir -p $HOME/${f}
 done
+
+# GPG
+if [ ! -d "$HOME/.gnupg" ]
+then
+    mkdir "$HOME/.gnupg"
+    chmod 700 "$HOME/.gnupg"
+fi
+$LN "$BASE/gnupg/gpg.conf" "$HOME/.gnupg/"
+$LN "$BASE/gnupg/gpg-agent.conf" "$HOME/.gnupg/"
 
 # X11 related
 XCONFIG="$HOME/.config"
@@ -88,3 +103,7 @@ $LN $BASE/.emacs.d $HOME
 
 
 $BASE/bin/fetch-pubkeys
+
+# install diff-so-fancy
+curl https://raw.githubusercontent.com/so-fancy/diff-so-fancy/master/third_party/build_fatpack/diff-so-fancy > ~/bin/diff-so-fancy
+chmod +x ~/bin/diff-so-fancy
