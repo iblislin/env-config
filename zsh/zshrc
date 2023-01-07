@@ -358,15 +358,8 @@ then
 
     # select venv dir: py36 first, py35, py3
     _VENV_BASE="$HOME/venv"
+    # please use symlink of py3 to switch python version
     _VENV_DIR=${_VENV_BASE}/py3
-    for i in 'py37' 'py36' 'py35'
-    do
-        if [ -d ${_VENV_BASE}/${i} ]
-        then
-            _VENV_DIR=${_VENV_BASE}/${i}
-            break
-        fi
-    done
 
     source ${_VENV_BASE}/`tmux_sess_prefix`/bin/activate >& /dev/null || {
 		source ${_VENV_DIR}/bin/activate >& /dev/null
