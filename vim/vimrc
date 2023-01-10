@@ -704,6 +704,10 @@ tmap <C-W>c <C-W><C-C>
     Plug 'myhere/vim-nodejs-complete', {'for': 'javascript'}
     Plug 'statianzo/vim-jade'
 
+    " typescript
+    Plug 'leafgarland/typescript-vim'
+    Plug 'Quramy/tsuquyomi', {'for': 'typescript'}
+
     " php
     Plug 'StanAngeloff/php.vim', {'for': 'php'}
 
