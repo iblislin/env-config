@@ -13,8 +13,8 @@ fi
 if [ -f ${KEYS_FILE} ]
 then
     echo "file exists: ${KEYS_FILE}"
-    curl https://github.com/iblis17.keys >> ${KEYS_FILE}
+    curl https://github.com/iblislin.keys >> ${KEYS_FILE}
     exit 0
 fi
 
-curl https://github.com/iblis17.keys > ${KEYS_FILE}
+curl https://github.com/iblislin.keys > ${KEYS_FILE}
