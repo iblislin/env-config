@@ -8,6 +8,7 @@
     email = iblis@hs.ntnu.edu.tw
 [alias]
     a = add
+    c = clone
     ci = commit -v
     co = checkout
     cp = cherry-pick
