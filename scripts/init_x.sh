@@ -6,7 +6,6 @@ sudo pacman -Syu
 
 $PACMAN xorg \
         xorg-drivers \
-        xorg-utils \
         xorg-xinit
 
 $PACMAN rxvt-unicode
