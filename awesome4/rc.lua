@@ -298,6 +298,7 @@ local bat_line = wibox.container.background(
 -- Net
 local net_icon = wibox.widget.imagebox(theme.widget_net)
 local net_widget = lain.widget.net({
+    iface = "enp0s31f6",
     settings = function()
         widget:set_markup(
             markup("#FEFEFE",
