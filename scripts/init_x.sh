@@ -18,7 +18,7 @@ $PACMAN alsa-oss alsa-plugins alsa-tools alsa-utils \
         pulseaudio-alsa pulseaudio pavucontrol
 
 # utils
-$PACMAN xdg-utils
+$PACMAN xdg-utils i3lock scrot
 
 # font
 $PACMAN ttf-droid \
