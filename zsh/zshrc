@@ -56,7 +56,6 @@ alias rm='rm -vf'
 alias cp='cp -R'
 alias man='env LC_ALL=C man'
 alias grep='grep --color'
-alias egrep='egrep --color'
 alias du='du -h'
 alias df='df -h'
 alias top='top -s 1'
@@ -176,7 +175,7 @@ fi
 # ==================================
 # Alias > Global Aliases
 # ==================================
-alias -g G='| egrep'
+alias -g G='| grep -E'
 alias -g W='| wc -l'
 alias -g L='| less'
 # ==================================
@@ -350,7 +349,7 @@ then
 		env sudo jexec $vm tcsh
 	}
 
-	if [ `echo $TMUX_SESSION | egrep '_jail$'` ]
+	if [ `echo $TMUX_SESSION | grep -E '_jail$'` ]
 	then
 		vm=`echo $TMUX_SESSION | sed -e 's/_jail$//'`
 		exec jail_attach
