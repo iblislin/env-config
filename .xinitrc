@@ -5,6 +5,8 @@ xset dpms 1500 1500 1500
 xmodmap ~/.Xmodmap
 xrdb ~/.Xresources
 
+dbus-update-activation-environment DISPLAY
+
 xcompmgr &
 
 redshift -O 4000 -b 0.9
