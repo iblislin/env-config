@@ -37,7 +37,7 @@ $PACMAN firefox thunderbird evince chromium
 $PACMAN fcitx-im fcitx-rime librime fcitx-configtool
 
 # musci
-$PACMAN mpd mpc ncmpc
+$PACMAN mpd mpc ncmpc gnome-keyring libsecret seahorse
 
 # latex
 # $PACMAN texlive-most texlive-lang texlive-langcjk
