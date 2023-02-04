@@ -30,5 +30,5 @@ echo "in $REPO_DIR"
 
 for repo in $REPO_LIST
 do
-	 git clone $repo
+    git clone $repo
 done
