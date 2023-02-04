@@ -233,6 +233,7 @@ bindkey '^[[1;3C'   forward-word
 bindkey '^[[1;5C'   forward-word
 bindkey '^[^[[C'    forward-word
 bindkey '^[k'       forward-word
+bindkey '^H'        backward-word
 bindkey '^[[1;3D'   backward-word
 bindkey '^[^[[D'    backward-word
 bindkey '^[j'       backward-word
