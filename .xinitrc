@@ -6,6 +6,7 @@ xmodmap ~/.Xmodmap
 xrdb ~/.Xresources
 
 dbus-update-activation-environment DISPLAY
+export $(dbus-launch)
 
 xcompmgr &
 
