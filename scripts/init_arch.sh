@@ -11,7 +11,8 @@ $PACMAN git wget curl net-tools iotop rsync nload unzip pigz tmux htop \
         dosfstools \
         community/pacutils \
         diff-so-fancy \
-        vim zsh
+        vim zsh \
+        inetutils
 
 # wireless tools
 $PACMAN iw wireless_tools wpa_supplicant
