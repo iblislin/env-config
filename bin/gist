@@ -32,7 +32,7 @@ def main():
     url = 'https://api.github.com/gists'
     args = parse_args()
 
-    user = 'iblis17'
+    user = 'iblislin'
     pw = getpass()
     auth = HTTPBasicAuth(user, pw)
 
