@@ -5,7 +5,8 @@
     ui = auto
 [user]
     name = Iblis Lin
-    email = iblis@hs.ntnu.edu.tw
+    email = iblislin@gmail.com
+    signingkey = iblislin@gmail.com
 [alias]
     a = add
     c = clone
@@ -29,7 +30,7 @@
 [merge]
     tool = vimdiff
 [commit]
-	gpgsign = false
+	gpgsign = true
 [filter "lfs"]
 	clean = git-lfs clean -- %f
 	smudge = git-lfs smudge -- %f
