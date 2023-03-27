@@ -333,8 +333,6 @@ set cindent
 set showmode
 " Scheme
 autocmd Filetype scheme set expandtab nocindent
-" JavaScript
-" autocmd Filetype javascript set omnifunc=syntaxcomplete#Complete
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Spell check
@@ -713,6 +711,7 @@ tmap <C-W>c <C-W><C-C>
 
     " utils
     "" completion
+    Plug 'yegappan/lsp'
     if !has('nvim')
         Plug 'ervandew/supertab'
         Plug 'vim-scripts/AutoComplPop'
@@ -793,6 +792,9 @@ tmap <C-W>c <C-W><C-C>
 
     " toml
     Plug 'cespare/vim-toml'
+
+    " java
+    " Plug 'artur-shaik/jc.nvim', {'for': 'java'}
 
     " IME
     "Plug 'pi314/ime.vim'
