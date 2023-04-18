@@ -255,7 +255,7 @@ SAVEHIST=1000
 # ==================================
 # Completion setting
 # ==================================
-fpath=($ZSH/repo/zsh-completions/src $fpath $ZSH/repo/zdict.sh)
+fpath=($ZSH/completions $ZSH/repo/zsh-completions/src $fpath $ZSH/repo/zdict.sh)
 
 autoload -Uz compinit
 compinit -u
