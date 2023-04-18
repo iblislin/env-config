@@ -1,0 +1,9 @@
+#compdef tnew
+
+_arguments '*:repo:->repo'
+
+case "$state" in
+    repo)
+        _values repo $(/usr/bin/ls /home/iblis/git -1 | awk '{print $1"_c"}')
+        ;;
+esac
