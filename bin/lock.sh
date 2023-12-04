@@ -1,6 +1,5 @@
-# scrot -o /tmp/screenshot.png
-# convert /tmp/screenshot.png -blur 0x5 /tmp/screenshotblur.png
-# i3lock -i /tmp/screenshotblur.png
+# this block is copied from the .xinitrc
+xset s 1800 1800   # screen saver
+xset dpms 1500 1500 1500
 
-# betterlockscreen -u ~/Pictures/screenlock.jpg
-betterlockscreen -l dim --off 60
+betterlockscreen -l dim --off 30
