@@ -435,7 +435,7 @@ tmap <C-W>c <C-W><C-C>
     let NERDTreeIgnore += ['^cscope\.out$']
     let g:NERDTreeDirArrowExpandable="+"
     let g:NERDTreeDirArrowCollapsible="~"
-    nnoremap <leader>n :NERDTreeTabsToggle<CR>
+    nnoremap <leader>n :NERDTreeToggle<CR>
 
     """"""""""""""""""""""""""""""""""""""""
     " Nerd Commenter
@@ -534,7 +534,7 @@ tmap <C-W>c <C-W><C-C>
     """"""""""""""""""""""""""""""""""""""""
     " vim-autocomplpop
     """"""""""""""""""""""""""""""""""""""""
-    let g:AutoComplPopDontSelectFirst = 0
+    let g:AutoComplPopDontSelectFirst = 1
 
     """"""""""""""""""""""""""""""""""""""""
     " Renumber
@@ -711,8 +711,8 @@ tmap <C-W>c <C-W><C-C>
 
     " utils
     "" completion
-    Plug 'yegappan/lsp'
     if !has('nvim')
+        " Plug 'yegappan/lsp'
         Plug 'ervandew/supertab'
         Plug 'vim-scripts/AutoComplPop'
     endif
@@ -730,8 +730,7 @@ tmap <C-W>c <C-W><C-C>
     "" misc
     Plug 'tpope/vim-surround'
     Plug 'Raimondi/delimitMate'
-    Plug 'scrooloose/nerdtree', {'on': 'NERDTreeTabsToggle'}
-    Plug 'jistr/vim-nerdtree-tabs', {'on': 'NERDTreeTabsToggle'}
+    Plug 'scrooloose/nerdtree'
     Plug 'tomtom/tcomment_vim'
     Plug 'kshenoy/vim-signature'
     if has('nvim')
@@ -800,6 +799,9 @@ tmap <C-W>c <C-W><C-C>
     "Plug 'pi314/ime.vim'
     "Plug 'pi314/ime-phonetic.vim'
 
+    " GraphQL
+    Plug 'jparise/vim-graphql'
+
     call plug#end()
 
 set listchars=tab:>-,trail:-,eol:$,nbsp:%,extends:>,precedes:<
@@ -819,7 +821,16 @@ autocmd FileType markdown  setlocal spell
 autocmd FileType gitcommit setlocal spell
 
 
-if exists(":NERDTreeTabsToggle")
-    autocmd VimEnter * NERDTreeTabsToggle
-    autocmd VimEnter * NERDTreeFocusToggle
+
+if &rtp =~ 'nerdtree'
+    autocmd VimEnter * NERDTree | wincmd p
+    autocmd BufWinEnter * if &buftype != 'quickfix' && getcmdwintype() == '' | silent NERDTreeMirror | endif
+    autocmd BufEnter * if tabpagenr('$') == 1 && winnr('$') == 1 && exists('b:NERDTree') && b:NERDTree.isTabTree() | call feedkeys(":quit\<CR>:\<BS>") | endif
+    autocmd BufEnter * if winnr() == winnr('h') && bufname('#') =~ 'NERD_tree_\d\+' && bufname('%') !~ 'NERD_tree_\d\+' && winnr('$') > 1 |
+                \ let buf=bufnr() | buffer# | execute "normal! \<C-W>w" | execute 'buffer'.buf | endif
+endif
+
+if exists("*LspAddServer")
+    autocmd VimEnter * call LspAddServer(lspServers)
+    autocmd VimEnter * call LspOptionsSet(lspOpts)
 endif
