@@ -1,0 +1,19 @@
+#!/bin/sh
+
+yarn set version stable
+
+echo '/.yarn/releases/** binary' >> $PWD/.gitattributes
+echo '/.yarn/plugins/**' >> $PWD/.gitattributes
+
+echo ''       >> $PWD/.gitignore
+echo '# Yarn' >> $PWD/.gitignore
+echo '# see https://yarnpkg.com/getting-started/qa#which-files-should-be-gitignored' >> $PWD/.gitignore
+echo '.yarn/*' >> $PWD/.gitignore
+echo '!.yarn/cache' >> $PWD/.gitignore
+echo '!.yarn/patches' >> $PWD/.gitignore
+echo '!.yarn/plugins' >> $PWD/.gitignore
+echo '!.yarn/releases' >> $PWD/.gitignore
+echo '!.yarn/sdks' >> $PWD/.gitignore
+echo '!.yarn/versions' >> $PWD/.gitignore
+
+yarn install
