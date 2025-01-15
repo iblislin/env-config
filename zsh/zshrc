@@ -370,7 +370,11 @@ then
     then
         cd ${_CODE_DIR}
     else
-        cd `tmux_sess_route` >& /dev/null
+        local dir=`tmux_sess_route`
+        if [[ -d $dir ]]
+        then
+            cd `tmux_sess_route` >& /dev/null
+        fi
     fi
 
 fi
@@ -426,4 +430,9 @@ alias .=ls
 if [[ -f $HOME/.zshlocal ]]
 then
 	source $HOME/.zshlocal
+fi
+
+if [[ (-f .zshlocal) && ($PWD != $HOME) ]]
+then
+    source .zshlocal
 fi
