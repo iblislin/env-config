@@ -424,9 +424,11 @@ screen.connect_signal("property::geometry", set_wallpaper)
 tag_names = {
     'α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ',
     'λ', 'μ', 'ν', 'ξ', 'ο', 'π', 'ρ', 'ς', 'σ', 'τ',
-    'υ', 'φ', 'χ', 'ψ', 'ω'
+    'υ', 'φ', 'χ', 'ψ', 'ω', 'A', 'B', 'Γ', 'Δ', 'Ε',
+    'Ζ', 'Η', 'Θ', 'Ι', 'Κ', 'Λ', 'Μ', 'Ν', 'Ξ', 'Ο',
+    'Π', 'Ρ', 'Σ', 'Τ', 'Υ', 'Φ', 'Χ', 'Ψ', 'Ω', 'Ϡ',
 }
-tag_number = 25
+tag_number = 50
 
 awful.screen.connect_for_each_screen(function(s)
     -- Wallpaper
