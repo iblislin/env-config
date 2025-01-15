@@ -7,11 +7,11 @@ local themes_path = os.getenv("HOME") .. "/.config/awesome/themes/iblis"
 
 -- {{{ Main
 local theme = {}
-theme.wallpaper = "/home/iblis/picture/desk.jpg"
+theme.wallpaper = "/home/iblis/Pictures/black.png"
 -- }}}
 
 -- {{{ Styles
-theme.font      = "Droid Sans Mono 11"
+theme.font      = "JuliaMono 12"
 
 -- {{{ Colors
 theme.fg_normal  = "#DCDCCC"
