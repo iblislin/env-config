@@ -147,6 +147,9 @@ fi
 if ( isExist git )
 then
     alias g="git"
+    BR() {
+        git rev-parse --abbrev-ref HEAD
+    }
 fi
 if ( isExist mutt )
 then

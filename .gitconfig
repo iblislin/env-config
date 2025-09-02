@@ -26,7 +26,7 @@
     ri = rebase -i --autosquash
     fix = commit -v --fix
 [push]
-    default = matching
+	default = simple
 [merge]
     tool = vimdiff
 [commit]
