@@ -28,6 +28,8 @@ URxvt*letterSpace:           -1
 Urxvt*modifier:              alt
 ! map Ctrl-Return to <LF>
 URxvt.keysym.C-Return:       \012
+! map Shift-Return to <ESC><CR> for Claude Code "insert newline"
+URxvt.keysym.S-Return:       \033\015
 
 ! Tango Color Theme
 urxvt*color0:                rgba:1b1b/0808/0202/CCCC
