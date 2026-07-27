@@ -1,0 +1,95 @@
+#!/usr/bin/env python3
+"""claude-attn-title — resolve a Claude session's display title from its
+transcript, cheaply, using a persisted byte-offset cursor per session.
+
+Reads the Stop/Notification hook JSON payload on stdin (needs
+`transcript_path`, `session_id`), prints the resolved title on stdout.
+
+Title precedence: a `/rename` custom-title always wins; otherwise the
+Claude-generated ai-title; otherwise blank.
+
+Cursor cache (why this is cheap):
+  ~/.claude/tmux-status/.titlecache/<session_id>  ->  "<offset>\t<kind>\t<title>"
+On each call we seek to the cached byte offset and read ONLY the bytes
+appended since last time, scanning that tail for new title records. The
+first call for a session reads the whole file once; every later call
+reads just the delta. A later /rename appends a fresh custom-title record
+to the tail, so renames are still picked up without rescanning history.
+"""
+import sys, os, json
+
+CACHE_DIR = os.path.expanduser("~/.claude/tmux-status/.titlecache")
+
+
+def main():
+    try:
+        payload = json.load(sys.stdin)
+    except Exception:
+        print("")
+        return
+
+    tp = payload.get("transcript_path", "") or ""
+    sid = payload.get("session_id", "") or (
+        os.path.basename(tp).rsplit(".", 1)[0] if tp else "")
+    if not tp or not os.path.isfile(tp) or not sid:
+        print("")
+        return
+
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    cache_file = os.path.join(CACHE_DIR, sid)
+
+    offset, kind, title = 0, "", ""
+    if os.path.isfile(cache_file):
+        try:
+            parts = open(cache_file, encoding="utf-8").read().split("\t", 2)
+            offset = int(parts[0])
+            kind = parts[1]
+            title = parts[2] if len(parts) > 2 else ""
+        except Exception:
+            offset, kind, title = 0, "", ""
+
+    size = os.path.getsize(tp)
+    if offset > size:            # transcript truncated / rotated -> rescan
+        offset, kind, title = 0, "", ""
+
+    # Read only the tail appended since the cached offset.
+    with open(tp, "rb") as f:
+        f.seek(offset)
+        data = f.read()
+    new_offset = offset + len(data)
+
+    new_custom = new_ai = None
+    for line in data.decode("utf-8", "ignore").splitlines():
+        if '"type":"custom-title"' in line:
+            try:
+                new_custom = json.loads(line).get("customTitle") or new_custom
+            except Exception:
+                pass
+        elif '"type":"ai-title"' in line:
+            try:
+                new_ai = json.loads(line).get("aiTitle") or new_ai
+            except Exception:
+                pass
+
+    # Precedence: new rename wins; else keep a cached custom; else new
+    # ai-title; else keep whatever was cached.
+    if new_custom is not None:
+        kind, title = "custom", new_custom
+    elif kind == "custom":
+        pass
+    elif new_ai is not None:
+        kind, title = "ai", new_ai
+
+    title = (title or "").replace("\t", " ").replace("\n", " ").strip()
+
+    try:
+        with open(cache_file, "w", encoding="utf-8") as c:
+            c.write("%d\t%s\t%s" % (new_offset, kind, title))
+    except Exception:
+        pass
+
+    print(title)
+
+
+if __name__ == "__main__":
+    main()

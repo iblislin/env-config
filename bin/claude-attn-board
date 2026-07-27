@@ -1,0 +1,334 @@
+#!/usr/bin/env bash
+# claude-attn-board [interval]
+#
+# Single-pane dashboard that collects, across ALL local tmux
+# sockets/servers (/tmp/tmux-1000-inner*), two kinds of "attention"
+# signals and refreshes them in place, flicker-free and size-aware:
+#
+#   1. Claude - from ~/.claude/tmux-status/ (written by claude-attn-hook):
+#               which window's Claude finished (DONE) or is waiting (WAIT),
+#               labeled by the session's /rename title (else ai-title).
+#               The hook rings that window's bell; an entry clears only
+#               after the bell went 1 -> 0, i.e. you actually SELECTED the
+#               window. Entries never expire by time (unless ATTN_MAX_AGE).
+#   2. Bell   - any OTHER tmux window whose bell flag is set (the '!' in the
+#               title) -- covers every program. Windows already shown in the
+#               Claude section are not repeated here.
+#
+# Rendering: uses the alternate screen buffer and redraws in place with
+# per-line erase-to-EOL, so nothing blinks. Every row is clipped to the
+# current terminal width; the list is capped to its height with a
+# "+N more" footer. Both are re-measured each frame (resize-aware).
+#
+# Usage: claude-attn-board [refresh_seconds]   (default 3)
+#
+# Env:
+#   ATTN_GRACE      grace after the event before a bell-cleared entry may
+#                   be dropped (covers the write race), seconds  (default 5)
+#   ATTN_MAX_AGE    hard time expiry, seconds; 0 = never expire  (default 0)
+#   ATTN_AGE_ALERT  unread entries older than this get an urgent (red)
+#                   dot instead of the normal one, seconds       (default 300)
+#   ATTN_KEEP       max Claude entries to retain as history; 0 = terminal
+#                   height (keep "until the screen is full")      (default 0)
+#
+# Inbox model: entries persist as read/unread history, like a mail inbox.
+#   * unread  = the window's bell is still set (you have not visited it):
+#               shown bold with a bright dot.
+#   * read    = bell cleared (you visited the window): kept, shown dimmed.
+# Newest event floats to the top; a status change re-stamps the entry so its
+# window jumps back to the top. History is capped to ATTN_KEEP (or screen
+# height); the oldest entries beyond the cap are evicted.
+set -u
+
+INTERVAL="${1:-3}"
+MAX_AGE="${ATTN_MAX_AGE:-0}"
+AGE_ALERT="${ATTN_AGE_ALERT:-300}"
+KEEP="${ATTN_KEEP:-0}"
+STATE_DIR="$HOME/.claude/tmux-status"
+mkdir -p "$STATE_DIR"
+
+sockets() { printf '%s\n' /tmp/tmux-1000-inner /tmp/tmux-1000-inner-*; }
+safe() { printf '%s' "$1" | tr '/ \t' '___'; }
+
+# Shorten $HOME prefix to ~ for display.
+tilde() {
+  case "$1" in
+    "$HOME"/*) printf '~%s' "${1#"$HOME"}" ;;
+    "$HOME")   printf '~' ;;
+    *)         printf '%s' "$1" ;;
+  esac
+}
+
+# Clip a string to N display columns (approx; counts code points), adding
+# an ellipsis when truncated.
+clip() {
+  local s="$1" n="$2"
+  [ "$n" -lt 1 ] && { printf ''; return; }
+  if [ "${#s}" -le "$n" ]; then printf '%s' "$s"
+  else printf '%s…' "${s:0:n-1}"; fi
+}
+
+FOCUS_DIR="$STATE_DIR/.focus"     # focused client ttys (set by claude-attn-focus hook)
+VIEWED_DIR="$STATE_DIR/.viewed"   # per-window last-actually-viewed time (file mtime)
+mkdir -p "$FOCUS_DIR" "$VIEWED_DIR" 2>/dev/null
+
+# All existing window keys (reliable), for detecting closed windows.
+declare -A WIN_EXISTS=()
+refresh_windows() {
+  WIN_EXISTS=()
+  local s sn key
+  for s in $(sockets); do
+    [ -S "$s" ] || continue
+    sn="$(basename "$s")"
+    while IFS= read -r key; do
+      [ -n "$key" ] && WIN_EXISTS["$key"]=1
+    done < <(tmux -S "$s" list-windows -a -F "${sn}__#{session_name}__#{window_index}" 2>/dev/null)
+  done
+}
+
+# The window you're ACTUALLY looking at = the current window of every tmux
+# client that has WM focus right now. Focus comes from the client-focus-in/out
+# hooks (accurate; the pollable client_flags 'focused' token gets stuck), and
+# which window that client is on is queried live. Stamps each viewed window's
+# last-viewed time (VIEWED_DIR mtime) -> that's what marks an entry "read".
+declare -A VIEWED=()
+refresh_viewed() {
+  VIEWED=()
+  local s sn tty f key
+  declare -A TTY_SOCK=()
+  for s in $(sockets); do
+    [ -S "$s" ] || continue
+    while IFS= read -r tty; do
+      [ -n "$tty" ] && TTY_SOCK["$tty"]="$s"
+    done < <(tmux -S "$s" list-clients -F '#{client_tty}' 2>/dev/null)
+  done
+  shopt -s nullglob
+  for f in "$FOCUS_DIR"/*; do
+    tty="$(cat "$f" 2>/dev/null)"
+    s="${TTY_SOCK[$tty]:-}"
+    [ -n "$tty" ] && [ -n "$s" ] || { rm -f "$f"; continue; }   # focused client gone -> prune
+    sn="$(basename "$s")"
+    key="$(tmux -S "$s" display-message -p -c "$tty" -F "${sn}__#{session_name}__#{window_index}" 2>/dev/null)"
+    [ -n "$key" ] && VIEWED["$key"]=1
+  done
+  for key in "${!VIEWED[@]}"; do touch "$VIEWED_DIR/$key" 2>/dev/null; done
+}
+
+# Inbox upkeep. Entries are NOT dropped on read -- they persist as history.
+# We only evict: (a) entries whose tmux window no longer exists, (b) entries
+# past MAX_AGE when configured, and (c) the oldest entries beyond the history
+# cap (ATTN_KEEP, or the terminal height passed in as $1).
+cleanup_stale() {
+  local cap="${1:-40}"
+  refresh_windows
+  refresh_viewed
+  local now f base ts
+  now="$(date +%s)"
+  shopt -s nullglob
+  # Pass 1: drop dead windows / expired entries.
+  for f in "$STATE_DIR"/*; do
+    base="$(basename "$f")"
+    ts="$(cut -f1 "$f" 2>/dev/null)"
+    [ -n "$ts" ] || { rm -f "$f"; continue; }
+    if [ "$MAX_AGE" -gt 0 ] && [ $(( now - ts )) -ge "$MAX_AGE" ]; then
+      rm -f "$f"; continue
+    fi
+    [ -z "${WIN_EXISTS[$base]:-}" ] && rm -f "$f"       # window gone
+  done
+  # Pass 2: evict the oldest entries beyond the history cap.
+  [ "$cap" -lt 1 ] && cap=1
+  local rank=0
+  for f in "$STATE_DIR"/*; do
+    printf '%s\t%s\n' "$(cut -f1 "$f" 2>/dev/null)" "$f"
+  done | sort -rn | while IFS=$'\t' read -r _ts f; do
+    rank=$(( rank + 1 ))
+    [ "$rank" -gt "$cap" ] && rm -f "$f"
+  done
+  # Pass 3: prune orphan last-viewed stamps (no matching inbox entry).
+  for f in "$VIEWED_DIR"/*; do
+    [ -e "$STATE_DIR/$(basename "$f")" ] || rm -f "$f"
+  done
+}
+
+# Human-readable age: 42s / 5m / 3h / 2d
+fmt_age() {
+  local a="$1"
+  if   [ "$a" -lt 60 ]    ; then printf '%ds' "$a"
+  elif [ "$a" -lt 3600 ]  ; then printf '%dm' $(( a / 60 ))
+  elif [ "$a" -lt 86400 ] ; then printf '%dh' $(( a / 3600 ))
+  else                           printf '%dd' $(( a / 86400 )); fi
+}
+
+# ---- usage gauge (mirrors the /statusline build_mini style) ----------
+# 256-color palette, identical to statusline-command.sh.
+U_RESET=$'\033[0m'; U_DIM=$'\033[2m'
+U_LOW=$'\033[38;5;114m'; U_MID=$'\033[38;5;221m'; U_HIGH=$'\033[38;5;203m'
+U_EMPTY=$'\033[38;5;238m'; U_QLABEL=$'\033[38;5;245m'
+
+# Countdown to a future unix ts: 2h14m / 45m / 3d4h (empty if past/invalid).
+fmt_countdown() {
+  local target="${1%.*}" now diff d h m
+  case "$target" in ''|*[!0-9]*) return ;; esac
+  now="$(date +%s)"; diff=$(( target - now )); [ "$diff" -le 0 ] && return
+  d=$(( diff / 86400 )); h=$(( (diff % 86400) / 3600 )); m=$(( (diff % 3600) / 60 ))
+  if   [ "$d" -gt 0 ]; then printf '%dd%dh' "$d" "$h"
+  elif [ "$h" -gt 0 ]; then printf '%dh%02dm' "$h" "$m"
+  else [ "$m" -lt 1 ] && m=1; printf '%dm' "$m"; fi
+}
+
+# Build one 10-cell quota gauge -> sets M_PLAIN (length math) + M_COLORED.
+mini() {
+  local label="$1" pct="$2" reset="$3" filled empty c fstr="" estr="" i=0 cd rp="" rc=""
+  filled=$(( pct / 10 )); [ "$filled" -gt 10 ] && filled=10; [ "$filled" -lt 0 ] && filled=0
+  empty=$(( 10 - filled ))
+  if   [ "$pct" -lt 50 ]; then c=$U_LOW
+  elif [ "$pct" -lt 80 ]; then c=$U_MID
+  else c=$U_HIGH; fi
+  while [ "$i" -lt "$filled" ]; do fstr="${fstr}█"; i=$(( i + 1 )); done
+  i=0; while [ "$i" -lt "$empty" ]; do estr="${estr}░"; i=$(( i + 1 )); done
+  cd="$(fmt_countdown "$reset")"
+  [ -n "$cd" ] && { rp=" ↻$cd"; rc=" ${c}↻${cd}${U_RESET}"; }
+  M_PLAIN="$(printf '%s: [%s%s] %d%%%s' "$label" "$fstr" "$estr" "$pct" "$rp")"
+  M_COLORED="${U_QLABEL}${label}:${U_RESET} ${U_DIM}[${U_RESET}${c}${fstr}${U_EMPTY}${estr}${U_RESET}${U_DIM}]${U_RESET} ${c}${pct}%${U_RESET}${rc}"
+}
+
+# Emit the usage line from the statusline-written cache (nothing if absent).
+render_usage() {
+  local W="$1" cache="$STATE_DIR/.ratelimit" upd fp fr wp wr now age
+  [ -f "$cache" ] || return
+  IFS=$'\t' read -r upd fp fr wp wr < "$cache" 2>/dev/null
+  fp="${fp%.*}"; wp="${wp%.*}"
+  case "$fp" in ''|*[!0-9]*) fp="" ;; esac
+  case "$wp" in ''|*[!0-9]*) wp="" ;; esac
+  [ -n "$fp$wp" ] || return
+  now="$(date +%s)"; age=$(( now - ${upd:-now} ))
+  local plain="" colored=""
+  if [ -n "$fp" ]; then mini "5h" "$fp" "$fr"; plain="$M_PLAIN"; colored="$M_COLORED"; fi
+  if [ -n "$wp" ]; then
+    mini "7d" "$wp" "$wr"
+    [ -n "$plain" ] && { plain="$plain  $M_PLAIN"; colored="$colored  $M_COLORED"; } \
+                    || { plain="$M_PLAIN"; colored="$M_COLORED"; }
+  fi
+  local stale=""
+  [ "$age" -ge 120 ] && stale="  ${U_DIM}⟳$(fmt_age "$age") ago${U_RESET}"
+  local stale_plain=""; [ -n "$stale" ] && stale_plain="  ⟳$(fmt_age "$age") ago"
+  # Fit to width: full gauge if it fits, else a compact "5h 63% 7d 28%".
+  if [ "$(( ${#plain} + ${#stale_plain} ))" -le "$W" ]; then
+    printf ' %s%s\n' "$colored" "$stale"
+  else
+    local comp="" compp=""
+    [ -n "$fp" ] && { comp="${U_QLABEL}5h${U_RESET} ${fp}%"; compp="5h ${fp}%"; }
+    [ -n "$wp" ] && { comp="$comp  ${U_QLABEL}7d${U_RESET} ${wp}%"; compp="$compp  7d ${wp}%"; }
+    if [ "${#compp}" -le "$W" ]; then printf ' %s\n' "$comp"
+    else printf ' %s\n' "$(clip "$compp" "$W")"; fi
+  fi
+}
+
+# Emit Claude rows (already clipped to $W), newest first. Each row is an
+# inbox entry: unread (bell still set) = bold + bright dot; read (bell
+# cleared / visited) = dimmed, kept as history.
+render_claude() {
+  local W="$1" now key ts st winid wname sockname cpath label age viewed_ts f
+  local name meta namecap metacap dot icon icon_col
+  now="$(date +%s)"
+  shopt -s nullglob
+  local files=("$STATE_DIR"/*)
+  if [ ${#files[@]} -eq 0 ]; then
+    printf '   \033[2m(inbox empty)\033[0m\n'; return
+  fi
+  # Prefix each entry with its key (for the focus lookup), sort by ts desc.
+  for f in "${files[@]}"; do printf '%s\t%s\n' "$(basename "$f")" "$(cat "$f")"; done \
+    | sort -t$'\t' -k2,2rn \
+    | while IFS=$'\t' read -r key ts st winid wname sockname cpath label; do
+    age=$(( now - ts ))
+    # read = you actually looked at this window (had WM focus on it) AFTER the
+    # event; unread otherwise. Focus-based, independent of the tmux bell.
+    viewed_ts="$(stat -c%Y "$VIEWED_DIR/$key" 2>/dev/null || echo 0)"
+    # name = session label (else window name); session:window + cwd go in meta.
+    [ -n "$label" ] && name="$label" || name="$wname"
+    namecap=30; [ "$namecap" -gt $(( W / 3 )) ] && namecap=$(( W / 3 ))
+    [ "$namecap" -lt 8 ] && namecap=8
+    # Non-name overhead in VISIBLE columns: dot+sp (2), icon (7 -- the
+    # ✅/⏳ glyphs are 2 cols wide), 2 spaces, name, space, age (5), 2
+    # spaces, +1 slack = 20. (Undercounting caused DONE/WAIT rows, whose
+    # emoji icon is 1 col wider than RUN's ▶, to wrap by one column.)
+    metacap=$(( W - namecap - 20 ))
+    name="$(clip "$name" "$namecap")"
+    [ "$metacap" -ge 8 ] && meta="$(clip "[$winid] $(tilde "$cpath")" "$metacap")" || meta=""
+    case "$st" in
+      running) icon='▶ RUN  '; icon_col='\033[36m' ;;   # padded to 7 cols to align with emoji icons
+      waiting) icon='⏳ WAIT'; icon_col='\033[1;33m' ;;
+      done)    icon='✅ DONE'; icon_col='\033[1;32m' ;;
+      *)       icon="$st";     icon_col='' ;;
+    esac
+    if [ "$st" = "running" ]; then
+      # ACTIVE: Claude is working -- neutral cyan, no read/unread dimming.
+      printf '\033[36m▸\033[0m %b%s\033[0m  %-*s %5s  \033[2m%s\033[0m\n' \
+        "$icon_col" "$icon" "$namecap" "$name" "$(fmt_age "$age")" "$meta"
+    elif [ "$viewed_ts" -lt "$ts" ]; then
+      # UNREAD: not viewed since the event. Bold, bright dot (red if long).
+      [ "$age" -ge "$AGE_ALERT" ] && dot='\033[1;31m●\033[0m' || dot='\033[1;36m●\033[0m'
+      printf '%b %b%b\033[0m  \033[1m%-*s\033[0m %5s  \033[2m%s\033[0m\n' \
+        "$dot" "$icon_col" "$icon" "$namecap" "$name" "$(fmt_age "$age")" "$meta"
+    else
+      # READ: fully dimmed history, hollow dot.
+      printf '\033[2m○ %s  %-*s %5s  %s\033[0m\n' \
+        "$icon" "$namecap" "$name" "$(fmt_age "$age")" "$meta"
+    fi
+  done
+}
+
+# Emit Bell rows (already clipped to $W), skipping windows already in the
+# Claude section (dedupe).
+render_bells() {
+  local W="$1" s sn sess win wname key any=0 line
+  shopt -s nullglob
+  for s in $(sockets); do
+    [ -S "$s" ] || continue
+    sn="$(basename "$s")"
+    while IFS=$'\t' read -r sess win wname; do
+      key="$(safe "$sn")__$(safe "$sess")__$(safe "$win")"
+      [ -e "$STATE_DIR/$key" ] && continue
+      any=1
+      line="$(clip "$sess:$win $wname  [$sn]" $(( W - 6 )))"
+      printf '   \033[1;31m🔔\033[0m  %s\n' "$line"
+    done < <(tmux -S "$s" list-windows -a -f '#{window_bell_flag}' \
+               -F '#{session_name}	#{window_index}	#{window_name}' 2>/dev/null)
+  done
+  [ "$any" -eq 0 ] && printf '   \033[2m(none)\033[0m\n'
+}
+
+render() {
+  local W="$1"
+  printf '\033[1m tmux attention board \033[0m %s  \033[2m(every %ss · Ctrl-C quits)\033[0m\n' \
+    "$(date '+%H:%M:%S')" "$INTERVAL"
+  render_usage "$W"
+  printf '%s\n' "$(clip ' ─────────────────────────────────────────────────────────────────────' "$W")"
+  printf '\033[1;36m Claude\033[0m\n'
+  render_claude "$W"
+  printf '\033[1;35m Bell (other windows)\033[0m\n'
+  render_bells "$W"
+}
+
+cleanup() { printf '\033[?25h\033[?1049l'; exit 0; }
+trap cleanup INT TERM
+printf '\033[?1049h\033[?25l'   # alt screen + hide cursor
+
+while :; do
+  W="${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}"
+  H="${LINES:-$(tput lines 2>/dev/null || echo 24)}"
+  # History cap: ATTN_KEEP if set (>0), else the terminal height.
+  keep_cap="$KEEP"; [ "$keep_cap" -lt 1 ] 2>/dev/null && keep_cap="$H"
+  cleanup_stale "$keep_cap"
+  mapfile -t buf < <(render "$W")
+  # Cap to terminal height with a "+N more" footer.
+  local_max=$(( H - 1 ))
+  if [ "${#buf[@]}" -gt "$local_max" ] && [ "$local_max" -gt 1 ]; then
+    hidden=$(( ${#buf[@]} - (local_max - 1) ))
+    buf=( "${buf[@]:0:local_max-1}" "$(printf '\033[2m   … +%d more (enlarge window)\033[0m' "$hidden")" )
+  fi
+  printf '\033[H'
+  for ln in "${buf[@]}"; do printf '%s\033[K\n' "$ln"; done
+  printf '\033[J'
+  sleep "$INTERVAL"
+done

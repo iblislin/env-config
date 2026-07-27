@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# claude-attn-focus <in|out> <client_tty>
+#
+# Maintains the set of tmux clients (terminals) that currently have WM focus,
+# as marker files under ~/.claude/tmux-status/.focus/<safe-tty> (file content
+# = the raw tty). Driven by tmux `client-focus-in` / `client-focus-out` hooks.
+#
+# Why event-driven and not polled: the pollable `#{client_flags}` `focused`
+# token gets stuck "focused" on background clients, so it cannot be trusted.
+# The in/out events ARE accurate (they fire only on real terminal WM focus
+# changes, i.e. virtual-desktop / alt-tab switches, not tmux window switches).
+#
+# claude-attn-board reads this set, maps each focused client to its session's
+# CURRENT window (queried live/reliably), and treats that window as the one
+# you are actually looking at — driving read/unread without the tmux bell.
+set -u
+
+dir="$HOME/.claude/tmux-status/.focus"
+mkdir -p "$dir" 2>/dev/null || exit 0
+
+action="${1:-}"
+tty="${2:-}"
+[ -n "$tty" ] || exit 0
+safe="$(printf '%s' "$tty" | tr '/ \t' '___')"
+
+case "$action" in
+  in)  printf '%s\n' "$tty" >"$dir/$safe" 2>/dev/null ;;
+  out) rm -f "$dir/$safe" 2>/dev/null ;;
+esac
+exit 0
