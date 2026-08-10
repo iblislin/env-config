@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# Turn a rough intent into a validated /goal condition.
+#
+# All judgment lives in the writing-goal-conditions skill. This wrapper only
+# moves bytes: read the intent, invoke claude, split the reply at the sentinel,
+# map STATUS= onto an exit code. Keep it that way — a criterion that leaks in
+# here becomes a second place to maintain the template.
+set -uo pipefail
+
+PROG="$(basename "$0")"
+CLAUDE="${MKGOAL_CLAUDE:-claude}"
+SENTINEL='---MKGOAL-VERDICT---'
+
+usage() {
+    cat <<EOF
+Usage: $PROG [rough intent...]
+       $PROG < file
+
+Reads a rough intent (argv, else stdin) and prints a validated /goal condition
+on stdout. The verdict and the judge's reasoning go to stderr.
+
+Runs in the current directory so the repo's CLAUDE.md and skills load — draft
+quality depends on them.
+
+  echo "take IOT-441 as far as an open MR with green CI" | $PROG
+
+Exit: 0  both dry-run samples judged correctly
+      1  still failing after 3 rewrites (stdout still carries the last draft),
+         or a malformed reply
+      2  empty input
+EOF
+}
+
+if [ $# -gt 0 ]; then
+    case "$1" in -h|--help) usage; exit 0 ;; esac
+    intent="$*"
+else
+    intent="$(cat)"
+fi
+
+if [ -z "${intent//[[:space:]]/}" ]; then
+    usage >&2
+    exit 2
+fi
+
+# `< /dev/null` is load-bearing: our own stdin is already consumed by the read
+# above, and claude waits 3s for stdin before warning about it on stderr.
+# Without this, every invocation pays that delay and leaks a warning into the
+# verdict block.
+reply="$("$CLAUDE" -p --no-session-persistence "$(printf '%s\n\n%s' \
+    'Use the writing-goal-conditions skill to turn the intent below into a validated /goal condition. Follow that skill'"'"'s output shape exactly: the /goal condition first, then the sentinel line, then the verdict block. No preamble.' \
+    "$intent")" < /dev/null)" || {
+    printf '%s: claude invocation failed\n' "$PROG" >&2
+    exit 1
+}
+
+# A reply with no sentinel is malformed. Surface it whole on stderr rather than
+# piping something unexpected into the user's buffer.
+if ! printf '%s\n' "$reply" | grep -qF -- "$SENTINEL"; then
+    printf '%s: reply had no %s sentinel:\n%s\n' "$PROG" "$SENTINEL" "$reply" >&2
+    exit 1
+fi
+
+printf '%s\n' "$reply" | sed "/^${SENTINEL}\$/,\$d"
+printf '%s\n' "$reply" | sed -n "/^${SENTINEL}\$/,\$p" >&2
+
+printf '%s\n' "$reply" | grep -q '^STATUS=pass$' && exit 0
+exit 1
