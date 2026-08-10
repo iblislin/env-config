@@ -831,3 +831,170 @@ if exists("*LspAddServer")
     autocmd VimEnter * call LspAddServer(lspServers)
     autocmd VimEnter * call LspOptionsSet(lspOpts)
 endif
+
+" mkgoal: rough intent -> a validated /goal condition
+"
+" Both bindings are ASYNCHRONOUS: a run is drafting plus two Haiku judges plus
+" up to three rewrites, so 30-90s, and a synchronous :%! or systemlist() freezes
+" vim for all of it with no output. There is nothing the sync form did better,
+" so it is gone -- :%!mkgoal still works by hand if ever wanted.
+"
+"   ,g  replaces (whole buffer in normal mode, the selection in visual)
+"   ,G  appends (at end of file, or after the selection)
+"
+" Safety: b:changedtick is recorded at launch and checked on completion. If the
+" buffer was edited while the job ran, a replace DEGRADES TO AN APPEND and says
+" so -- overwriting a buffer you have since typed into is not recoverable in one
+" undo. Input is taken from the buffer in memory, never from the file on disk,
+" so an unsaved scratch buffer (the likely place to draft an intent) works.
+
+let s:mkgoal_out = []
+let s:mkgoal_err = []
+let s:mkgoal_buf = 0
+let s:mkgoal_tick = -1
+let s:mkgoal_lo = 0
+let s:mkgoal_hi = 0
+let s:mkgoal_replace = 0
+let s:mkgoal_t0 = 0
+let s:mkgoal_job = v:null
+let s:mkgoal_timer = -1
+let s:mkgoal_spin = ['|', '/', '-', '\']
+let s:mkgoal_tick_n = 0
+
+" Ticking progress line. Elapsed seconds and a spinner are real; the STAGE is
+" deliberately absent. mkgoal is one `claude -p` call and cannot see whether the
+" agent is drafting, judging or rewriting, so any stage label here would be a
+" guess presented as fact. Only stream-json parsing would make stages honest.
+function! s:MkgoalTick(_) abort
+    if s:mkgoal_job is v:null
+        return
+    endif
+    " Never clobber the command line while it is being used for input.
+    if mode() =~# '^[c]'
+        return
+    endif
+    let s:mkgoal_tick_n += 1
+    let l:c = s:mkgoal_spin[s:mkgoal_tick_n % len(s:mkgoal_spin)]
+    echo printf('%s mkgoal running %ds (buffer %d, %s)',
+                \ l:c, localtime() - s:mkgoal_t0, s:mkgoal_buf,
+                \ s:mkgoal_replace ? 'will replace' : 'will append')
+endfunction
+
+function! s:MkgoalStopTimer() abort
+    if s:mkgoal_timer >= 0
+        call timer_stop(s:mkgoal_timer)
+        let s:mkgoal_timer = -1
+    endif
+    echo ''
+endfunction
+
+function! s:MkgoalFinish(status) abort
+    let l:secs = localtime() - s:mkgoal_t0
+    let s:mkgoal_job = v:null
+    call s:MkgoalStopTimer()
+    " The target buffer may be gone: an async run outlives :bd, and appending to
+    " a dead buffer throws rather than warning.
+    if !bufexists(s:mkgoal_buf)
+        echohl WarningMsg
+        echomsg printf('mkgoal: buffer %d no longer exists, result discarded (%ds)',
+                    \  s:mkgoal_buf, l:secs)
+        echohl None
+        return
+    endif
+    if empty(s:mkgoal_out)
+        echohl ErrorMsg
+        echomsg printf('mkgoal: no condition produced, exit %d after %ds -- %s',
+                    \  a:status, l:secs, join(s:mkgoal_err[-2:], ' | '))
+        echohl None
+        return
+    endif
+
+    " Surface only the machine-readable verdict lines; the prose reasoning stays
+    " in :messages via the err accumulator.
+    let l:v = filter(copy(s:mkgoal_err), 'v:val =~# "^\\(STATUS\\|rewrites\\|judge_model\\)="')
+    let l:edited = getbufvar(s:mkgoal_buf, 'changedtick') != s:mkgoal_tick
+    let l:how = 'appended'
+
+    if s:mkgoal_replace && l:edited
+        " Refuse to overwrite work done while the job ran. Appending loses
+        " nothing; replacing would lose it and one undo would not bring it back.
+        call appendbufline(s:mkgoal_buf, '$', [''] + s:mkgoal_out)
+        echohl WarningMsg
+        echomsg printf('mkgoal: buffer was edited during the run, so APPENDED instead of replacing (%ds). %s',
+                    \  l:secs, join(l:v, '  '))
+        echohl None
+        return
+    elseif s:mkgoal_replace
+        call deletebufline(s:mkgoal_buf, s:mkgoal_lo, s:mkgoal_hi)
+        if s:mkgoal_lo <= 1
+            call setbufline(s:mkgoal_buf, 1, s:mkgoal_out)
+        else
+            call appendbufline(s:mkgoal_buf, s:mkgoal_lo - 1, s:mkgoal_out)
+        endif
+        let l:how = 'replaced'
+    else
+        " Append after the recorded range, or at the end if it no longer exists.
+        let l:at = l:edited ? '$' : s:mkgoal_hi
+        call appendbufline(s:mkgoal_buf, l:at, [''] + s:mkgoal_out)
+    endif
+
+    echomsg printf('mkgoal: %d lines %s after %ds. %s',
+                \  len(s:mkgoal_out), l:how, l:secs, join(l:v, '  '))
+endfunction
+
+function! s:MkgoalAsync(lo, hi, replace) abort
+    if s:mkgoal_job isnot v:null
+        echohl WarningMsg
+        echomsg 'mkgoal: a run is already in flight; wait for it or restart vim'
+        echohl None
+        return
+    endif
+    let l:lines = getline(a:lo, a:hi)
+    if empty(filter(copy(l:lines), '!empty(trim(v:val))'))
+        echohl ErrorMsg | echomsg 'mkgoal: nothing to send' | echohl None
+        return
+    endif
+    let s:mkgoal_out = []
+    let s:mkgoal_err = []
+    let s:mkgoal_buf = bufnr('%')
+    let s:mkgoal_tick = b:changedtick
+    let s:mkgoal_lo = a:lo
+    let s:mkgoal_hi = a:hi
+    let s:mkgoal_replace = a:replace
+    let s:mkgoal_t0 = localtime()
+
+    if has('nvim')
+        let s:mkgoal_job = jobstart(['mkgoal'], {
+                    \ 'stdout_buffered': v:true, 'stderr_buffered': v:true,
+                    \ 'on_stdout': {j,d,e -> extend(s:mkgoal_out, filter(d, '!empty(v:val)'))},
+                    \ 'on_stderr': {j,d,e -> extend(s:mkgoal_err, filter(d, '!empty(v:val)'))},
+                    \ 'on_exit':   {j,c,e -> s:MkgoalFinish(c)},
+                    \ })
+        call chansend(s:mkgoal_job, l:lines)
+        call chanclose(s:mkgoal_job, 'stdin')
+    else
+        let s:mkgoal_job = job_start(['mkgoal'], {
+                    \ 'in_io': 'pipe',
+                    \ 'out_cb': {ch,msg -> add(s:mkgoal_out, msg)},
+                    \ 'err_cb': {ch,msg -> add(s:mkgoal_err, msg)},
+                    \ 'exit_cb': {job,st -> s:MkgoalFinish(st)},
+                    \ })
+        let l:ch = job_getchannel(s:mkgoal_job)
+        for l:line in l:lines
+            call ch_sendraw(l:ch, l:line . "\n")
+        endfor
+        call ch_close_in(l:ch)
+    endif
+    " 150ms is fast enough to read as motion without burning noticeable CPU on a
+    " job that runs for a minute or two.
+    let s:mkgoal_tick_n = 0
+    let s:mkgoal_timer = timer_start(150, function('s:MkgoalTick'), {'repeat': -1})
+    echomsg printf('mkgoal: started on %d lines, measured 100s for a real intent -- keep working',
+                \  len(l:lines))
+endfunction
+
+"                                        lo            hi          replace?
+nnoremap <leader>g :call <SID>MkgoalAsync(1, line('$'), 1)<CR>
+xnoremap <leader>g :<C-u>call <SID>MkgoalAsync(line("'<"), line("'>"), 1)<CR>
+nnoremap <leader>G :call <SID>MkgoalAsync(1, line('$'), 0)<CR>
+xnoremap <leader>G :<C-u>call <SID>MkgoalAsync(line("'<"), line("'>"), 0)<CR>
