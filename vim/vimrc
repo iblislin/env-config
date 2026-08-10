@@ -411,31 +411,36 @@ tmap <C-W>c <C-W><C-C>
     " let g:snippetsEmu_key = "<C-B>"
 
     """"""""""""""""""""""""""""""""""""""""
-    " Nerd Tree
+    " Fern
     """"""""""""""""""""""""""""""""""""""""
     " How to use?
     "
-    " o       Open selected file, or expand selected dir
-    " go      Open selected file, but leave cursor in the NERDTree
+    " <CR>    Open selected file, or enter selected dir
+    " e       Open selected file in the previous window
+    " l       Open selected file, or expand selected dir
+    " h       Collapse the current node
     " t       Open selected node in a new tab
-    " T       Same as 't' but keep the focus on the current tab
-    " <tab>   Open selected file in a split window
-    " g<tab>  Same as <tab>, but leave the cursor on the NERDTree
-    " !       Execute the current file
-    " O       Recursively open the selected directory
-    " x       Close the current nodes parent
-    " X       Recursively close all children of the current node
-    " e       Open a netrw for the current dir
-    " q       Close the nerd tree split window
-    let g:NERDTreeWinSize = 22
-    let NERDTreeIgnore = ['\~$']  " vim temp files
-    let NERDTreeIgnore += ['\.pyc$', '\.pyo$', '^__pycache__$']  " python
-    let NERDTreeIgnore += ['\.beam$']  " erlang
-    let NERDTreeIgnore += ['\.a$', '\.so$', '\.o$']  " some native stuff
-    let NERDTreeIgnore += ['^cscope\.out$']
-    let g:NERDTreeDirArrowExpandable="+"
-    let g:NERDTreeDirArrowCollapsible="~"
-    nnoremap <leader>n :NERDTreeToggle<CR>
+    " s       Open selected file in a split window
+    " E       Open selected file in a side split window
+    " i       Reveal the file of the current buffer in the tree
+    " !       Toggle hidden files
+    " -       Mark / unmark the selected node
+    " N / K   Create a new file / dir
+    " c / m   Copy / move the selected node
+    " D       Trash the selected node
+    " <F5>    Reload the whole tree
+    " <leader>n again closes the drawer
+    let g:fern#drawer_width = 22
+    " g:fern#default_exclude is a single pattern matched against the node label
+    let s:fern_exclude = ['\~$']  " vim temp files
+    let s:fern_exclude += ['\.pyc$', '\.pyo$', '^__pycache__$']  " python
+    let s:fern_exclude += ['\.beam$']  " erlang
+    let s:fern_exclude += ['\.a$', '\.so$', '\.o$']  " some native stuff
+    let s:fern_exclude += ['^cscope\.out$']
+    let g:fern#default_exclude = join(s:fern_exclude, '\|')
+    let g:fern#renderer#default#collapsed_symbol = "|+ "
+    let g:fern#renderer#default#expanded_symbol = "|~ "
+    nnoremap <leader>n :Fern . -drawer -toggle<CR>
 
     """"""""""""""""""""""""""""""""""""""""
     " Nerd Commenter
@@ -730,7 +735,7 @@ tmap <C-W>c <C-W><C-C>
     "" misc
     Plug 'tpope/vim-surround'
     Plug 'Raimondi/delimitMate'
-    Plug 'scrooloose/nerdtree'
+    Plug 'lambdalisue/fern.vim'
     Plug 'tomtom/tcomment_vim'
     Plug 'kshenoy/vim-signature'
     if has('nvim')
@@ -821,14 +826,6 @@ autocmd FileType markdown  setlocal spell
 autocmd FileType gitcommit setlocal spell
 
 
-
-if &rtp =~ 'nerdtree'
-    autocmd VimEnter * NERDTree | wincmd p
-    autocmd BufWinEnter * if &buftype != 'quickfix' && getcmdwintype() == '' | silent NERDTreeMirror | endif
-    autocmd BufEnter * if tabpagenr('$') == 1 && winnr('$') == 1 && exists('b:NERDTree') && b:NERDTree.isTabTree() | call feedkeys(":quit\<CR>:\<BS>") | endif
-    autocmd BufEnter * if winnr() == winnr('h') && bufname('#') =~ 'NERD_tree_\d\+' && bufname('%') !~ 'NERD_tree_\d\+' && winnr('$') > 1 |
-                \ let buf=bufnr() | buffer# | execute "normal! \<C-W>w" | execute 'buffer'.buf | endif
-endif
 
 if exists("*LspAddServer")
     autocmd VimEnter * call LspAddServer(lspServers)
