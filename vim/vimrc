@@ -601,18 +601,10 @@ tmap <C-W>c <C-W><C-C>
         autocmd FileType fern      call s:fern_nerdtree_init_buffer()
     augroup END
 
-
     """"""""""""""""""""""""""""""""""""""""
     " Nerd Commenter
     """"""""""""""""""""""""""""""""""""""""
     " let g:NERDMapleader = ";c"
-
-    """"""""""""""""""""""""""""""""""""""""
-    " SuperTab
-    """"""""""""""""""""""""""""""""""""""""
-    let g:SuperTabDefaultCompletionType = "<c-n>"
-    let g:SuperTabContextDefaultCompletionType = "<c-n>"
-    let g:SuperTabCrMapping = 1
 
     """"""""""""""""""""""""""""""""""""""""
     " OmniCppComplete
@@ -660,6 +652,13 @@ tmap <C-W>c <C-W><C-C>
     """"""""""""""""""""""""""""""""""""""""
     " jedi-vim
     """"""""""""""""""""""""""""""""""""""""
+    " Completion belongs to the LSP client alone, so jedi's is switched off
+    " rather than jedi being removed: it is still maintained upstream and its
+    " goto/doc commands are harmless, but two completion sources cannot coexist
+    " without the menu fighting itself.  popup_on_dot and show_call_signatures
+    " were already 0 here, which is why member and signature hints appeared
+    " broken -- they were off, not failing.
+    let g:jedi#completions_enabled = 0
     let g:jedi#popup_select_first = 0
     let g:jedi#popup_on_dot = 0
     let g:jedi#use_tabs_not_buffers = 1
@@ -695,11 +694,6 @@ tmap <C-W>c <C-W><C-C>
     let g:UltiSnipsSnippetsDir = '~/.vim/plugged/vim-snippets/UltiSnips'
     snoremap <silent> <s-tab> <Esc>:call UltiSnips#JumpBackwards()<cr>
     inoremap <c-x><c-k> <c-x><c-k>
-
-    """"""""""""""""""""""""""""""""""""""""
-    " vim-autocomplpop
-    """"""""""""""""""""""""""""""""""""""""
-    let g:AutoComplPopDontSelectFirst = 1
 
     """"""""""""""""""""""""""""""""""""""""
     " Renumber
@@ -801,7 +795,9 @@ tmap <C-W>c <C-W><C-C>
     "  nvim-completion-manager
     """"""""""""""""""""""""""""""""""""""""
     if has('nvim')
-        inoremap <expr> <CR>    (pumvisible() ? "\<c-y>" : "\<CR>")
+        " inoremap <expr> <CR>    (pumvisible() ? "\<c-y>" : "\<CR>")
+        inoremap <expr> <CR>    (pumvisible() ? "\<c-y>\<cr>" : "\<CR>")
+
         inoremap <expr> <Tab>   (pumvisible() ? "\<c-n>" : "\<Tab>")
         inoremap <expr> <S-Tab> (pumvisible() ? "\<c-p>" : "\<S-Tab>")
     endif
@@ -852,6 +848,66 @@ tmap <C-W>c <C-W><C-C>
     let g:JuliaFormatter_options = {'indent': 2}
 
     """"""""""""""""""""""""""""""""""""""""
+    "  lsp
+    """"""""""""""""""""""""""""""""""""""""
+    " basedpyright is listed FIRST on purpose.  With several servers attached to
+    " one buffer this client hands completion / hover / signature to the first
+    " server that supports them and only *merges* diagnostics across all of them
+    " (see |lsp-multiple-servers|), so basedpyright owns the intelligence and
+    " ruff adds lint diagnostics on top.
+    "
+    " workspaceConfig is sent as "settings" in workspace/didChangeConfiguration
+    " and also answers workspace/configuration -- that is where the interpreter
+    " has to be named.  It matters here more than usual: this box's python3 is
+    " ~/venv/py3 (3.12) while /usr/bin/python3 is 3.14, so a server left to guess
+    " picks the system one and reports every third-party import as unresolved,
+    " which looks exactly like the jedi-era breakage and is not one.
+    let lspServers = [
+    \     #{
+    \        name: 'jdtls',
+    \        filetype: ['java'],
+    \        path: '/usr/bin/jdtls',
+    \        args: []
+    \      },
+    \     #{
+    \        name: 'basedpyright',
+    \        filetype: ['python'],
+    \        path: expand('~/venv/py3/bin/basedpyright-langserver'),
+    \        args: ['--stdio'],
+    \        syncInit: v:true,
+    \        workspaceConfig: #{
+    \           python: #{
+    \              pythonPath: expand('~/venv/py3/bin/python3')
+    \           },
+    \           basedpyright: #{
+    \              analysis: #{
+    \                 diagnosticMode: 'openFilesOnly',
+    \                 typeCheckingMode: 'standard'
+    \              }
+    \           }
+    \        }
+    \      },
+    \     #{
+    \        name: 'ruff',
+    \        filetype: ['python'],
+    \        path: expand('~/venv/py3/bin/ruff'),
+    \        args: ['server']
+    \      }
+    \   ]
+
+    " omniComplete is what points &omnifunc at g:LspOmniFunc, so <C-x><C-o> is a
+    " manual trigger for the same source that autoComplete pops up on its own.
+    " Without it &omnifunc stays empty and CTRL-X CTRL-O does nothing.
+    let lspOpts = #{
+    \     autoComplete: v:true,
+    \     omniComplete: v:true,
+    \     autoHighlightDiags: v:true,
+    \     completionMatcher: 'fuzzy',
+    \     showSignature: v:true,
+    \     showDiagWithVirtualText: v:true
+    \   }
+
+    """"""""""""""""""""""""""""""""""""""""
     "  vim-plug
     """"""""""""""""""""""""""""""""""""""""
     call plug#begin('~/.vim/plugged')
@@ -864,7 +920,6 @@ tmap <C-W>c <C-W><C-C>
     " js
     Plug 'othree/yajs.vim', {'for': 'javascript'}
     Plug 'othree/javascript-libraries-syntax.vim', {'for': 'javascript'}
-    Plug 'myhere/vim-nodejs-complete', {'for': 'javascript'}
     Plug 'statianzo/vim-jade'
 
     " typescript
@@ -875,20 +930,19 @@ tmap <C-W>c <C-W><C-C>
     Plug 'StanAngeloff/php.vim', {'for': 'php'}
 
     " utils
-    "" completion
+    "" completion -- exactly ONE owner: yegappan/lsp.  Written in Vim9 script,
+    "" so it is vim-only, hence the guard.
+    ""
+    "" Deliberately gone from here: supertab and AutoComplPop, which both served
+    "" plain <c-n> buffer-keyword completion and popped it up automatically, so
+    "" they competed with (and visually beat) any semantic source; the nvim-only
+    "" ncm2; the long-dead autozimu/LanguageClient-neovim; myhere/vim-nodejs-complete
+    "" and the commented myint/clang-complete, both omnifunc providers superseded
+    "" by a language server.  jedi-vim stays but with completions_enabled = 0.
     if !has('nvim')
-        " Plug 'yegappan/lsp'
-        Plug 'ervandew/supertab'
-        Plug 'vim-scripts/AutoComplPop'
+        Plug 'yegappan/lsp'
     endif
     Plug 'SirVer/ultisnips' | Plug 'iblis17/vim-snippets'
-    if has('nvim')
-        Plug 'roxma/nvim-completion-manager'
-    endif
-    Plug 'autozimu/LanguageClient-neovim', {
-        \ 'branch': 'next',
-        \ 'do': 'bash install.sh',
-        \ 'for': 'julia'}
     "" git
     Plug 'tpope/vim-fugitive'
     Plug 'airblade/vim-gitgutter'
@@ -935,7 +989,6 @@ tmap <C-W>c <C-W><C-C>
     Plug 'Glench/Vim-Jinja2-Syntax'
 
     " c/cpp
-    " Plug 'myint/clang-complete', {'for': ['c', 'opencl', 'cpp']}
     Plug 'octol/vim-cpp-enhanced-highlight'
     "" opencl
     Plug 'petRUShka/vim-opencl', {'for': ['c', 'opencl', 'cpp']}
@@ -1042,9 +1095,27 @@ if &rtp =~ 'fern'
     autocmd TabEnter * nested call timer_start(0, { -> s:FernDrawer() })
 endif
 
-if exists("*LspAddServer")
-    autocmd VimEnter * call LspAddServer(lspServers)
-    autocmd VimEnter * call LspOptionsSet(lspOpts)
+" Two things made the previous form a no-op, and between them they are why the
+" java entry above never did anything and why the Plug line got commented out:
+"
+"   1. plugin/lsp.vim is sourced by vim AFTER this vimrc finishes, so
+"      exists('*LspAddServer') is ALWAYS false at this point.  The guard
+"      therefore registered nothing, silently.
+"   2. the plugin declares `def g:LspAddServer()` / `def g:LspOptionsSet()`, so
+"      the names carry the g: prefix.
+"
+" VimEnter runs after plugin loading, which is late enough for both.
+if &rtp =~ 'plugged/lsp'
+    function! s:LspSetup() abort
+        if !exists('*g:LspAddServer')
+            echomsg 'lsp: g:LspAddServer is missing, no servers registered'
+            return
+        endif
+        call g:LspOptionsSet(g:lspOpts)
+        call g:LspAddServer(g:lspServers)
+    endfunction
+
+    autocmd VimEnter * call s:LspSetup()
 endif
 
 " mkgoal: rough intent -> a validated /goal condition

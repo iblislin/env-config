@@ -27,11 +27,6 @@ endif
 autocmd BufWritePre *.py :call StripTrailingWhitespaces()
 
 """"""""""""""""""""""""""""""""""""""""""""""
-" SuperTab
-""""""""""""""""""""""""""""""""""""""""""""""
-let g:SuperTabDefaultCompletionType = "<c-x><c-o>"
-
-""""""""""""""""""""""""""""""""""""""""""""""
 " vim-slime
 """"""""""""""""""""""""""""""""""""""""""""""
 let g:slime_vimterminal_cmd = "python"
