@@ -1213,3 +1213,79 @@ nnoremap <leader>g :call <SID>MkgoalAsync(1, line('$'), 1)<CR>
 xnoremap <leader>g :<C-u>call <SID>MkgoalAsync(line("'<"), line("'>"), 1)<CR>
 nnoremap <leader>G :call <SID>MkgoalAsync(1, line('$'), 0)<CR>
 xnoremap <leader>G :<C-u>call <SID>MkgoalAsync(line("'<"), line("'>"), 0)<CR>
+
+" ,h -- pull the previous phase's handoff block into this buffer.
+"
+" mkgoal starts a fresh `claude -p`: it loads the global CLAUDE.md, the cwd's
+" project CLAUDE.md and skills, and reads whatever it wants with tools -- but
+" never the memory files and never the previous session's conversation. So a
+" second phase of related work gets drafted blind to what the first established.
+" The writing-goal-conditions skill closes that by making the last done-clause
+" of each phase append its successor's intent to the file below; this reads it
+" back. /copy is the other route to the same text when the block is fenced.
+function! s:MkgoalHandoffPath() abort
+    " Derived from vim's cwd, NOT from the current buffer's path -- deliberate.
+    " Ctrl-G opens a scratch file under /tmp while leaving cwd at the session's
+    " directory, so the buffer sits outside the repo and only cwd identifies it.
+    " `autochdir` is off in this file, which is what keeps that true.
+    let l:root = trim(system('git rev-parse --show-toplevel 2>/dev/null'))
+    if v:shell_error != 0 || empty(l:root)
+        return ''
+    endif
+    " Keyed on the repo, not the session: a session id is the one thing another
+    " process cannot derive. /home/iblis/env-config -> -home-iblis-env-config,
+    " matching Claude Code's own projects/-home-iblis naming.
+    return expand('~/.cache/mkgoal/') . substitute(l:root, '/', '-', 'g')
+                \ . '/next-intent.md'
+endfunction
+
+function! s:MkgoalHandoff() abort
+    let l:path = s:MkgoalHandoffPath()
+    if empty(l:path)
+        echohl ErrorMsg
+        echomsg 'mkgoal: not inside a git repo, so no handoff path to derive'
+        echohl None
+        return
+    endif
+    if !filereadable(l:path)
+        echohl WarningMsg
+        echomsg printf('mkgoal: no handoff written yet -- %s',
+                    \  fnamemodify(l:path, ':~'))
+        echohl None
+        return
+    endif
+
+    " The file is APPENDED to, one dated `## ` block per phase, so take only the
+    " LAST block. Reading the whole file would drag every earlier phase into the
+    " intent; the full file is the chain's audit trail, meant to be read with
+    " :view rather than sent to mkgoal.
+    let l:lines = readfile(l:path)
+    let l:start = -1
+    for l:i in range(len(l:lines))
+        if l:lines[l:i] =~# '^## '
+            let l:start = l:i
+        endif
+    endfor
+    let l:block = l:start < 0 ? l:lines : l:lines[l:start :]
+    while !empty(l:block) && empty(trim(l:block[-1]))
+        call remove(l:block, -1)
+    endwhile
+    if empty(l:block)
+        echohl WarningMsg
+        echomsg 'mkgoal: handoff file has no content'
+        echohl None
+        return
+    endif
+
+    " Ctrl-G hands us an empty buffer, and append() would leave a blank first
+    " line in exactly that common case.
+    if line('$') == 1 && empty(getline(1))
+        call setline(1, l:block)
+    else
+        call append(line('.'), l:block)
+    endif
+    echomsg printf('mkgoal: read %d lines -- %s', len(l:block),
+                \  strcharpart(trim(l:block[0]), 0, 60))
+endfunction
+
+nnoremap <leader>h :call <SID>MkgoalHandoff()<CR>
