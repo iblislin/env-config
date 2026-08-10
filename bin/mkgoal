@@ -15,6 +15,11 @@ set -uo pipefail
 PROG="$(basename "$0")"
 CLAUDE="${MKGOAL_CLAUDE:-claude}"
 SENTINEL='---MKGOAL-VERDICT---'
+# Drafting model/effort are overridable so they can be benchmarked without
+# editing this file. The judges are NOT affected -- the skill pins them to haiku
+# through the Agent tool, deliberately, so the dry run matches the live evaluator.
+MODEL="${MKGOAL_MODEL:-opus}"
+EFFORT="${MKGOAL_EFFORT:-low}"
 
 usage() {
     cat <<EOF
@@ -58,7 +63,7 @@ fi
 # the skill pins it to haiku via the Agent tool's model parameter, verified to
 # actually take effect, and deliberately leaves the judge's effort unset so it
 # stays close to what the live /goal evaluator does.
-reply="$("$CLAUDE" -p --model opus --effort low --no-session-persistence "$(printf '%s\n\n%s' \
+reply="$("$CLAUDE" -p --model "$MODEL" --effort "$EFFORT" --no-session-persistence "$(printf '%s\n\n%s' \
     'Use the writing-goal-conditions skill to turn the intent below into a validated /goal condition. Follow that skill'"'"'s output shape exactly: the /goal condition first, then the sentinel line, then the verdict block. No preamble.' \
     "$intent")" < /dev/null)" || {
     printf '%s: claude invocation failed\n' "$PROG" >&2
