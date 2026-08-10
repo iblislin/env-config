@@ -506,6 +506,101 @@ tmap <C-W>c <C-W><C-C>
         autocmd FileType fern call s:init_fern()
     augroup END
 
+    " Colours.  NERDTree hardcoded none of its own: every one of its groups is a
+    " `hi def link` into a colourscheme group (nerdtree syntax/nerdtree.vim:63-95),
+    " so its colours came from `iblis`, and mimicking it means relinking fern's
+    " groups to the same targets rather than naming a colour here.  fern is built
+    " the same way and documents `User FernHighlight` for exactly this.
+    "
+    " Identical by default and deliberately left alone: the dir name and its +/~
+    " marker (NERDTreeDir / NERDTreeOpenable / NERDTreeClosable -> Directory vs
+    " fern FernBranchText / FernBranchSymbol -> Directory) and the file name
+    " (NERDTreeFile resolves to `cleared`, fern FernLeafText -> NONE).
+    function! s:fern_nerdtree_highlight() abort
+        " NERDTreeCWD -> Statement; fern defaults its root to Directory.
+        highlight link FernRootSymbol Statement
+        highlight link FernRootText   Statement
+        " NERDTreeDirSlash -> Identifier, NERDTreeExecFile -> Title,
+        " NERDTreeLinkFile / NERDTreeLinkDir -> Macro.
+        highlight default link FernNerdTreeDirSlash Identifier
+        highlight default link FernNerdTreeExecFile Title
+        highlight default link FernNerdTreeSymlink  Macro
+    endfunction
+
+    " fern exposes neither the executable bit nor symlink-ness: its file provider
+    " calls getftype() only to test existence and isdirectory() for the branch
+    " status, and the rendered label carries no NERDTree-style `*` or `-> target`
+    " to match on.  So stat each visible node and match on its name.
+    "
+    " Keyed on the name text rather than matchaddpos() on a line number: a
+    " text-keyed syntax match survives expand/collapse shifting the lines, and it
+    " is what synID() reports, whereas a match added by matchaddpos() is invisible
+    " to it.  The cost is that two files sharing a basename in different dirs
+    " cannot be told apart.
+    function! s:fern_nerdtree_syntax() abort
+        syntax match FernNerdTreeDirSlash #/# contained containedin=FernBranchText
+    endfunction
+
+    " Rebuilt on every redraw rather than once from FernSyntax: that event fires
+    " while the buffer is still being created, when b:fern.visible_nodes is empty,
+    " so no name is known yet.  Measured before this was split out -- the loop ran
+    " zero times and every entry stayed FernLeafText, symlink and exec included.
+    function! s:fern_nerdtree_stat_syntax(...) abort
+        if !exists('b:fern')
+            return
+        endif
+        " b:changedtick advances whenever fern rewrites the buffer, so this is
+        " both the "did the tree change" test and what makes CursorMoved cheap
+        " enough to poll on: every ordinary cursor move returns here.
+        if get(b:, 'fern_nerdtree_tick', -1) ==# b:changedtick
+            return
+        endif
+        let b:fern_nerdtree_tick = b:changedtick
+        silent! syntax clear FernNerdTreeExecFile
+        silent! syntax clear FernNerdTreeSymlink
+        for l:node in b:fern.visible_nodes
+            let l:path = get(l:node, '_path', '')
+            if empty(l:path)
+                continue
+            endif
+            let l:type = getftype(l:path)
+            if l:type ==# 'link'
+                let l:group = 'FernNerdTreeSymlink'
+            elseif l:type ==# 'file' && getfperm(l:path) =~# 'x'
+                let l:group = 'FernNerdTreeExecFile'
+            else
+                continue
+            endif
+            execute printf(
+                        \ 'syntax match %s /\V%s/ contained containedin=%s',
+                        \ l:group,
+                        \ escape(l:node.label, '/\'),
+                        \ 'FernLeafText,FernBranchText')
+        endfor
+    endfunction
+
+    " fern#hook#add('viewer:redraw', ...) was tried here first and measured NOT
+    " to invoke the callback at all: with the tree loaded and 6 visible nodes,
+    " `syntax list FernNerdTreeExecFile` showed the group carrying its highlight
+    " link but no match pattern, while adding the identical match by hand in the
+    " same session flipped synID from FernLeafText to FernNerdTreeExecFile.  So
+    " the trigger is buffer-local autocmds plus the changedtick guard instead.
+    function! s:fern_nerdtree_init_buffer() abort
+        augroup fern_nerdtree_colours_buffer
+            autocmd! * <buffer>
+            autocmd CursorMoved,WinEnter,BufWinEnter <buffer>
+                        \ call s:fern_nerdtree_stat_syntax()
+        augroup END
+        call s:fern_nerdtree_stat_syntax()
+    endfunction
+
+    augroup fern_nerdtree_colours
+        autocmd!
+        autocmd User FernHighlight call s:fern_nerdtree_highlight()
+        autocmd User FernSyntax    call s:fern_nerdtree_syntax()
+        autocmd FileType fern      call s:fern_nerdtree_init_buffer()
+    augroup END
+
 
     """"""""""""""""""""""""""""""""""""""""
     " Nerd Commenter
