@@ -431,6 +431,11 @@ tmap <C-W>c <C-W><C-C>
     " <F5>    Reload the whole tree
     " <leader>n again closes the drawer
     let g:fern#drawer_width = 22
+    " One drawer for the whole vim instance instead of one per tabpage, so the
+    " expanded state is shared across tabs -- the NERDTreeMirror equivalent.
+    " fern supports this explicitly: viewer/auto_duplication.vim opts out of its
+    " "only one window per fern buffer" rule for exactly this combination.
+    let g:fern#disable_drawer_tabpage_isolation = 1
     " g:fern#default_exclude is a single pattern matched against the node label
     let s:fern_exclude = ['\~$']  " vim temp files
     let s:fern_exclude += ['\.pyc$', '\.pyo$', '^__pycache__$']  " python
@@ -848,10 +853,17 @@ if &rtp =~ 'fern'
         Fern . -drawer -stay
     endfunction
 
+    " timer_start(0) defers the open by one event-loop tick, OUT of the autocmd
+    " context.  Opening it synchronously inside TabEnter silently does nothing
+    " when the tab was created from the drawer window itself -- which is exactly
+    " what fern's `t` mapping does.  fern's own debug log shows the
+    " `topleft vsplit fern://drawer:0/...` running and the buffer never
+    " initialising; measured sync -> no drawer, deferred -> drawer, same tab.
+    "
     " nested: :Fern relies on its own BufReadCmd to render, and autocmds do not
     " fire from inside an autocmd without it.
-    autocmd VimEnter * nested call s:FernDrawer()
-    autocmd TabEnter * nested call s:FernDrawer()
+    autocmd VimEnter * nested call timer_start(0, { -> s:FernDrawer() })
+    autocmd TabEnter * nested call timer_start(0, { -> s:FernDrawer() })
 endif
 
 if exists("*LspAddServer")
