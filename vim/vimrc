@@ -447,6 +447,49 @@ tmap <C-W>c <C-W><C-C>
     let g:fern#renderer#default#expanded_symbol = "|~ "
     nnoremap <leader>n :Fern . -drawer -toggle<CR>
 
+    " NERDTree muscle memory.  Mostly fern's own wiki, "Define NERDTree like
+    " mappings"; three <Plug> names there are stale as of fern 3bbca3c and are
+    " corrected here -- `fern-action-hidden:toggle` (not `-toggle`) and the
+    " `action-` prefix on `open-or-expand`.  A nmap to a <Plug> that does not
+    " exist raises no error, the key just silently does nothing.
+    function! s:init_fern() abort
+        " The whole point: in NERDTree <CR> and o toggle a dir open and NEVER
+        " change the root.  fern's default <CR> is open-or-enter, which does
+        " change it -- and since the root is part of the drawer's buffer name,
+        " that is also what desynchronises the drawer between tabs.
+        nmap <buffer><nowait> <CR> <Plug>(fern-action-open-or-expand)
+        nmap <buffer><nowait> o    <Plug>(fern-action-open-or-expand)
+        nmap <buffer> go <Plug>(fern-action-open:edit)<C-w>p
+        nmap <buffer> t  <Plug>(fern-action-open:tabedit)
+        nmap <buffer> T  <Plug>(fern-action-open:tabedit)gT
+        " NERDTree's i/s are splits, so reveal loses its default `i` slot.
+        nmap <buffer> i  <Plug>(fern-action-open:split)
+        nmap <buffer> gi <Plug>(fern-action-open:split)<C-w>p
+        nmap <buffer> s  <Plug>(fern-action-open:vsplit)
+        nmap <buffer> gs <Plug>(fern-action-open:vsplit)<C-w>p
+        nmap <buffer> O  <Plug>(fern-action-expand-tree)
+        " Not exact: NERDTree's x closes the node's PARENT, fern collapses the
+        " node itself.
+        nmap <buffer> x  <Plug>(fern-action-collapse)
+        " Root movement keeps NERDTree's own keys instead of riding on <CR>.
+        nmap <buffer> C  <Plug>(fern-action-enter)
+        nmap <buffer> u  <Plug>(fern-action-leave)
+        nmap <buffer> ma <Plug>(fern-action-new-path)
+        nmap <buffer> P  gg
+        nmap <buffer> r  <Plug>(fern-action-reload)
+        nmap <buffer> R  gg<Plug>(fern-action-reload)<C-o>
+        nmap <buffer> cd <Plug>(fern-action-cd)
+        nmap <buffer> CD gg<Plug>(fern-action-cd)<C-o>
+        nmap <buffer> I  <Plug>(fern-action-hidden:toggle)
+        nmap <buffer> q  :<C-u>quit<CR>
+    endfunction
+
+    augroup fern_nerdtree_keys
+        autocmd!
+        autocmd FileType fern call s:init_fern()
+    augroup END
+
+
     """"""""""""""""""""""""""""""""""""""""
     " Nerd Commenter
     """"""""""""""""""""""""""""""""""""""""
