@@ -453,12 +453,26 @@ tmap <C-W>c <C-W><C-C>
     " `action-` prefix on `open-or-expand`.  A nmap to a <Plug> that does not
     " exist raises no error, the key just silently does nothing.
     function! s:init_fern() abort
-        " The whole point: in NERDTree <CR> and o toggle a dir open and NEVER
+        " The whole point: in NERDTree <CR> and o TOGGLE a dir -- expand when
+        " collapsed, fold it back when already expanded (nerdtree's
+        " tree_dir_node.vim activate() calls toggleOpen()) -- and they NEVER
         " change the root.  fern's default <CR> is open-or-enter, which does
-        " change it -- and since the root is part of the drawer's buffer name,
-        " that is also what desynchronises the drawer between tabs.
-        nmap <buffer><nowait> <CR> <Plug>(fern-action-open-or-expand)
-        nmap <buffer><nowait> o    <Plug>(fern-action-open-or-expand)
+        " change it, and that is also what desynchronises the drawer between
+        " tabs since the root is part of the drawer's buffer name.
+        "
+        " fern registers no toggle action for branches, only expand and
+        " collapse, so the choice is made per node status.  fern#smart#leaf
+        " dispatches on STATUS_NONE / STATUS_COLLAPSED / STATUS_EXPANDED; the
+        " wiki's version of this passes collapse for the leaf slot, which would
+        " fold the parent instead of opening the file under the cursor.
+        nmap <buffer><expr> <Plug>(fern-my-nerdtree-activate)
+                    \ fern#smart#leaf(
+                    \   "\<Plug>(fern-action-open:edit)",
+                    \   "\<Plug>(fern-action-expand:stay)",
+                    \   "\<Plug>(fern-action-collapse)",
+                    \ )
+        nmap <buffer><nowait> <CR> <Plug>(fern-my-nerdtree-activate)
+        nmap <buffer><nowait> o    <Plug>(fern-my-nerdtree-activate)
         nmap <buffer> go <Plug>(fern-action-open:edit)<C-w>p
         nmap <buffer> t  <Plug>(fern-action-open:tabedit)
         nmap <buffer> T  <Plug>(fern-action-open:tabedit)gT
@@ -467,7 +481,10 @@ tmap <C-W>c <C-W><C-C>
         nmap <buffer> gi <Plug>(fern-action-open:split)<C-w>p
         nmap <buffer> s  <Plug>(fern-action-open:vsplit)
         nmap <buffer> gs <Plug>(fern-action-open:vsplit)<C-w>p
-        nmap <buffer> O  <Plug>(fern-action-expand-tree)
+        " :stay, not the default :in alias -- NERDTree's O leaves the cursor on
+        " the node, and a cursor that walks into the tree breaks the <CR> toggle
+        " above by pointing it at a different node on the second press.
+        nmap <buffer> O  <Plug>(fern-action-expand-tree:stay)
         " Not exact: NERDTree's x closes the node's PARENT, fern collapses the
         " node itself.
         nmap <buffer> x  <Plug>(fern-action-collapse)
