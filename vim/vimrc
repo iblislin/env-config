@@ -841,6 +841,27 @@ if &rtp =~ 'fern'
     " smart-quit (see g:fern#disable_drawer_smart_quit) quits vim when the
     " drawer is the only thing left -- natively, which is exactly what the old
     " `feedkeys(":quit\<CR>")` autocmd hand-rolled and what made it throw E38.
+    " The root an existing drawer is already showing, or '.' if there is none.
+    "
+    " Passing '.' unconditionally is what made new tabs look "not synced": the
+    " root is part of the drawer's buffer name, and <CR> (fern-action-enter)
+    " changes the root, so after entering a dir the live drawer is
+    " fern://drawer:0/file:///home/iblis/env-config while ':Fern .' rebuilds
+    " fern://drawer:0/file:///home/iblis -- a different buffer showing the old
+    " tree.  Reusing the root reproduces the same buffer name, hence the same
+    " buffer.  Note `l` (expand) does NOT change the root, so it hides this.
+    function! s:FernRoot() abort
+        for l:i in range(1, tabpagenr('$'))
+            for l:w in gettabinfo(l:i)[0].windows
+                let l:name = bufname(winbufnr(l:w))
+                if l:name =~# '^fern://drawer'
+                    return fern#fri#parse(l:name).path
+                endif
+            endfor
+        endfor
+        return '.'
+    endfunction
+
     function! s:FernDrawer() abort
         " At most one drawer per tab.  Re-running :Fern in a tab that already
         " has one re-edits the buffer, which reloads the tree and loses the
@@ -850,7 +871,7 @@ if &rtp =~ 'fern'
                 return
             endif
         endfor
-        Fern . -drawer -stay
+        execute printf('Fern %s -drawer -stay', fnameescape(s:FernRoot()))
     endfunction
 
     " timer_start(0) defers the open by one event-loop tick, OUT of the autocmd
