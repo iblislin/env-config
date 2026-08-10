@@ -83,6 +83,58 @@ else
     fail "malformed reply produced rc=$mrc stdout='$mout'"
 fi
 
+# A conversational preamble before the /goal line must be dropped, not piped
+# into the buffer. Invoking the skill as a slash command produced exactly this
+# on 2026-08-10, so the wrapper extracts from the first /goal line onward.
+preamble="$(mktemp)"
+trap 'rm -f "$stub" "$failstub" "$nosentinel" "$preamble"' EXIT
+cat > "$preamble" <<'STUB'
+#!/usr/bin/env bash
+printf 'Both judges ruled correctly.\n\n/goal the real condition\n---MKGOAL-VERDICT---\nSTATUS=pass\nrewrites=0\njudge_model=claude-haiku-4-5-20251001\nfine\n'
+STUB
+chmod +x "$preamble"
+pout="$(MKGOAL_CLAUDE="$preamble" "$MKGOAL" <<< "x" 2>/dev/null)"
+if [ "$pout" = "/goal the real condition" ]; then
+    pass "a preamble before the /goal line is dropped from stdout"
+else
+    fail "preamble leaked into stdout: '$pout'"
+fi
+
+noglob="$(mktemp)"
+trap 'rm -f "$stub" "$failstub" "$nosentinel" "$preamble" "$noglob"' EXIT
+printf '#!/usr/bin/env bash\nprintf "chatter only, no condition\\n---MKGOAL-VERDICT---\\nSTATUS=pass\\n"\n' > "$noglob"
+chmod +x "$noglob"
+gout="$(MKGOAL_CLAUDE="$noglob" "$MKGOAL" <<< "x" 2>/dev/null)"; grc=$?
+if [ "$grc" -eq 1 ] && [ -z "$gout" ]; then
+    pass "a reply with no /goal line exits 1 and emits nothing"
+else
+    fail "missing /goal line gave rc=$grc stdout='$gout'"
+fi
+
+# The judge-model check: a run judged by something other than haiku is stricter
+# than the live evaluator, so it can pass a condition that then stalls a real
+# goal. The warning must fire on absence, and must not fire on a good run.
+werr="$(MKGOAL_CLAUDE="$stub" "$MKGOAL" <<< "x" 2>&1 >/dev/null)"
+if printf '%s' "$werr" | grep -q 'WARNING: judges were not confirmed'; then
+    pass "missing judge_model raises the warning"
+else
+    fail "no warning when judge_model is absent"
+fi
+
+haikustub="$(mktemp)"
+trap 'rm -f "$stub" "$failstub" "$nosentinel" "$haikustub"' EXIT
+cat > "$haikustub" <<'STUB'
+#!/usr/bin/env bash
+printf '/goal a proven draft\n---MKGOAL-VERDICT---\nSTATUS=pass\nrewrites=0\njudge_model=claude-haiku-4-5-20251001\nboth judged correctly\n'
+STUB
+chmod +x "$haikustub"
+herr="$(MKGOAL_CLAUDE="$haikustub" "$MKGOAL" <<< "x" 2>&1 >/dev/null)"
+if printf '%s' "$herr" | grep -q 'WARNING'; then
+    fail "warning fired even though judge_model names haiku: $herr"
+else
+    pass "a haiku judge_model raises no warning"
+fi
+
 if [ "$fails" -ne 0 ]; then
     printf '\n%d check(s) failed\n' "$fails"
     exit 1

@@ -52,7 +52,13 @@ fi
 # above, and claude waits 3s for stdin before warning about it on stderr.
 # Without this, every invocation pays that delay and leaks a warning into the
 # verdict block.
-reply="$("$CLAUDE" -p --no-session-persistence "$(printf '%s\n\n%s' \
+# Drafting: opus for the repo knowledge, but --effort low because this is
+# template-following rather than deep reasoning, and the session default here is
+# xhigh (which made the first runs take minutes). The judge is NOT affected --
+# the skill pins it to haiku via the Agent tool's model parameter, verified to
+# actually take effect, and deliberately leaves the judge's effort unset so it
+# stays close to what the live /goal evaluator does.
+reply="$("$CLAUDE" -p --model opus --effort low --no-session-persistence "$(printf '%s\n\n%s' \
     'Use the writing-goal-conditions skill to turn the intent below into a validated /goal condition. Follow that skill'"'"'s output shape exactly: the /goal condition first, then the sentinel line, then the verdict block. No preamble.' \
     "$intent")" < /dev/null)" || {
     printf '%s: claude invocation failed\n' "$PROG" >&2
@@ -66,8 +72,30 @@ if ! printf '%s\n' "$reply" | grep -qF -- "$SENTINEL"; then
     exit 1
 fi
 
-printf '%s\n' "$reply" | sed "/^${SENTINEL}\$/,\$d"
+# Extract from the first `/goal ` line rather than from the top of the reply, so
+# a conversational preamble is dropped instead of landing in the user's buffer.
+# Arguing with the model about preambles is fragile: invoking the skill as
+# `/writing-goal-conditions <intent>` loses this wrapper's own "No preamble"
+# reinforcement and did emit one (2026-08-10), while the prose form did not.
+# Being resilient here makes the invocation style a free choice.
+if ! printf '%s\n' "$reply" | grep -q '^/goal '; then
+    printf '%s: reply contained no /goal line:\n%s\n' "$PROG" "$reply" >&2
+    exit 1
+fi
+printf '%s\n' "$reply" | sed -n "/^\/goal /,\$p" | sed "/^${SENTINEL}\$/,\$d"
 printf '%s\n' "$reply" | sed -n "/^${SENTINEL}\$/,\$p" >&2
+
+# The skill pins the judges to haiku via the Agent tool and reports what they
+# said they were. Verify it rather than trusting it: a run judged by opus is
+# stricter than the live evaluator, so it would pass conditions that then stall
+# a real goal -- the exact failure the dry run exists to prevent.
+if ! printf '%s\n' "$reply" | grep -qi '^judge_model=.*haiku'; then
+    jm="$(printf '%s\n' "$reply" | grep -i '^judge_model=' || true)"
+    printf '%s: WARNING: judges were not confirmed to be haiku (%s).\n' \
+        "$PROG" "${jm:-no judge_model line at all}" >&2
+    printf '%s:          a stricter judge than the live evaluator can pass a\n' "$PROG" >&2
+    printf '%s:          condition that then stalls. Treat this draft as unproven.\n' "$PROG" >&2
+fi
 
 printf '%s\n' "$reply" | grep -q '^STATUS=pass$' && exit 0
 exit 1
