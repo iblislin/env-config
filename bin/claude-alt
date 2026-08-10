@@ -1,0 +1,12 @@
+#!/bin/sh
+# Launch Claude Code on the secondary account.
+#
+# This exists as a real executable rather than a zsh function because a
+# function is invisible to every non-shell caller: vim's `:!`, `timeout`,
+# `xargs`, cron, and Claude Code hooks all run a non-interactive shell that
+# never sources ~/.zshlocal. The symptom is `claude-alt: command not found`
+# from inside a script while the same name works fine when typed by hand.
+#
+# Credentials, .claude.json and per-account state live under the alt config
+# dir; only that one variable differs from a normal launch.
+exec env CLAUDE_CONFIG_DIR="$HOME/.config/claude-alt" claude "$@"
