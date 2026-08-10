@@ -827,6 +827,33 @@ autocmd FileType gitcommit setlocal spell
 
 
 
+if &rtp =~ 'fern'
+    " Replacement for `autocmd VimEnter * NERDTree | wincmd p` and the
+    " NERDTreeMirror-on-every-tab autocmd.  `-stay` is the `wincmd p`
+    " equivalent: the drawer opens but the cursor stays in the file window.
+    "
+    " `-keep` is deliberately NOT passed.  Without it fern's own drawer
+    " smart-quit (see g:fern#disable_drawer_smart_quit) quits vim when the
+    " drawer is the only thing left -- natively, which is exactly what the old
+    " `feedkeys(":quit\<CR>")` autocmd hand-rolled and what made it throw E38.
+    function! s:FernDrawer() abort
+        " At most one drawer per tab.  Re-running :Fern in a tab that already
+        " has one re-edits the buffer, which reloads the tree and loses the
+        " expanded state on every single tab switch.
+        for l:w in range(1, winnr('$'))
+            if bufname(winbufnr(l:w)) =~# '^fern://drawer'
+                return
+            endif
+        endfor
+        Fern . -drawer -stay
+    endfunction
+
+    " nested: :Fern relies on its own BufReadCmd to render, and autocmds do not
+    " fire from inside an autocmd without it.
+    autocmd VimEnter * nested call s:FernDrawer()
+    autocmd TabEnter * nested call s:FernDrawer()
+endif
+
 if exists("*LspAddServer")
     autocmd VimEnter * call LspAddServer(lspServers)
     autocmd VimEnter * call LspOptionsSet(lspOpts)
