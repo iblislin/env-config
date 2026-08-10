@@ -5,6 +5,11 @@
 # moves bytes: read the intent, invoke claude, split the reply at the sentinel,
 # map STATUS= onto an exit code. Keep it that way — a criterion that leaks in
 # here becomes a second place to maintain the template.
+#
+# ⚠️ Cross-repo dependency: that skill lives in a SEPARATE PRIVATE repository
+# (iblislin/claude-config, cloned to ~/.claude), because it carries internal
+# operational detail. Cloning this public repo alone gives you a mkgoal with no
+# skill to invoke — it will run and produce nothing usable.
 set -uo pipefail
 
 PROG="$(basename "$0")"
