@@ -850,6 +850,22 @@ tmap <C-W>c <C-W><C-C>
     """"""""""""""""""""""""""""""""""""""""
     "  lsp
     """"""""""""""""""""""""""""""""""""""""
+    " The interpreter is per-project and is chosen by zsh's venv dispatcher from
+    " the tmux session prefix -- zshrc does
+    "   source $HOME/venv/`tmux_sess_prefix`/bin/activate
+    " falling back to ~/venv/py3 -- so $VIRTUAL_ENV is the authority and naming
+    " one venv here would aim the server at the wrong interpreter for every
+    " project but one.  ~/venv/command-center is 3.12 with the project's deps;
+    " ~/venv/py3 does not have them.
+    "
+    " The server BINARIES stay in ~/venv/py3 deliberately: basedpyright and ruff
+    " are tools, not project dependencies, and are not installed in the
+    " per-project venvs.
+    function! s:PyInterp() abort
+        let l:venv = empty($VIRTUAL_ENV) ? expand('~/venv/py3') : $VIRTUAL_ENV
+        return l:venv . '/bin/python3'
+    endfunction
+
     " basedpyright is listed FIRST on purpose.  With several servers attached to
     " one buffer this client hands completion / hover / signature to the first
     " server that supports them and only *merges* diagnostics across all of them
@@ -875,9 +891,10 @@ tmap <C-W>c <C-W><C-C>
     \        path: expand('~/venv/py3/bin/basedpyright-langserver'),
     \        args: ['--stdio'],
     \        syncInit: v:true,
+    \        rootSearch: ['pyproject.toml', 'poetry.lock', 'setup.py', '.git/'],
     \        workspaceConfig: #{
     \           python: #{
-    \              pythonPath: expand('~/venv/py3/bin/python3')
+    \              pythonPath: s:PyInterp()
     \           },
     \           basedpyright: #{
     \              analysis: #{
@@ -891,7 +908,8 @@ tmap <C-W>c <C-W><C-C>
     \        name: 'ruff',
     \        filetype: ['python'],
     \        path: expand('~/venv/py3/bin/ruff'),
-    \        args: ['server']
+    \        args: ['server'],
+    \        rootSearch: ['pyproject.toml', 'ruff.toml', '.git/']
     \      }
     \   ]
 
