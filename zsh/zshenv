@@ -20,7 +20,13 @@ colors
 # ==================================
 # Enviroment Variable
 # ==================================
-path=($HOME/bin $HOME/go/bin $HOME/node/bin /sbin /bin /usr/sbin /usr/bin /usr/games /usr/local/sbin /usr/local/bin)
+# $HOME/.local/bin belongs here rather than in .zshlocal: .zshlocal is only
+# sourced by interactive shells, so anything added there is invisible to vim's
+# :!, timeout, xargs, cron and Claude Code hooks. `claude` lives in
+# $HOME/.local/bin, which is why `mkgoal` from inside vim failed with
+# "env: 'claude': No such file or directory" while typing it by hand worked.
+# Kept last so precedence matches what interactive shells already had.
+path=($HOME/bin $HOME/go/bin $HOME/node/bin /sbin /bin /usr/sbin /usr/bin /usr/games /usr/local/sbin /usr/local/bin $HOME/.local/bin)
 
 export ZSH="$HOME/.zsh"
 
