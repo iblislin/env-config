@@ -1,0 +1,214 @@
+#!/usr/bin/env python3
+"""
+naer-lookup - query Taiwan's 樂詞網 (National Academy for Educational
+Research bilingual academic glossary, https://terms.naer.edu.tw/) and print
+term translations.
+
+Usage:
+    naer-lookup <term> [--zh] [--json] [--limit N]
+
+By default <term> is treated as English. Pass --zh to treat it as Chinese
+instead (the site's "title" search field covers both the English-name and
+Chinese-name columns, so the same query field is used either way -- --zh
+exists for clarity/intent and to leave room for future divergence).
+
+Exit codes:
+    0 - at least one match found
+    1 - the query executed correctly but matched nothing
+    2 - the query could not be executed: network error, the site's form/
+        markup changed under us, or -- most importantly -- the site
+        appears to have silently ignored our query and returned its whole
+        database instead of a filtered result set. See UNFILTERED_DB_THRESHOLD
+        below; this is the single most important distinction this script
+        makes, so never conflate this case with "no results" (exit 1).
+
+Implementation notes (2026-08-11):
+  - terms.naer.edu.tw's advanced/POST search form requires a CSRF token +
+    session cookie + JS-injected fields and is fragile to drive headlessly.
+  - The homepage's *simple* search box, however, is a plain GET form
+    (id="search", method="get", action="/search/") using params
+    query_term / query_field / query_op / match_type, confirmed against the
+    "熱門檢索詞" (popular searches) sample links embedded in the homepage
+    HTML, e.g.:
+      /search/?query_term=cell&query_field=title&query_op=&match_type=phrase
+    No cookies or CSRF token are needed for this GET path (Django only
+    enforces CSRF on POST), which is why this script uses it instead.
+  - query_field=title corresponds to the "中英文名詞" option, which searches
+    BOTH the English-name and Chinese-name columns in one shot (confirmed
+    via the site's own help modal text). match_type=phrase is "模糊檢索"
+    (substring/fuzzy match), the site's own default radio option.
+  - This is screen-scraping a server-rendered HTML table. If the site
+    redesigns its markup (class names, aria-labels, the "結果共 N 筆" count
+    string, or the GET param names), this script WILL break -- by design it
+    tries to fail loudly (exit 2) rather than silently return nothing.
+"""
+
+import argparse
+import html
+import json
+import re
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+
+BASE = "https://terms.naer.edu.tw"
+SEARCH_URL = BASE + "/search/"
+USER_AGENT = "Mozilla/5.0 (compatible; naer-lookup/1.0; personal CLI tool)"
+TIMEOUT = 20
+
+# An unfiltered/ignored query returns the WHOLE database. Observed value on
+# terms.naer.edu.tw as of 2026-08-11: "結果共 2099783 筆". Anything anywhere
+# near that magnitude means our query params did not apply server-side --
+# treat it as a hard failure (exit 2), never as "zero results" (exit 1) and
+# never report those rows as matches.
+UNFILTERED_DB_THRESHOLD = 500_000
+
+COUNT_RE = re.compile(r"結果共.{0,80}?(\d[\d,]*).{0,20}?筆", re.S)
+ROW_RE = re.compile(r'<div class="tr">(.*?)<!-- /一筆 -->', re.S)
+EN_RE = re.compile(r'aria-label="英文詞彙">\s*<a[^>]*>(.*?)</a>', re.S)
+ZH_RE = re.compile(r'aria-label="中文詞彙">\s*<a[^>]*>(.*?)</a>', re.S)
+DISC_RE = re.compile(r'aria-label="學術領域">\s*(.*?)\s*</div>', re.S)
+TAG_RE = re.compile(r"<[^>]+>")
+
+
+def clean(text):
+    """Strip HTML tags/entities and collapse whitespace from scraped text."""
+    text = TAG_RE.sub("", text)
+    text = html.unescape(text)
+    return " ".join(text.split())
+
+
+def fetch(url):
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+        raw = resp.read()
+    return raw.decode("utf-8", errors="replace")
+
+
+def extract_count(page_html):
+    """Return the '結果共 N 筆' integer, or None if the marker is missing
+    entirely (a sign the results-page markup changed under us)."""
+    m = COUNT_RE.search(page_html)
+    if not m:
+        return None
+    return int(m.group(1).replace(",", ""))
+
+
+def parse_entries(page_html, limit):
+    entries = []
+    for row in ROW_RE.findall(page_html):
+        en_m = EN_RE.search(row)
+        zh_m = ZH_RE.search(row)
+        disc_m = DISC_RE.search(row)
+        en = clean(en_m.group(1)) if en_m else ""
+        zh = clean(zh_m.group(1)) if zh_m else ""
+        disc = clean(disc_m.group(1)) if disc_m else ""
+        if not en and not zh:
+            continue
+        entries.append({"en": en, "zh": zh, "discipline": disc})
+        if len(entries) >= limit:
+            break
+    return entries
+
+
+def query(term, limit):
+    """Run the search. Returns (exit_code, entries)."""
+    page_size = max(10, min(limit, 100))  # site page_size select tops out at 100
+    params = {
+        "query_term": term,
+        "query_field": "title",  # 中英文名詞: searches both EN and ZH name columns
+        "query_op": "",
+        "match_type": "phrase",  # 模糊檢索 (fuzzy/substring), the site's own default
+        "page_size": str(page_size),
+    }
+    url = SEARCH_URL + "?" + urllib.parse.urlencode(params)
+
+    try:
+        page_html = fetch(url)
+    except (urllib.error.URLError, urllib.error.HTTPError, OSError) as exc:
+        print(f"naer-lookup: network error querying {url}: {exc}", file=sys.stderr)
+        return 2, []
+
+    count = extract_count(page_html)
+    if count is None:
+        print(
+            "naer-lookup: could not find the result-count marker "
+            "('結果共 ... 筆') in the response -- the site markup may have "
+            "changed. Refusing to guess.",
+            file=sys.stderr,
+        )
+        return 2, []
+
+    if count >= UNFILTERED_DB_THRESHOLD:
+        print(
+            f"naer-lookup: query was not applied by the server -- result "
+            f"count ({count}) looks like the entire database, not a "
+            f"filtered match set. This is NOT zero results; it is a failed "
+            f"query. (threshold={UNFILTERED_DB_THRESHOLD})",
+            file=sys.stderr,
+        )
+        return 2, []
+
+    if count == 0:
+        return 1, []
+
+    entries = parse_entries(page_html, limit)
+    if not entries:
+        print(
+            f"naer-lookup: result count reported as {count} but no entry "
+            "rows could be parsed from the results table -- the site "
+            "markup may have changed.",
+            file=sys.stderr,
+        )
+        return 2, []
+
+    return 0, entries
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="naer-lookup",
+        description=(
+            "Query 樂詞網 (terms.naer.edu.tw) for bilingual academic term "
+            "translations."
+        ),
+    )
+    parser.add_argument("term", help="term to search for (English by default)")
+    parser.add_argument(
+        "--zh", action="store_true", help="treat <term> as Chinese instead of English"
+    )
+    parser.add_argument(
+        "--json", action="store_true", help="emit JSON instead of the human table"
+    )
+    parser.add_argument(
+        "--limit", type=int, default=20, help="cap number of results (default 20)"
+    )
+    args = parser.parse_args()
+
+    if not args.term.strip():
+        print("naer-lookup: empty search term", file=sys.stderr)
+        sys.exit(2)
+
+    if args.limit <= 0:
+        print("naer-lookup: --limit must be a positive integer", file=sys.stderr)
+        sys.exit(2)
+
+    code, entries = query(args.term, args.limit)
+
+    if code == 2:
+        sys.exit(2)
+
+    if args.json:
+        sys.stdout.reconfigure(encoding="utf-8")
+        print(json.dumps(entries, ensure_ascii=False, indent=2))
+    else:
+        sys.stdout.reconfigure(encoding="utf-8")
+        for e in entries:
+            print(f"{e['en']}  |  {e['zh']}  |  {e['discipline']}")
+
+    sys.exit(code)
+
+
+if __name__ == "__main__":
+    main()
