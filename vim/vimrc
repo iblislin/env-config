@@ -804,9 +804,23 @@ tmap <C-W>c <C-W><C-C>
     let g:python_highlight_file_headers_as_comments = 1
 
     """"""""""""""""""""""""""""""""""""""""
-    "  nvim-completion-manager
+    "  nvim: popup-menu navigation, supertab-style
     """"""""""""""""""""""""""""""""""""""""
+    " Named after nvim-completion-manager once, but these never depended on it:
+    " they only test pumvisible(), so they drive whatever fills the menu.  That is
+    " now nvim's built-in LSP completion, and this IS the Tab-cycling half of
+    " supertab -- nvim has no built-in for it, its docs only offer CTRL-Y to
+    " accept.  supertab itself is gone from the vim side; do not reintroduce it.
     if has('nvim')
+        " noselect matters: without it the first candidate is preselected, so
+        " typing on after the menu pops can insert it by accident -- the single
+        " biggest reason autocompletion feels hostile.  menuone shows the menu
+        " even for one candidate; popup puts the doc in a floating window.
+        " nvim's default here is menu,popup, and vim.lsp.completion's own docs say
+        " it "works best if 'completeopt' has noselect".
+        set completeopt=menuone,noselect,popup
+
+        " <Tab> selects the first item then cycles; <CR> accepts and opens a line.
         " inoremap <expr> <CR>    (pumvisible() ? "\<c-y>" : "\<CR>")
         inoremap <expr> <CR>    (pumvisible() ? "\<c-y>\<cr>" : "\<CR>")
 
