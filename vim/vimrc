@@ -866,6 +866,16 @@ tmap <C-W>c <C-W><C-C>
         return l:venv . '/bin/python3'
     endfunction
 
+    " Do NOT set syncInit here.  It is for servers slow to answer "initialize"
+    " (rust-analyzer, gopls) and makes vim block synchronously while waiting.
+    " Registering servers at VimEnter while the fern drawer also opens at VimEnter
+    " is a race, and syncInit turned that race into a guaranteed loss: timers fire
+    " during the block, so :Fern created its fern:// buffer inside the blocked
+    " init, fern's BufReadCmd never ran, and the drawer stayed an uninitialised
+    " buffer with buftype unset -- which vim reports as "[New DIRECTORY]".
+    " Removing syncInit alone was not enough on a big project; see the SafeState
+    " autocmd in the Autocmd section for the actual fix.
+    "
     " basedpyright is listed FIRST on purpose.  With several servers attached to
     " one buffer this client hands completion / hover / signature to the first
     " server that supports them and only *merges* diagnostics across all of them
@@ -890,7 +900,6 @@ tmap <C-W>c <C-W><C-C>
     \        filetype: ['python'],
     \        path: expand('~/venv/py3/bin/basedpyright-langserver'),
     \        args: ['--stdio'],
-    \        syncInit: v:true,
     \        rootSearch: ['pyproject.toml', 'poetry.lock', 'setup.py', '.git/'],
     \        workspaceConfig: #{
     \           python: #{
@@ -1109,7 +1118,15 @@ if &rtp =~ 'fern'
     "
     " nested: :Fern relies on its own BufReadCmd to render, and autocmds do not
     " fire from inside an autocmd without it.
-    autocmd VimEnter * nested call timer_start(0, { -> s:FernDrawer() })
+    " SafeState rather than VimEnter for the startup drawer.  Registering the LSP
+    " servers also happens at VimEnter, and opening the drawer from a timer racing
+    " that work left the fern:// buffer uninitialised -- empty drawer, buftype
+    " unset, "[New DIRECTORY]" on the message line.  Bisected to the LSP commit,
+    " and reproduced in every directory when syncInit was set, in big projects
+    " only once it was removed.  SafeState fires when vim is idle and not partway
+    " through anything, which is the condition :Fern actually needs; ++once keeps
+    " it to the one startup open.
+    autocmd SafeState * ++once nested call s:FernDrawer()
     autocmd TabEnter * nested call timer_start(0, { -> s:FernDrawer() })
 endif
 
