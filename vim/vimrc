@@ -145,8 +145,12 @@ set fileencoding=utf-8
 " List of charsets to recognize
 set fileencodings=utf-8,big5,euc-jp,gbk,euc-kr,utf-bom,iso8859-1
 
-" Terminal encoding
-set termencoding=utf-8
+" Terminal encoding.  nvim has no 'termencoding' -- it is always UTF-8 -- and
+" this was the ONLY error nvim 0.12.4 raised while sourcing this whole file, so
+" the guard is what makes one config serve both editors cleanly.
+if !has('nvim')
+    set termencoding=utf-8
+endif
 
 " Treat ambiguous characters as full width
 set ambiwidth=single
@@ -545,17 +549,12 @@ tmap <C-W>c <C-W><C-C>
     " while the buffer is still being created, when b:fern.visible_nodes is empty,
     " so no name is known yet.  Measured before this was split out -- the loop ran
     " zero times and every entry stayed FernLeafText, symlink and exec included.
-    function! s:fern_nerdtree_stat_syntax(...) abort
+    " Global, not script-local, because win_execute() evaluates its command string
+    " outside this script's context, where s: would not resolve.
+    function! g:FernNerdTreeStatSyntax() abort
         if !exists('b:fern')
             return
         endif
-        " b:changedtick advances whenever fern rewrites the buffer, so this is
-        " both the "did the tree change" test and what makes CursorMoved cheap
-        " enough to poll on: every ordinary cursor move returns here.
-        if get(b:, 'fern_nerdtree_tick', -1) ==# b:changedtick
-            return
-        endif
-        let b:fern_nerdtree_tick = b:changedtick
         silent! syntax clear FernNerdTreeExecFile
         silent! syntax clear FernNerdTreeSymlink
         for l:node in b:fern.visible_nodes
@@ -579,26 +578,39 @@ tmap <C-W>c <C-W><C-C>
         endfor
     endfunction
 
-    " fern#hook#add('viewer:redraw', ...) was tried here first and measured NOT
-    " to invoke the callback at all: with the tree loaded and 6 visible nodes,
-    " `syntax list FernNerdTreeExecFile` showed the group carrying its highlight
-    " link but no match pattern, while adding the identical match by hand in the
-    " same session flipped synID from FernLeafText to FernNerdTreeExecFile.  So
-    " the trigger is buffer-local autocmds plus the changedtick guard instead.
-    function! s:fern_nerdtree_init_buffer() abort
-        augroup fern_nerdtree_colours_buffer
-            autocmd! * <buffer>
-            autocmd CursorMoved,WinEnter,BufWinEnter <buffer>
-                        \ call s:fern_nerdtree_stat_syntax()
-        augroup END
-        call s:fern_nerdtree_stat_syntax()
+    " Driven by fern's own viewer:redraw hook, so the colours are right the moment
+    " the tree is drawn -- no polling, and no waiting for the drawer to be focused.
+    "
+    " Two earlier attempts were wrong here and both failed silently.  Doing it
+    " from User FernSyntax alone does nothing: that event fires while the buffer
+    " is still being created, when b:fern.visible_nodes is empty.  And the reason
+    " the hook looked dead is NOT that it goes uncalled -- it is called, but with
+    " the FILE window current, so a handler guarding on b:fern bailed every time.
+    " fern#hook#emit wraps callbacks in try/catch and routes the exception to
+    " fern#logger#error, which is silent unless g:fern#logfile is set, so nothing
+    " surfaced either way.  The helper it passes carries bufnr and winid; use them
+    " rather than assuming which buffer is current.
+    function! s:fern_nerdtree_redraw(helper, ...) abort
+        call win_execute(a:helper.winid, 'call g:FernNerdTreeStatSyntax()')
+    endfunction
+
+    let s:fern_hooked = 0
+    function! s:fern_nerdtree_hook() abort
+        if s:fern_hooked
+            return
+        endif
+        let s:fern_hooked = 1
+        " fern#hook#add is only reachable once fern is on rtp, which happens at
+        " plug#end() below, hence registering from the first FernSyntax.
+        call fern#hook#add('viewer:redraw',
+                    \ function('s:fern_nerdtree_redraw'))
     endfunction
 
     augroup fern_nerdtree_colours
         autocmd!
         autocmd User FernHighlight call s:fern_nerdtree_highlight()
         autocmd User FernSyntax    call s:fern_nerdtree_syntax()
-        autocmd FileType fern      call s:fern_nerdtree_init_buffer()
+        autocmd User FernSyntax    call s:fern_nerdtree_hook()
     augroup END
 
     """"""""""""""""""""""""""""""""""""""""
