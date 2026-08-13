@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# PreToolUse(Bash) guard: refuse hand-rolled `glab api` polling loops and point
-# at the event-driven watcher that already covers the case (IOT-438).
+# PreToolUse(Bash) guard for hand-rolled `glab api` usage. Two rules:
+#
+#   Rule 1 — a polling loop, pointing at the event-driven watchers (IOT-438).
+#   Rule 2 — reading ONE MR note by id, pointing at `glab-mr-note` (RIC-540).
 #
 # Reads the hook payload on stdin, emits a PreToolUse decision on stdout.
 # Silence (exit 0, no output) means "no opinion" — the call proceeds normally.
@@ -42,6 +44,38 @@ if [ "$has_glab" -eq 1 ] && [ "$has_sleep" -eq 1 ]; then
         permissionDecision: "deny",
         permissionDecisionReason: (
           "This is a hand-rolled glab polling loop. It bypasses glab-relay'"'"'s Kafka/SSE event bus and hammers the GitLab API — the failure glab-mr-watch-cleanup exists to clean up after (incident 2026-08-07, session b0f16c3c).\n\nUse the watcher that matches what you are watching, under the Monitor tool:\n  • a merge request  ->  glab-mr-watch <project> <mr_iid>\n  • a branch or tag pipeline with no MR (post-merge master, a release tag)  ->  glab-pipeline-watch <project> <ref>\n\nBoth wake on real events, emit one line per state change, and exit 0 on a terminal state so Monitor converges. If glab-relay is genuinely unavailable, pass --source poll to either watcher rather than writing your own loop — that keeps the fail-soft contract and the change-detection you would otherwise have to reimplement."
+        )
+      }
+    }'
+    exit 0
+fi
+
+# Rule 2 — a one-shot read of a single MR note by id.
+#
+# `glab-mr-note <note_id|note_url>` already prints author, timestamp,
+# file/line and body, and resolves project + MR iid from the cwd's git remote
+# and current branch. Every glab-mr-watch COMMENT event ends with
+# `read=glab-mr-note` for exactly this reason, yet the throwaway
+# `glab api .../notes/<id> | python3 -c 'json...'` keeps getting re-invented
+# (RIC-540, 2026-08-13: three times in one session, with the hint on screen
+# each time). It is not a rate-limit problem like Rule 1 — it is re-deriving
+# a tool that exists, and the hand-rolled parser silently drops fields.
+#
+# Scoped to a READ of one note: `notes/<digits>` with no write verb. A note
+# LIST (`/notes?per_page=…`) and a note POST are both untouched, since
+# glab-mr-note covers neither.
+is_note_read=0
+printf '%s' "$cmd" | grep -qE 'notes/[0-9]+' && is_note_read=1
+printf '%s' "$cmd" | grep -qE '(--method|-X)[[:space:]]*(POST|PUT|DELETE)|[[:space:]]-F[[:space:]]' \
+    && is_note_read=0
+
+if [ "$has_glab" -eq 1 ] && [ "$is_note_read" -eq 1 ]; then
+    jq -n '{
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "deny",
+        permissionDecisionReason: (
+          "Reading one MR note by id already has a tool: `glab-mr-note <note_id>` (or the full note URL). It prints author, created_at, file/line for diff notes, the url and the body — no jq/python parsing to write, and it resolves the project and MR iid from the cwd'"'"'s git remote plus current branch.\n\n  glab-mr-note 27725\n  glab-mr-note https://<host>/<group>/<project>/-/merge_requests/<iid>#note_<id>\n\nEvery glab-mr-watch COMMENT event line ends with `read=glab-mr-note` naming this exact tool. If you need a field it does not print, say so rather than re-deriving the whole fetch — and note that listing notes or posting one is NOT this rule, so those calls still go through."
         )
       }
     }'
