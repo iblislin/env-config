@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# PreToolUse(Bash) guard: refuse hand-rolled `glab api` polling loops and point
+# at the event-driven watcher that already covers the case (IOT-438).
+#
+# Reads the hook payload on stdin, emits a PreToolUse decision on stdout.
+# Silence (exit 0, no output) means "no opinion" — the call proceeds normally.
+#
+# Fires when both of these signals are present in one command:
+#   1. a glab API call
+#   2. a sleep
+# A `glab` call next to a `sleep` is a wait-then-recheck against GitLab state
+# — exactly what polling is, and exactly what the watchers exist to do over
+# Kafka/SSE instead — so that pairing alone is enough to deny, even with no
+# loop keyword in sight (`sleep 20; PID=$(glab api ...)` is a genuine
+# one-shot-looking poll that a human retries by hand). A loop keyword alone,
+# with no sleep, is NOT enough to deny: one-shot fleet sweeps like
+# `for p in $(glab api ...); do glab api ...; done` iterate over
+# already-fetched data with no wait-and-recheck, so they must stay unblocked.
+# One-shot `glab api` queries with neither signal are likewise legitimate.
+#
+# Incident 2026-08-07, session b0f16c3c: three such loops ran concurrently
+# during a runner bump. Two watched jobs of a still-open MR, where
+# `glab-mr-watch <project> <iid>` would have delivered the same transitions
+# over Kafka for free; the third watched a post-merge master pipeline, which
+# `glab-pipeline-watch` now covers.
+
+set -uo pipefail
+
+payload="$(cat)"
+cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty' 2>/dev/null)"
+[ -n "$cmd" ] || exit 0
+
+has_glab=0 has_loop=0 has_sleep=0
+printf '%s' "$cmd" | grep -qE 'glab[[:space:]]+(api|ci)' && has_glab=1
+printf '%s' "$cmd" | grep -qE '(^|[[:space:];&|])(while|until|for)[[:space:]]' && has_loop=1
+printf '%s' "$cmd" | grep -qE '(^|[[:space:];&|])sleep[[:space:]]' && has_sleep=1
+
+if [ "$has_glab" -eq 1 ] && [ "$has_sleep" -eq 1 ]; then
+    jq -n '{
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "deny",
+        permissionDecisionReason: (
+          "This is a hand-rolled glab polling loop. It bypasses glab-relay'"'"'s Kafka/SSE event bus and hammers the GitLab API — the failure glab-mr-watch-cleanup exists to clean up after (incident 2026-08-07, session b0f16c3c).\n\nUse the watcher that matches what you are watching, under the Monitor tool:\n  • a merge request  ->  glab-mr-watch <project> <mr_iid>\n  • a branch or tag pipeline with no MR (post-merge master, a release tag)  ->  glab-pipeline-watch <project> <ref>\n\nBoth wake on real events, emit one line per state change, and exit 0 on a terminal state so Monitor converges. If glab-relay is genuinely unavailable, pass --source poll to either watcher rather than writing your own loop — that keeps the fail-soft contract and the change-detection you would otherwise have to reimplement."
+        )
+      }
+    }'
+    exit 0
+fi
+
+exit 0
