@@ -1355,7 +1355,7 @@ xnoremap <leader>G :<C-u>call <SID>MkgoalAsync(line("'<"), line("'>"), 0)<CR>
 " The writing-goal-conditions skill closes that by making the last done-clause
 " of each phase append its successor's intent to the file below; this reads it
 " back. /copy is the other route to the same text when the block is fenced.
-function! s:MkgoalHandoffPath() abort
+function! s:MkgoalCachePath(name) abort
     " Derived from vim's cwd, NOT from the current buffer's path -- deliberate.
     " Ctrl-G opens a scratch file under /tmp while leaving cwd at the session's
     " directory, so the buffer sits outside the repo and only cwd identifies it.
@@ -1366,9 +1366,15 @@ function! s:MkgoalHandoffPath() abort
     endif
     " Keyed on the repo, not the session: a session id is the one thing another
     " process cannot derive. /home/iblis/env-config -> -home-iblis-env-config,
-    " matching Claude Code's own projects/-home-iblis naming.
+    " matching Claude Code's own projects/-home-iblis naming. This is also what
+    " lets a DIFFERENT Claude session write the file: it knows the target repo,
+    " so it can compute the same path without knowing anything about this vim.
     return expand('~/.cache/mkgoal/') . substitute(l:root, '/', '-', 'g')
-                \ . '/next-intent.md'
+                \ . '/' . a:name
+endfunction
+
+function! s:MkgoalHandoffPath() abort
+    return s:MkgoalCachePath('next-intent.md')
 endfunction
 
 function! s:MkgoalHandoff() abort
@@ -1421,3 +1427,50 @@ function! s:MkgoalHandoff() abort
 endfunction
 
 nnoremap <leader>h :call <SID>MkgoalHandoff()<CR>
+
+" ,c -- pull a ready-made /goal condition written by ANOTHER Claude session.
+"
+" A yank register lives inside one Claude Code process and has no external write
+" path, so session 1 cannot load session 2's register directly. A file keyed on
+" the target repo is the bridge: the screening session already knows which repo
+" the work is in, so it can compute this exact path, and the session that opens
+" there can read it back without being told anything.
+"
+" Whole file, not the last block -- unlike next-intent.md this is overwritten
+" rather than appended, because a condition is the current one, not a log.
+function! s:MkgoalCondition() abort
+    let l:path = s:MkgoalCachePath('goal.md')
+    if empty(l:path)
+        echohl ErrorMsg
+        echomsg 'mkgoal: not inside a git repo, so no condition path to derive'
+        echohl None
+        return
+    endif
+    if !filereadable(l:path)
+        echohl WarningMsg
+        echomsg printf('mkgoal: no condition staged for this repo -- %s',
+                    \  fnamemodify(l:path, ':~'))
+        echohl None
+        return
+    endif
+    let l:lines = readfile(l:path)
+    while !empty(l:lines) && empty(trim(l:lines[-1]))
+        call remove(l:lines, -1)
+    endwhile
+    if empty(l:lines)
+        echohl WarningMsg | echomsg 'mkgoal: staged condition is empty' | echohl None
+        return
+    endif
+    " Ctrl-G hands over an empty buffer, where append() would leave a blank
+    " first line -- and a leading blank line before `/goal ` would stop Claude
+    " Code parsing it as a slash command at all.
+    if line('$') == 1 && empty(getline(1))
+        call setline(1, l:lines)
+    else
+        call append(line('.'), l:lines)
+    endif
+    echomsg printf('mkgoal: staged condition, %d lines -- %s', len(l:lines),
+                \  strcharpart(trim(l:lines[0]), 0, 58))
+endfunction
+
+nnoremap <leader>c :call <SID>MkgoalCondition()<CR>
