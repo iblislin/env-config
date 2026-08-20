@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# PreToolUse(Bash) guard for hand-rolled `glab api` usage. Two rules:
+# PreToolUse(Bash) guard for hand-rolled `glab api` usage. Three rules:
 #
 #   Rule 1 — a polling loop, pointing at the event-driven watchers (IOT-438).
 #   Rule 2 — reading ONE MR note by id, pointing at `glab-mr-note` (RIC-540).
+#   Rule 3 — listing CI/CD variables, or writing one with the value inline (IOT-502).
 #
 # Reads the hook payload on stdin, emits a PreToolUse decision on stdout.
 # Silence (exit 0, no output) means "no opinion" — the call proceeds normally.
@@ -76,6 +77,65 @@ if [ "$has_glab" -eq 1 ] && [ "$is_note_read" -eq 1 ]; then
         permissionDecision: "deny",
         permissionDecisionReason: (
           "Reading one MR note by id already has a tool: `glab-mr-note <note_id>` (or the full note URL). It prints author, created_at, file/line for diff notes, the url and the body — no jq/python parsing to write, and it resolves the project and MR iid from the cwd'"'"'s git remote plus current branch.\n\n  glab-mr-note 27725\n  glab-mr-note https://<host>/<group>/<project>/-/merge_requests/<iid>#note_<id>\n\nEvery glab-mr-watch COMMENT event line ends with `read=glab-mr-note` naming this exact tool. If you need a field it does not print, say so rather than re-deriving the whole fetch — and note that listing notes or posting one is NOT this rule, so those calls still go through."
+        )
+      }
+    }'
+    exit 0
+fi
+
+# Rule 3 — CI/CD variables: the mass-dump read, and a write with the value inline.
+#
+# 2026-08-20: `GET /groups/internal-group/variables` printed ~43 credential VALUES into a
+# transcript in one call — Harbor robot passwords, DOCKER_AUTH_CONFIG, the bot
+# GitLab and Anthropic tokens, ~30 Kafka SASL passwords, the KIP-226 encoder
+# secret. The endpoint returns full objects including `value`; there is no
+# keys-only mode.
+#
+# What made it happen is the shape worth blocking: the FIRST call was piped
+# through `jq -r '.[].key'` (safe) and returned 403 for the bot, so the filter
+# was dropped to read the error — and that retry used an identity that DOES have
+# permission. The safety lived in the pipeline, not in the request, so removing
+# the pipeline removed the safety. That is why this rule must not be satisfiable
+# by adding a filter: "contains jq" is not a security property, and `| jq .`
+# prints everything anyway.
+#
+# Deliberately scoped to two shapes, NOT to all variable access:
+#
+#   * the LIST (`/variables`, `/variables?…`, or `glab variable list|export`) —
+#     one call returns every secret in the group, which is the incident.
+#   * any write carrying the value inline (`-f value=`, `--form value=`,
+#     `--field value=`, `&value=`) — a secret in the command string lands in the
+#     transcript just as surely as one in the output. Pass it on stdin instead:
+#     `printf %s "$NEW" | glab api --method PUT --input - ".../variables/$KEY"`.
+#
+# Reading ONE variable by key is deliberately ALLOWED: its blast radius is a
+# single value, and the rotate-bot-credentials runbook depends on it to
+# sha256-compare before and after a swap (SKILL.md lines 99 and 128).
+#
+# ⚠ This matches command TEXT, so it is a speed bump on the default path, not a
+# boundary: a python/urllib call, a URL assembled from pieces, or any other
+# client slips past. The server-side boundary would be `masked_and_hidden` at
+# creation (the API then never returns the value) — considered and REJECTED by
+# the operator on 2026-08-20, because the values still have to be readable for
+# debugging. Do not describe this hook as if that decision had gone the other way.
+is_var_list=0 is_var_inline_write=0
+printf '%s' "$cmd" | grep -qE '/variables(\?|["'"'"'[:space:]]|$)' && is_var_list=1
+printf '%s' "$cmd" | grep -qE 'glab[[:space:]]+variable[[:space:]]+(list|export)' && is_var_list=1
+printf '%s' "$cmd" | grep -qE '/variables/[^[:space:]"'"'"']+' && is_var_list=0
+printf '%s' "$cmd" | grep -qE '/variables' \
+    && printf '%s' "$cmd" | grep -qE '(-f|--form|--field)[[:space:]]+["'"'"']?value=|[&?]value=' \
+    && is_var_inline_write=1
+
+touches_gitlab=0
+printf '%s' "$cmd" | grep -qE 'glab[[:space:]]|api/v4|gitserver\.cmuh\.org\.tw' && touches_gitlab=1
+
+if [ "$touches_gitlab" -eq 1 ] && { [ "$is_var_list" -eq 1 ] || [ "$is_var_inline_write" -eq 1 ]; }; then
+    jq -n '{
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "deny",
+        permissionDecisionReason: (
+          "Listing CI/CD variables returns their VALUES — there is no keys-only mode. On 2026-08-20 one such call put ~43 internal-group credentials into a transcript (Harbor robot passwords, DOCKER_AUTH_CONFIG, the bot GitLab + Anthropic tokens, ~30 Kafka SASL passwords, the KIP-226 encoder secret).\n\nAdding a jq filter does NOT make this safe and will not satisfy this rule: the incident happened WITH a jq filter, which was then dropped to read a 403.\n\nInstead:\n  • names, flags, descriptions  ->  glab-var keys <group|project>\n  • does a key exist            ->  glab-var exists <group|project> <KEY>   (exit code)\n  • did a value change          ->  glab-var fingerprint <group|project> <KEY>   (length + sha256, never the value)\n  • set a value                 ->  glab-var set <group|project> <KEY>   (value on stdin only)\n\nReading ONE variable by key is NOT blocked by this rule, so the rotate-bot-credentials runbook still works. A write is blocked only when the value is inline in the command (-f value=…): pass it on stdin, or the secret lands in the transcript anyway.\n\nIf you only need the HTTP status of a failing call, print the status alone -- curl -o /dev/null -w %{http_code} -- never re-run without the filter."
         )
       }
     }'

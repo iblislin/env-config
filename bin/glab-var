@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# Safe projections over GitLab CI/CD variables — the tool `claude-glab-poll-guard`
+# Rule 3 points at (IOT-502, after the 2026-08-20 transcript exposure).
+#
+# The problem it exists for: `GET /(groups|projects)/:id/variables` returns full
+# objects including `value`, with no keys-only mode, so ONE call can dump every
+# credential a group holds. Filtering that call with jq is not a safety property —
+# the exposure happened with a jq filter in place, which was then dropped to read
+# a 403 from a less-privileged identity.
+#
+# So this wrapper never prints a value. Not "usually"; the value is never written
+# to stdout by any subcommand. To learn whether a value is what you expect, use
+# `fingerprint` (length + sha256) and compare hashes.
+#
+# Usage:
+#   glab-var keys        <groups/PATH|projects/PATH>
+#   glab-var exists      <groups/PATH|projects/PATH> <KEY>     # exit 0 / 1, no output
+#   glab-var fingerprint <groups/PATH|projects/PATH> <KEY>     # length + sha256
+#   glab-var set         <groups/PATH|projects/PATH> <KEY>     # value read from STDIN
+#
+# <scope> is the API path prefix, URL-encoded as the API wants it, e.g.
+#   groups/internal-group            projects/internal-group%2Fclaude-relay
+#
+# Auth: relies on the ambient glab identity, or GITLAB_TOKEN if exported by the
+# caller. It never echoes the token and never writes it to a file.
+#
+# ⚠ Scope of the protection: this wrapper plus Rule 3 covers the default path
+# only. Anything that speaks HTTP directly (python/urllib, a hand-built URL) can
+# still read values, and the server-side fix that would close that hole for every
+# client -- creating variables with `masked_and_hidden: true`, after which the API
+# returns no value at all -- was considered and declined on 2026-08-20 because the
+# values must stay readable for debugging. State that limitation honestly rather
+# than describing this script as a boundary.
+
+set -euo pipefail
+
+die() { printf '%s\n' "glab-var: $*" >&2; exit 2; }
+
+[ $# -ge 2 ] || die "usage: glab-var {keys|exists|fingerprint|set} <scope> [KEY]
+  scope examples: groups/internal-group   projects/internal-group%2Fclaude-relay"
+
+cmd=$1; scope=$2; key=${3-}
+
+case "$scope" in
+    groups/*|projects/*) : ;;
+    *) die "scope must start with groups/ or projects/ (got: $scope)" ;;
+esac
+
+# One shared fetch helper. `--paginate` matters: the variables list is paginated at
+# 20 per page by default, so a single unpaginated call silently reports a SUBSET --
+# the same class of quiet truncation that made a fleet scan undercount by 43%.
+api() { glab api --paginate "$@"; }
+
+case "$cmd" in
+    keys)
+        # Flags are the interesting part alongside the name: `hidden` tells you
+        # whether the value is even retrievable, and `protected` whether it reaches
+        # feature-branch pipelines at all.
+        api "$scope/variables?per_page=100" \
+          | jq -r '.[] | [.key, ("masked=" + (.masked|tostring)), ("protected=" + (.protected|tostring)),
+                           ("hidden=" + (.hidden|tostring)), ("scope=" + .environment_scope),
+                           (.description // "")] | @tsv'
+        ;;
+    exists)
+        [ -n "$key" ] || die "exists needs a KEY"
+        # Silent by design: the caller branches on the exit status. Printing the
+        # object here would print its value.
+        if glab api "$scope/variables/$key" >/dev/null 2>&1; then exit 0; else exit 1; fi
+        ;;
+    fingerprint)
+        [ -n "$key" ] || die "fingerprint needs a KEY"
+        # `jq -j` (no trailing newline) is load-bearing: `jq -r` appends one and the
+        # hash would then not match `printf %s "$value" | sha256sum` computed
+        # anywhere else, which defeats the whole point of comparing hashes.
+        json=$(glab api "$scope/variables/$key")
+        hidden=$(printf '%s' "$json" | jq -r '.hidden')
+        if [ "$hidden" = true ]; then
+            printf '%s\thidden=true\tlen=?\tsha256=?  (value is not returned by the API)\n' "$key"
+            exit 0
+        fi
+        len=$(printf '%s' "$json" | jq -j '.value' | wc -c)
+        sha=$(printf '%s' "$json" | jq -j '.value' | sha256sum | cut -d' ' -f1)
+        printf '%s\tlen=%s\tsha256=%s\n' "$key" "$len" "$sha"
+        ;;
+    set)
+        [ -n "$key" ] || die "set needs a KEY"
+        [ -t 0 ] && die "set reads the value from STDIN -- pipe it in, never pass it as an argument
+  printf %s \"\$NEW\" | glab-var set $scope $key"
+        value=$(cat)
+        [ -n "$value" ] || die "refusing to set an empty value"
+        # PUT first (the common case is rotating an existing key), POST on 404.
+        # The value travels as JSON on stdin, so it never appears in a command line
+        # or a process listing.
+        body=$(jq -n --arg v "$value" '{value:$v}')
+        if printf '%s' "$body" | glab api --method PUT -H "Content-Type: application/json" \
+             --input - "$scope/variables/$key" >/dev/null 2>&1; then
+            printf 'updated %s\n' "$key"
+        else
+            body=$(jq -n --arg k "$key" --arg v "$value" '{key:$k, value:$v}')
+            printf '%s' "$body" | glab api --method POST -H "Content-Type: application/json" \
+              --input - "$scope/variables" >/dev/null
+            printf 'created %s\n' "$key"
+        fi
+        # Confirm by hash rather than by echoing anything back.
+        printf '%s' "$value" | sha256sum | cut -d' ' -f1 | sed "s|^|local sha256: |"
+        ;;
+    *)
+        die "unknown subcommand: $cmd (expected keys|exists|fingerprint|set)"
+        ;;
+esac
