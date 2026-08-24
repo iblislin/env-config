@@ -92,11 +92,26 @@ Fixed 2026-08-24 by running both halves unconditionally. Two things to preserve:
   `t_Co=256` (81 -> #5fd7ff, cyan=14 -> #00ffff, red=9 -> #ff0000, 4 -> #0000ee),
   so nothing new was invented.
 
-**The two palettes are different by design, so vim and nvim now look different
-from each other** -- e.g. PreProc is cterm 3 (dark yellow) but gui #409090
-(teal). Both are highlighted and both are the scheme's own choices. If matching
-vim exactly matters more than using the gui palette, the alternative is
-`if has('nvim') | set notermguicolors | endif` instead.
+**The two palettes are different by design** -- PreProc is cterm 3 (dark yellow)
+but gui #409090 (teal) -- so running nvim on truecolor makes the two editors look
+unlike each other. That is not wanted here, so the vimrc pins nvim to the cterm
+half:
+
+```vim
+if has('nvim')
+    set notermguicolors
+endif
+```
+
+This has to be an explicit `set`, not a hope: nvim negotiates truecolor
+asynchronously *after* the vimrc is sourced, which is why `&termguicolors` reads 0
+during sourcing and 1 a moment later. The option's docs promise auto-detection
+happens "unless explicitly disabled by the user", and measurement agrees --
+`tgc` is still 0 three seconds in.
+
+Keep the two-palette restructure anyway. It costs nothing and it is what stops
+the colours collapsing to grey if truecolor is ever switched on, by hand or by a
+GUI client.
 
 Verified: vim's rendered escapes are byte-identical before and after
 (`ESC[33mfrom`, `ESC[97m os`, `ESC[33mimport`), and nvim went from one grey run
