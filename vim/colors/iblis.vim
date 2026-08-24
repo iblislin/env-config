@@ -100,7 +100,7 @@ hi SpellCap     cterm=underline                 ctermbg=23
 
 hi MatchParen   cterm=NONE      ctermfg=NONE    ctermbg=172
 
-hi ColorColumn ctermbg=4
+hi ColorColumn      cterm=NONE      ctermbg=4
 hi def BadWhitespace term=reverse ctermfg=16 ctermbg=001 gui=reverse guifg=#dc322f
 autocmd BufWinEnter * match BadWhitespace /\s\+$/
 
@@ -111,7 +111,7 @@ autocmd BufWinEnter * match BadWhitespace /\s\+$/
 hi Function     guifg=#5fd7ff
 hi Keyword      guifg=#00ffff
 hi Structure    guifg=#ff0000
-hi ColorColumn  guibg=#0000ee
+hi ColorColumn  gui=NONE  guibg=#0000ee
 
 " ------------------------------------------------------------------ gui ------
 hi Normal         gui=NONE   guifg=#cfbfad   guibg=#000000

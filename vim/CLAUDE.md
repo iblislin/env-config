@@ -117,6 +117,29 @@ Verified: vim's rendered escapes are byte-identical before and after
 (`ESC[33mfrom`, `ESC[97m os`, `ESC[33mimport`), and nvim went from one grey run
 to `ESC[38;2;64;144;144mimport`, which is #409090.
 
+### A `hi` line that sets only colours inherits each editor's default attributes
+
+`hi ColorColumn ctermbg=4` sets a colour and nothing else, so the attribute list
+comes from whatever that group already was -- and the two editors differ there:
+
+| | resolved |
+|---|---|
+| vim | `ColorColumn term=reverse ctermbg=4` |
+| nvim | `ColorColumn cterm=reverse ctermbg=4` |
+
+`term=` only applies to a terminal without colour, so it is inert at
+`t_Co=256`. `cterm=reverse` is not: nvim drew the 80/92 rulers reversed. Fixed by
+saying it explicitly -- `cterm=NONE ctermbg=4` -- which is the convention every
+other line in that block already follows. Both now emit `ESC[44m`.
+
+Scan for others with:
+
+```sh
+grep -E 'cterm(fg|bg)=' vim/colors/iblis.vim | grep -v 'cterm='
+```
+
+The `MBE*` hits are MiniBufExplorer, whose plugin is no longer installed.
+
 ## LSP (`yegappan/lsp`, vim only -- it is Vim9 script, nvim cannot load it)
 
 - The plugin declares `def g:LspAddServer()`. The name needs the **`g:` prefix**.
