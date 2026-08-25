@@ -1,0 +1,70 @@
+#!/bin/sh
+# vim-plug has no lockfile, which makes a bulk :PlugUpdate irreversible in
+# practice: afterwards you cannot tell which of N plugins broke something, and
+# there is no recorded good state to return to.  This records one.
+#
+#   vim-plug-lock freeze          write dir<TAB>sha for every installed plugin
+#   vim-plug-lock status          list plugins that differ from the lock
+#   vim-plug-lock restore         check every plugin back out to its locked sha
+#   vim-plug-lock restore <name>  ... just that one
+#
+# The lock lives in the dotfiles repo (~/.vim is a symlink into it), so the exact
+# plugin set is reproducible on another machine, which is the other half of why
+# it exists.
+set -e
+
+PLUGGED=${PLUGGED:-$HOME/.vim/plugged}
+LOCK=${VIM_PLUG_LOCK:-$HOME/.vim/plug-lock.tsv}
+cmd=${1:-status}
+only=$2
+
+die() { echo "vim-plug-lock: $*" >&2; exit 1; }
+[ -d "$PLUGGED" ] || die "no plugin dir at $PLUGGED"
+
+each_plugin() {
+    find "$PLUGGED" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort | while read -r d
+    do
+        [ -d "$PLUGGED/$d/.git" ] || continue
+        printf '%s\t%s\n' "$d" "$(git -C "$PLUGGED/$d" rev-parse HEAD)"
+    done
+}
+
+locked_sha() { awk -F'\t' -v d="$1" '$1==d {print $2}' "$LOCK"; }
+
+case "$cmd" in
+freeze)
+    each_plugin > "$LOCK.tmp" && mv "$LOCK.tmp" "$LOCK"
+    echo "froze $(wc -l < "$LOCK") plugins -> $LOCK"
+    ;;
+status)
+    [ -f "$LOCK" ] || die "no lock file at $LOCK (run: vim-plug-lock freeze)"
+    n=0
+    each_plugin | while IFS="$(printf '\t')" read -r d sha; do
+        want=$(locked_sha "$d")
+        if [ -z "$want" ]; then
+            printf '%-34s %s\n' "$d" "not in lock (new)"
+        elif [ "$want" != "$sha" ]; then
+            printf '%-34s %s -> %s\n' "$d" "$(echo "$want" | cut -c1-8)" "$(echo "$sha" | cut -c1-8)"
+        fi
+        n=$((n+1))
+    done
+    # plugins recorded but no longer installed
+    while IFS="$(printf '\t')" read -r d _; do
+        [ -d "$PLUGGED/$d" ] || printf '%-34s %s\n' "$d" "in lock but not installed"
+    done < "$LOCK"
+    ;;
+restore)
+    [ -f "$LOCK" ] || die "no lock file at $LOCK"
+    while IFS="$(printf '\t')" read -r d sha; do
+        [ -n "$only" ] && [ "$only" != "$d" ] && continue
+        [ -d "$PLUGGED/$d/.git" ] || { echo "skip $d (not installed)"; continue; }
+        cur=$(git -C "$PLUGGED/$d" rev-parse HEAD)
+        [ "$cur" = "$sha" ] && continue
+        echo "restore $d -> $(echo "$sha" | cut -c1-8)"
+        git -C "$PLUGGED/$d" checkout -q "$sha" 2>/dev/null || echo "  FAILED (sha not fetched?)"
+    done < "$LOCK"
+    ;;
+*)
+    die "unknown command: $cmd (freeze|status|restore)"
+    ;;
+esac

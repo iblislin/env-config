@@ -73,10 +73,20 @@ alias m='make'
 if ( isExist vim )
 then
 	export EDITOR=vim
-	alias vi='vim -p'
 	alias vim='vim -p'
 else
 	export EDITOR=vi
+fi
+
+# vi is nvim; typing `vim` still gets vim.  Guarded because this config is
+# deployed to boxes that may not have nvim, where vi must still fall back.
+# EDITOR stays vim on purpose: git and friends open the editor you spell out.
+if ( isExist nvim )
+then
+	alias vi='nvim -p'
+elif ( isExist vim )
+then
+	alias vi='vim -p'
 fi
 if ( isExist cmdwatch )
 then
