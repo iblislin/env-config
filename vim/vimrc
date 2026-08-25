@@ -982,7 +982,7 @@ tmap <C-W>c <C-W><C-C>
     " html/css
     Plug 'mattn/emmet-vim', {'for': ['html', 'htmldjango', 'css']}
     Plug 'othree/html5.vim', {'for': 'html'}
-    Plug 'hail2u/vim-css3-syntax', {'for': 'css'}
+    Plug 'hail2u/vim-css3-syntax', {'for': 'css', 'branch': 'main'}
 
     " js
     Plug 'othree/yajs.vim', {'for': 'javascript'}
@@ -1012,7 +1012,12 @@ tmap <C-W>c <C-W><C-C>
     Plug 'SirVer/ultisnips' | Plug 'iblis17/vim-snippets'
     "" git
     Plug 'tpope/vim-fugitive'
-    Plug 'airblade/vim-gitgutter'
+    " 'branch' is pinned on a few plugins below because their upstream renamed
+    " the default away from master.  vim-plug forces the branch from this spec on
+    " every update, so without it :PlugUpdate cheerfully reports "Already up to
+    " date" while checking the plugin back out to a branch that stopped moving
+    " years ago -- gitgutter, vim-slime and vim-toml were all stuck that way.
+    Plug 'airblade/vim-gitgutter', {'branch': 'main'}
     "" misc
     Plug 'tpope/vim-surround'
     Plug 'Raimondi/delimitMate'
@@ -1023,7 +1028,7 @@ tmap <C-W>c <C-W><C-C>
         Plug 'vim-airline/vim-airline'
         Plug 'vim-airline/vim-airline-themes'
     else
-        Plug 'powerline/powerline', {'rtp': 'powerline/bindings/vim/'}
+        Plug 'powerline/powerline', {'rtp': 'powerline/bindings/vim/', 'branch': 'develop'}
         " Arch linux issue
         " just increasing inotify limit
         "   echo fs.inotify.max_user_watches=524288 | sudo tee /etc/sysctl.d/40-max-user-watches.conf && sudo sysctl --system
@@ -1039,7 +1044,7 @@ tmap <C-W>c <C-W><C-C>
     Plug 'Yggdroot/indentLine'
     Plug 'luochen1990/rainbow'
     Plug 'dhruvasagar/vim-table-mode'
-    Plug 'jpalardy/vim-slime'
+    Plug 'jpalardy/vim-slime', {'branch': 'main'}
     Plug 'editorconfig/editorconfig-vim'
     " Plug 'ryanoasis/vim-devicons'
 
@@ -1075,7 +1080,7 @@ tmap <C-W>c <C-W><C-C>
     Plug 'iblis17/vim-hy', {'for': ['hy']}
 
     " toml
-    Plug 'cespare/vim-toml'
+    Plug 'cespare/vim-toml', {'branch': 'main'}
 
     " java
     " Plug 'artur-shaik/jc.nvim', {'for': 'java'}
