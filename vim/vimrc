@@ -1148,7 +1148,22 @@ if &rtp =~ 'fern'
         return '.'
     endfunction
 
+    " Do not auto-open the drawer when the terminal is too narrow to carry both
+    " it and a usable file window -- a portrait second monitor reports ~89
+    " columns, which leaves 60 for code once the drawer and the gutter are paid
+    " for, well short of the 80-column ruler.  The arithmetic: drawer width, the
+    " vertical separator, 'numberwidth', the two signcolumn cells the LSP
+    " diagnostics claim, and then colorcolumn's first stop.
+    "
+    " This guards only the automatic open.  <leader>n still toggles the drawer at
+    " any width, which is the escape hatch when the heuristic is wrong.
+    let g:fern_drawer_min_columns =
+        \ get(g:, 'fern_drawer_min_columns', g:fern#drawer_width + 1 + 4 + 2 + 80)
+
     function! s:FernDrawer() abort
+        if &columns < g:fern_drawer_min_columns
+            return
+        endif
         " At most one drawer per tab.  Re-running :Fern in a tab that already
         " has one re-edits the buffer, which reloads the tree and loses the
         " expanded state on every single tab switch.
