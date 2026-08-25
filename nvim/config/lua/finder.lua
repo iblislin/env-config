@@ -11,11 +11,25 @@ if not ok then
   return
 end
 
+local actions = require('telescope.actions')
+
 telescope.setup({
   defaults = {
     layout_strategy = 'flex',
     sorting_strategy = 'ascending',
     layout_config = { prompt_position = 'top' },
+    -- One tab per file is the working model here -- `vi` is `nvim -p`, so files
+    -- arrive as tabs and the fern drawer is per-tab.  select_tab_drop rather
+    -- than select_tab: it jumps to the tab already showing the file instead of
+    -- opening a second one, which is what stops <CR>-happy searching from
+    -- growing three tabs on the same buffer.
+    --
+    -- Set on `defaults`, so <leader>b and <leader>/ behave the same way; the
+    -- splits stay on <C-v>/<C-x> for when a side-by-side really is wanted.
+    mappings = {
+      i = { ['<CR>'] = actions.select_tab_drop, ['<C-t>'] = actions.select_tab_drop },
+      n = { ['<CR>'] = actions.select_tab_drop, ['<C-t>'] = actions.select_tab_drop },
+    },
   },
   pickers = {
     find_files = {
