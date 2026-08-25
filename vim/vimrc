@@ -220,6 +220,14 @@ set colorcolumn=80,92
 " Favourite file formats
 set ffs=unix,dos
 
+" Hand the mouse back to the terminal.  vim already defaults to mouse= here, but
+" nvim ships mouse=nvi, and while nvim owns the mouse the terminal emulator never
+" sees a drag -- so selecting text no longer puts it in the X PRIMARY selection
+" and middle-click paste has nothing to paste.  That behaviour belongs to the
+" terminal, not the editor, so the fix is to stop intercepting rather than to
+" reimplement it over xclip.
+set mouse=
+
 " ,F not ,f: the finder owns ,f, and a two-key prefix sharing its first key
 " would stall every invocation for 'timeoutlen' waiting to see if d or u follows.
 nmap <LEADER>Fd :se ff=dos<CR>
@@ -960,7 +968,6 @@ tmap <C-W>c <C-W><C-C>
 
     " typescript
     Plug 'leafgarland/typescript-vim'
-    Plug 'Quramy/tsuquyomi', {'for': 'typescript'}
 
     " php
     Plug 'StanAngeloff/php.vim', {'for': 'php'}
@@ -974,9 +981,11 @@ tmap <C-W>c <C-W><C-C>
     "" they competed with (and visually beat) any semantic source; the nvim-only
     "" ncm2; the long-dead autozimu/LanguageClient-neovim; myhere/vim-nodejs-complete
     "" and the commented myint/clang-complete, both omnifunc providers superseded
-    "" by a language server; and jedi-vim, which outlived its completion role and
+    "" by a language server; jedi-vim, which outlived its completion role and
     "" whose ftplugin then quietly claimed <leader>n, <leader>d, <leader>r,
-    "" <leader>R and K in every python buffer -- <leader>n is the fern drawer.
+    "" <leader>R and K in every python buffer -- <leader>n is the fern drawer;
+    "" and Quramy/tsuquyomi, a second tsserver client that set its own omnifunc
+    "" for typescript and so competed with vtsls for the same job.
     if !has('nvim')
         Plug 'yegappan/lsp'
     endif
