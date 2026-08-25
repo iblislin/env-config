@@ -8,3 +8,4 @@ let &packpath = &runtimepath
 source ~/.vim/vimrc
 
 lua require('python_lsp')
+lua require('finder')

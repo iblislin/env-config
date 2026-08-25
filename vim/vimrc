@@ -220,8 +220,10 @@ set colorcolumn=80,92
 " Favourite file formats
 set ffs=unix,dos
 
-nmap <LEADER>fd :se ff=dos<CR>
-nmap <LEADER>fu :se ff=unix<CR>
+" ,F not ,f: the finder owns ,f, and a two-key prefix sharing its first key
+" would stall every invocation for 'timeoutlen' waiting to see if d or u follows.
+nmap <LEADER>Fd :se ff=dos<CR>
+nmap <LEADER>Fu :se ff=unix<CR>
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
 " Filetypes
@@ -1027,6 +1029,10 @@ tmap <C-W>c <C-W><C-C>
     if has('nvim')
         Plug 'vim-airline/vim-airline'
         Plug 'vim-airline/vim-airline-themes'
+        " fuzzy finder -- nvim only, deliberately.  nvim is where the coding
+        " happens, and telescope is lua so vim cannot load it anyway.
+        Plug 'nvim-lua/plenary.nvim'
+        Plug 'nvim-telescope/telescope.nvim'
     else
         Plug 'powerline/powerline', {'rtp': 'powerline/bindings/vim/', 'branch': 'develop'}
         " Arch linux issue
