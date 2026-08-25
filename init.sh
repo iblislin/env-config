@@ -99,6 +99,16 @@ mkdir -p $XCONFIG
 
 $LN $BASE/powerline $XCONFIG
 $LN $BASE/awesome4 $XCONFIG/awesome
+
+# nvim.  Note the -n: `ln -sf` pointed at an EXISTING directory creates the link
+# *inside* it ($XCONFIG/nvim/config) instead of replacing it, and a real
+# directory has to be moved aside before it can become a link at all.
+if [ -d "$XCONFIG/nvim" ] && [ ! -L "$XCONFIG/nvim" ]
+then
+    echo "moving real $XCONFIG/nvim aside -> $XCONFIG/nvim.pre-symlink"
+    mv "$XCONFIG/nvim" "$XCONFIG/nvim.pre-symlink"
+fi
+ln -sfnv $BASE/nvim/config $XCONFIG/nvim
 $LN $BASE/.emacs.d $HOME
 
 
