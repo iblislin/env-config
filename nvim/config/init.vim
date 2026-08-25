@@ -7,5 +7,7 @@ set runtimepath^=~/.vim runtimepath+=~/.vim/after
 let &packpath = &runtimepath
 source ~/.vim/vimrc
 
+lua require('lsp_common')
 lua require('python_lsp')
+lua require('ts_lsp')
 lua require('finder')
