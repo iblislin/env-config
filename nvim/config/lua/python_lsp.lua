@@ -12,7 +12,7 @@
 --     the server at the wrong python for every project but one.
 --   * root_markers must include pyproject.toml. The dispatcher cds to the repo
 --     root rather than the package root, so without it every first-party import
---     in e.g. command-center/server reports as unresolved.
+--     in a repo whose package lives in a subdirectory reports as unresolved.
 
 local tools = vim.fn.expand('~/venv/py3')
 local venv = vim.env.VIRTUAL_ENV or tools
