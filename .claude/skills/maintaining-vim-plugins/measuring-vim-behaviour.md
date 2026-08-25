@@ -98,6 +98,51 @@ before concluding anything.
 `archived: true` does not mean broken. It means nobody will fix it the next time
 an editor removes an API, which makes it a candidate for the fourth trap above.
 
+## Finding what actually painted a character
+
+`:highlight` and `nvim_get_hl()` tell you about a group you already suspect. When
+you do not know the group yet — or when the paint comes from an extmark rather
+than syntax — ask nvim what is under the cursor:
+
+```vim
+:lua =vim.inspect_pos()
+```
+
+It reports, for that exact position, the syntax match, the treesitter capture,
+the **semantic-token extmark** and its `hl_group`, and `hl_group_link` — the
+resolved end of nvim's default link chain. That last part matters: `nvim_get_hl`
+with `link = true` returns the immediate link target, not the chain's end, so it
+will happily tell you a group links to another group that links somewhere else.
+
+Worked example: a python module name rendered red. `vim.diagnostic.get(0)` was
+empty for that line, so it was not a diagnostic at all — `inspect_pos` showed an
+`nvim.lsp.semantic_tokens` extmark tagging it `@lsp.type.namespace.python`, which
+nvim links `-> @lsp.type.namespace -> @module -> Structure`. The colour came from
+the colorscheme's `Structure`, four links away from anything named "import".
+
+## `try`/`catch` does not catch a warning
+
+Vim warnings are `W`-prefixed and do not raise, so this reports success while
+doing nothing:
+
+```vim
+" WRONG -- reports ACCEPTED in vim, where the group is never created
+try | hi @lsp.type.namespace ctermfg=117 | echo 'ACCEPTED' | catch | echo 'no' | endtry
+```
+
+vim 9 answers `W18: Invalid character in group name` for `@`-prefixed groups,
+which are an nvim convention. Guard them with `if has('nvim')`.
+
+Test for this class by **inspecting startup output**, never by exception handling:
+
+```sh
+vim -T dumb --not-a-term -u ~/.vim/vimrc -c 'qa!' </dev/null 2>&1 \
+  | tr -d '\r' | sed 's/\x1b\[[0-9;]*[A-Za-z]//g' | grep -v '^\s*~\?\s*$'
+```
+
+Empty output is the pass. A script that prints "clean" unconditionally after the
+command is not a check — make the message conditional on the output being empty.
+
 ## expect versus tmux
 
 Both are useful; they answer different questions.

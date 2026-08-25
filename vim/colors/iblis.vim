@@ -80,6 +80,16 @@ hi SpecialChar      cterm=NONE      ctermfg=green     ctermbg=235
 hi Todo             cterm=BOLD      ctermfg=17        ctermbg=143
 hi Type             cterm=NONE      ctermfg=13        ctermbg=NONE
 hi Structure        cterm=NONE      ctermfg=red       ctermbg=NONE
+" basedpyright emits a semantic token for every module name, which nvim links
+" @lsp.type.namespace.python -> @lsp.type.namespace -> @module -> Structure.  That
+" made `import <mod>` render in Structure's red.  Given a group of its own rather
+" than repainting Structure, which unrelated constructs also use.  117 is the
+" xterm palette entry whose hex the gui half below matches.
+if has('nvim')
+    " vim 9 has no @-prefixed group names and answers with W18 -- a WARNING, so
+    " a try/catch around it reports success while the group is never created.
+    hi @lsp.type.namespace  cterm=NONE      ctermfg=117       ctermbg=NONE
+endif
 hi Underlined       cterm=BOLD      ctermfg=227       ctermbg=NONE
 hi TaglistTagName   cterm=BOLD      ctermfg=63        ctermbg=NONE
 
@@ -111,6 +121,9 @@ autocmd BufWinEnter * match BadWhitespace /\s\+$/
 hi Function     guifg=#5fd7ff
 hi Keyword      guifg=#00ffff
 hi Structure    guifg=#ff0000
+if has('nvim')
+    hi @lsp.type.namespace  gui=NONE  guifg=#87d7ff
+endif
 hi ColorColumn  gui=NONE  guibg=#0000ee
 
 " ------------------------------------------------------------------ gui ------
