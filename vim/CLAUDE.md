@@ -62,7 +62,22 @@ colours, `termguicolors`, or drawing must run in tmux.
 'iblis'`, `E117: Unknown function: plug#begin`, then a cascade of `E492` on every
 `Plug` line. Run plain `nvim` and let it find its own init.
 
-### "No errors" is not evidence
+### `-esN` swallows the output you asked for
+
+`vim -esN -c 'echo ...' -c 'qa!'` looks like the obvious way to ask vim a question
+from a script. It silently produces nothing, three times in one session, each time
+reading as "the feature is broken" rather than "the probe never reported". Ex mode
+plus `-s` suppresses exactly what you were trying to read.
+
+Use `writefile()` from a `-S` script instead — it works in both editors, in a real
+pty or headless, and the file either exists or it does not:
+
+```vim
+call writefile([printf('answer=%s', &someoption)], $OUT)
+qa!
+```
+
+## "No errors" is not evidence
 
 A fern regression survived a completion-stack rewrite because the check was
 `:messages` is clean -- and it was. Assert positively instead: the drawer has N
