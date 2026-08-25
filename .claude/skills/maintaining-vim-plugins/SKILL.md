@@ -28,7 +28,15 @@ Not for: adding or removing a plugin, which is an ordinary `vimrc` edit.
 
 ```sh
 vim-plug-lock freeze            # 1. record the current good state
-vim -c 'PlugClean!' -c 'qa!'    # 2. see the trap below before running this
+
+# 2. PlugClean is a PAIR of commands, never one.  Neither editor sees the whole
+#    plugin set -- nvim-only Plug lines hide behind has('nvim') and vim-only
+#    ones behind !has('nvim') -- so whichever editor cleans, the other must
+#    immediately reinstall what it just orphaned.  Then assert the count.
+vim  -c 'PlugClean!'         -c 'qa!'
+nvim -c 'PlugInstall --sync' -c 'qa!'
+vim-plug-lock status         # must name only what you meant to remove
+vim-plug-lock restore        # the reinstall fetches HEAD; put the pins back
 # 3. update in batches, verifying after each
 vim  -c 'PlugUpdate --sync name1 name2' -c 'qa!'
 vim  -c 'qa!'    # must be silent
@@ -53,7 +61,7 @@ running four batches.
 | Symptom | Cause | Fix |
 |---|---|---|
 | `:PlugUpdate` says "Already up to date", plugin is years behind | Upstream renamed the default branch (`master` -> `main`, or `develop`). vim-plug **forces the branch recorded in the Plug spec on every update**, so fixing the checkout by hand is undone on the next run | Pin it: `Plug 'owner/repo', {'branch': 'main'}` |
-| `:PlugClean` deletes a plugin you use | With a shared vimrc, `Plug` lines behind `has('nvim')` are invisible to vim and vice versa, so each editor considers the other's plugins orphaned | Run `:PlugClean` in one editor, then `:PlugInstall` in the other. Check which plugins are editor-conditional first |
+| `:PlugClean` deletes a plugin you use | With a shared vimrc, `Plug` lines behind `has('nvim')` are invisible to vim and vice versa, so each editor considers the other's plugins orphaned. It is silent: the deletions scroll past in the same list as the intended one | Use the two-command pair in step 2 above, then `vim-plug-lock status`. Recovered twice by `nvim -c 'PlugInstall --sync'` followed by `vim-plug-lock restore` |
 | An update fails for one plugin only | A tracked file was replaced locally by untracked ones — test fixtures with symlinks are the usual culprit — and git refuses to overwrite | `git -C <plugin> status --short --untracked-files=all`, clean the specific path, retry |
 | A plugin errors only in nvim, only after some unrelated change | The plugin's nvim-specific code was dormant because the feature it hooks was never enabled. Enabling that feature wakes years-old code against a current API | Update the plugin; check whether upstream added a version guard |
 
@@ -71,7 +79,11 @@ from a headless run or from `:highlight` alone. See `measuring-vim-behaviour.md`
 ## Common mistakes
 
 - **Trusting `:PlugUpdate`'s own report.** It reports on the branch it pulled.
-- **Running `:PlugClean` in whichever editor is open.** Decide first.
+- **Running `:PlugClean` as a single command.** It is the clean-then-reinstall pair
+  in step 2, always, and `vim-plug-lock status` is what proves it. Deciding which
+  editor to clean in is not enough -- this was written as "decide first" and the
+  trap was still walked into twice, because the deletion of the other editor's
+  plugins is silent and reads as part of the intended cleanup.
 - **Updating everything, then testing.** The lock makes it recoverable, not painless.
 - **Treating a missing test fixture as a config failure.** Check the fixture exists
   before diagnosing; a probe against a file that was cleaned up reports the same

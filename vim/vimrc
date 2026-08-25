@@ -677,22 +677,6 @@ tmap <C-W>c <C-W><C-C>
     """"""""""""""""""""""""""""""""""""""""
     let g:nodejs_complete_config = { 'js_compl_fn': 'syntaxcomplete#Complete' }
 
-    """"""""""""""""""""""""""""""""""""""""
-    " jedi-vim
-    """"""""""""""""""""""""""""""""""""""""
-    " Completion belongs to the LSP client alone, so jedi's is switched off
-    " rather than jedi being removed: it is still maintained upstream and its
-    " goto/doc commands are harmless, but two completion sources cannot coexist
-    " without the menu fighting itself.  popup_on_dot and show_call_signatures
-    " were already 0 here, which is why member and signature hints appeared
-    " broken -- they were off, not failing.
-    let g:jedi#completions_enabled = 0
-    let g:jedi#popup_select_first = 0
-    let g:jedi#popup_on_dot = 0
-    let g:jedi#use_tabs_not_buffers = 1
-    let g:jedi#show_call_signatures = 0
-    let g:jedi#goto_stubs_command = ""
-
     """"""""""""""""""""""""""""""""""""""""""""""
     "  Pep8
     """"""""""""""""""""""""""""""""""""""""""""""
@@ -845,23 +829,6 @@ tmap <C-W>c <C-W><C-C>
     endif
 
     """"""""""""""""""""""""""""""""""""""""
-    "  LanguageClient-neovim
-    """"""""""""""""""""""""""""""""""""""""
-    let g:LanguageClient_autoStart = 0
-    let g:LanguageClient_serverCommands = {
-    \   'julia': ['julia', '--startup-file=no', '--history-file=no', '-e', '
-    \       using LanguageServer;
-    \       server = LanguageServer.LanguageServerInstance(STDIN, STDOUT, false);
-    \       server.runlinter = true;
-    \       run(server);
-    \   '],
-    \ }
-
-    nnoremap <silent> K :call LanguageClient_textDocument_hover()<CR>
-    nnoremap <silent> gd :call LanguageClient_textDocument_definition()<CR>
-    nnoremap <silent> <leader>r :call LanguageClient_textDocument_rename()<CR>
-
-    """"""""""""""""""""""""""""""""""""""""
     "  vim-table-mode
     """"""""""""""""""""""""""""""""""""""""
     nnoremap <silent> <LEADER>tm :TableModeToggle<CR>
@@ -1007,7 +974,9 @@ tmap <C-W>c <C-W><C-C>
     "" they competed with (and visually beat) any semantic source; the nvim-only
     "" ncm2; the long-dead autozimu/LanguageClient-neovim; myhere/vim-nodejs-complete
     "" and the commented myint/clang-complete, both omnifunc providers superseded
-    "" by a language server.  jedi-vim stays but with completions_enabled = 0.
+    "" by a language server; and jedi-vim, which outlived its completion role and
+    "" whose ftplugin then quietly claimed <leader>n, <leader>d, <leader>r,
+    "" <leader>R and K in every python buffer -- <leader>n is the fern drawer.
     if !has('nvim')
         Plug 'yegappan/lsp'
     endif
@@ -1061,7 +1030,6 @@ tmap <C-W>c <C-W><C-C>
 
     " python
     Plug 'vim-python/python-syntax'
-    Plug 'davidhalter/jedi-vim', {'for': 'python'}
     Plug 'tmhedberg/SimpylFold', {'for': 'python'}
     Plug 'vim-scripts/indentpython.vim', {'for': 'python'}
     Plug 'Glench/Vim-Jinja2-Syntax'
@@ -1217,6 +1185,20 @@ if &rtp =~ 'plugged/lsp'
     endfunction
 
     autocmd VimEnter * call s:LspSetup()
+
+    " Buffer-local so a file with no server keeps vim's own gd (local
+    " declaration) and K (keywordprg).  These replace what the dead
+    " LanguageClient-neovim block used to claim globally -- it mapped gd and K
+    " to functions no installed plugin defined, so both raised E117.
+    "
+    " nvim needs no counterpart: it maps K to vim.lsp.buf.hover() itself, but
+    " only when no custom K mapping exists, so the global map above was
+    " suppressing it.  gd is set in nvim/config/lua/lsp_common.lua; the rest of
+    " nvim's LSP keys (grn, grr, gra, gri, gO) are global defaults.
+    autocmd User LspAttached nnoremap <buffer> <silent> gd <cmd>LspGotoDefinition<cr>
+    autocmd User LspAttached nnoremap <buffer> <silent> K  <cmd>LspHover<cr>
+    autocmd User LspAttached nnoremap <buffer> <silent> [d <cmd>LspDiag prev<cr>
+    autocmd User LspAttached nnoremap <buffer> <silent> ]d <cmd>LspDiag next<cr>
 endif
 
 " mkgoal: rough intent -> a validated /goal condition
