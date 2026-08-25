@@ -1208,6 +1208,18 @@ if &rtp =~ 'plugged/lsp'
     autocmd User LspAttached nnoremap <buffer> <silent> K  <cmd>LspHover<cr>
     autocmd User LspAttached nnoremap <buffer> <silent> [d <cmd>LspDiag prev<cr>
     autocmd User LspAttached nnoremap <buffer> <silent> ]d <cmd>LspDiag next<cr>
+
+    " The <leader>l set mirrors nvim's, which had to move off the gr prefix: nvim
+    " 0.11 claimed grn/grr/gra/gri/grt/grx as global defaults, colliding with
+    " `gr` -> :tabp above and stalling it for 'timeoutlen' (measured 1123 ms vs
+    " 20 ms for gt).  vim has no such defaults and no collision, but the keys are
+    " duplicated here so muscle memory carries between the two editors.
+    autocmd User LspAttached nnoremap <buffer> <silent> <leader>lr <cmd>LspRename<cr>
+    autocmd User LspAttached nnoremap <buffer> <silent> <leader>lR <cmd>LspShowReferences<cr>
+    autocmd User LspAttached nnoremap <buffer> <silent> <leader>la <cmd>LspCodeAction<cr>
+    autocmd User LspAttached nnoremap <buffer> <silent> <leader>li <cmd>LspGotoImpl<cr>
+    autocmd User LspAttached nnoremap <buffer> <silent> <leader>lt <cmd>LspGotoTypeDef<cr>
+    autocmd User LspAttached nnoremap <buffer> <silent> <leader>lx <cmd>LspCodeLens<cr>
 endif
 
 " mkgoal: rough intent -> a validated /goal condition
