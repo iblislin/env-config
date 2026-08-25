@@ -220,13 +220,42 @@ set colorcolumn=80,92
 " Favourite file formats
 set ffs=unix,dos
 
-" Hand the mouse back to the terminal.  vim already defaults to mouse= here, but
-" nvim ships mouse=nvi, and while nvim owns the mouse the terminal emulator never
-" sees a drag -- so selecting text no longer puts it in the X PRIMARY selection
-" and middle-click paste has nothing to paste.  That behaviour belongs to the
-" terminal, not the editor, so the fix is to stop intercepting rather than to
-" reimplement it over xclip.
-set mouse=
+" Mouse selection goes to the X PRIMARY selection -- but through the editor,
+" not around it.  The obvious reading is that select-to-PRIMARY belongs to the
+" terminal, so the editor should set mouse= and get out of the way.  That works,
+" and it leaves the problem it was supposed to solve: a terminal drag selects
+" *screen columns*, so it drags in the 'number' gutter, the signcolumn, and --
+" new in the nvim era -- the diagnostic virtual text hanging off the line end.
+" The workaround for that is :set nonu, copy, :set nu, forever.
+"
+" Letting nvim own the mouse removes the problem instead of managing it: nvim
+" can only select buffer text, so no gutter exists to be caught.  <LeftRelease>
+" then yanks the visual selection into "* -- PRIMARY, per :h primary-selection,
+" so middle-click paste works and CLIPBOARD ("+, ctrl-c/ctrl-v) is never
+" touched, which is the point.
+"
+" Measured with injected SGR mouse events, 'number' on, dragging screen columns
+" 6..13 of "  1 ABCDEFGHIJ...": the register held exactly BCDEFGHI.  The xclip
+" the provider spawns reparents to PID 1, so the selection outlives nvim -- :h
+" clipboard-x11 warns otherwise, and on this implementation it does not hold.
+"
+" The escape hatch, when a terminal-native selection really is wanted (output
+" from :! , another tmux pane): urxvt overrides mouse reporting while Shift or
+" Meta is held -- its own man page, MOUSE REPORTING.  tmux is set mouse off
+" here, so it is not a third layer in the way.
+"
+" nvim only, and not by preference: Arch's vim is built -clipboard, so
+" has('clipboard') is 0 there and "* is an ordinary register that never reaches
+" X.  Its 'ttymouse' also defaults to xterm under screen-256color, the protocol
+" that caps at column 223 and does not report drag or release.  Both would have
+" to change -- the first means the gvim package -- so vim keeps mouse= and the
+" terminal keeps selecting for it.
+if has('nvim')
+    set mouse=a
+    vnoremap <silent> <LeftRelease> "*y
+else
+    set mouse=
+endif
 
 " ,F not ,f: the finder owns ,f, and a two-key prefix sharing its first key
 " would stall every invocation for 'timeoutlen' waiting to see if d or u follows.
