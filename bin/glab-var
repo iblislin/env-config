@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Safe projections over GitLab CI/CD variables — the tool `claude-glab-poll-guard`
+# Safe projections over GitLab CI/CD variables — the tool `claude-glab-guard`
 # Rule 3 points at (IOT-502, after the 2026-08-20 transcript exposure).
 #
 # The problem it exists for: `GET /(groups|projects)/:id/variables` returns full

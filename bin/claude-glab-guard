@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
-# PreToolUse(Bash) guard for hand-rolled `glab api` usage. Three rules:
+# PreToolUse(Bash) guard for `glab` usage. Four rules:
 #
 #   Rule 1 — a polling loop, pointing at the event-driven watchers (IOT-438).
 #   Rule 2 — reading ONE MR note by id, pointing at `glab-mr-note` (RIC-540).
 #   Rule 3 — listing CI/CD variables, or writing one with the value inline (IOT-502).
+#   Rule 4 — posting a body to GitLab without gating it on the markdown checker.
+#
+# Named `claude-glab-poll-guard` until 2026-08-25, when Rule 4 landed and made
+# the misnomer impossible to ignore: only Rule 1 was ever about polling. It is
+# a guard over how `glab` gets used, not over one failure mode.
 #
 # Reads the hook payload on stdin, emits a PreToolUse decision on stdout.
 # Silence (exit 0, no output) means "no opinion" — the call proceeds normally.
@@ -136,6 +141,89 @@ if [ "$touches_gitlab" -eq 1 ] && { [ "$is_var_list" -eq 1 ] || [ "$is_var_inlin
         permissionDecision: "deny",
         permissionDecisionReason: (
           "Listing CI/CD variables returns their VALUES — there is no keys-only mode. On 2026-08-20 one such call put ~43 internal-group credentials into a transcript (Harbor robot passwords, DOCKER_AUTH_CONFIG, the bot GitLab + Anthropic tokens, ~30 Kafka SASL passwords, the KIP-226 encoder secret).\n\nAdding a jq filter does NOT make this safe and will not satisfy this rule: the incident happened WITH a jq filter, which was then dropped to read a 403.\n\nInstead:\n  • names, flags, descriptions  ->  glab-var keys <group|project>\n  • does a key exist            ->  glab-var exists <group|project> <KEY>   (exit code)\n  • did a value change          ->  glab-var fingerprint <group|project> <KEY>   (length + sha256, never the value)\n  • set a value                 ->  glab-var set <group|project> <KEY>   (value on stdin only)\n\nReading ONE variable by key is NOT blocked by this rule, so the rotate-bot-credentials runbook still works. A write is blocked only when the value is inline in the command (-f value=…): pass it on stdin, or the secret lands in the transcript anyway.\n\nIf you only need the HTTP status of a failing call, print the status alone -- curl -o /dev/null -w %{http_code} -- never re-run without the filter."
+        )
+      }
+    }'
+    exit 0
+fi
+
+# Rule 4 — a body posted to GitLab that was never run past the markdown checker.
+#
+# Every mechanical rule in the house GitLab style (glab-mr-workflow SKILL.md)
+# fails SILENTLY in GitLab's renderer. The worst is an unbalanced <details>:
+# GitLab auto-closes it at end-of-document and swallows every paragraph after
+# the last block into the collapsed region, with no warning anywhere in the
+# markdown pipeline (incident 2026-07-30, internal-group/command-center!1112 note 26122).
+#
+# The checker exists and the skill documents it, but it lived only in the
+# writing-style prose, not in either operational procedure — so it got run on
+# replies and skipped on MR descriptions, which is the one body every reviewer
+# is guaranteed to read. 2026-08-25, !1405: a description shipped with prose
+# trailing the last fold, caught only when the body was edited for an unrelated
+# reason hours later.
+#
+# Three outcomes, in order:
+#
+#   1. The command already chains the checker with && — the gate is present,
+#      so this rule has no opinion. That escape hatch is deliberate: the job
+#      here is to ensure a gate exists, not to insist on running it ourselves.
+#   2. A LITERAL body-file path is extractable — run the checker on it and deny
+#      with the findings if it fails.
+#   3. Neither — deny, and say which two forms are acceptable. This is the
+#      fail-CLOSED branch, and it is the whole point: a body built from a
+#      heredoc, a shell variable, or an interpolated path cannot be checked
+#      from the command string, and silently allowing it would make this rule
+#      another check that verifies nothing.
+#
+# ⚠ Known fail-OPEN: if the checker is not installed at the path below, this
+# rule stays silent rather than blocking all GitLab posting. That is a
+# deliberate trade, not an oversight — do not describe this hook as if a
+# missing checker were caught.
+CHECKER="$HOME/.claude/skills/glab-mr-workflow/check-gitlab-markdown.py"
+
+posts_body=0
+printf '%s' "$cmd" | grep -qE 'glab[[:space:]]+mr[[:space:]]+(create|update)' \
+    && printf '%s' "$cmd" | grep -qE -- '--description' && posts_body=1
+printf '%s' "$cmd" | grep -qE 'glab[[:space:]]+api' \
+    && printf '%s' "$cmd" | grep -qE '(/notes|/discussions)' \
+    && printf '%s' "$cmd" | grep -qE -- '(--method|-X)[[:space:]]*POST' && posts_body=1
+
+if [ "$posts_body" -eq 1 ] && [ -x "$CHECKER" ]; then
+    # Outcome 1 — the caller already gated it.
+    if printf '%s' "$cmd" | grep -qE 'check-gitlab-markdown' \
+       && printf '%s' "$cmd" | grep -qE '&&'; then
+        exit 0
+    fi
+
+    # Outcome 2 — pull a literal path out of the shapes the skill documents.
+    body_file="$(printf '%s' "$cmd" \
+        | grep -oE '(\$\(cat[[:space:]]+|--rawfile[[:space:]]+body[[:space:]]+|--input[[:space:]]+)[^[:space:]"'"'"')]+' \
+        | head -1 | sed -E 's/^(\$\(cat[[:space:]]+|--rawfile[[:space:]]+body[[:space:]]+|--input[[:space:]]+)//')"
+
+    if [ -n "$body_file" ] && [ "$body_file" != "-" ] \
+       && ! printf '%s' "$body_file" | grep -q '[$`]' && [ -f "$body_file" ]; then
+        if ! findings="$("$CHECKER" "$body_file" 2>&1)"; then
+            jq -n --arg f "$findings" --arg p "$body_file" '{
+              hookSpecificOutput: {
+                hookEventName: "PreToolUse",
+                permissionDecision: "deny",
+                permissionDecisionReason: (
+                  "The body in " + $p + " fails the house GitLab markdown checker, and every rule it enforces fails SILENTLY in GitLab'"'"'s renderer — an unbalanced <details> swallows every paragraph after the last block with no warning.\n\n" + $f + "\n\nFix the body, then post it with the checker chained so the gate is real:\n\n  ~/.claude/skills/glab-mr-workflow/check-gitlab-markdown.py " + $p + " && \\\n    glab mr create --description \"$(cat " + $p + ")\" ...\n\nThe && is load-bearing. A checker on the line above the glab call gates nothing: the post goes out anyway and the findings scroll past unread."
+                )
+              }
+            }'
+            exit 0
+        fi
+        exit 0
+    fi
+
+    # Outcome 3 — nothing checkable in the command string.
+    jq -n '{
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "deny",
+        permissionDecisionReason: (
+          "This posts a body to GitLab, but the body cannot be checked from the command string — it is a heredoc, a shell variable, or a path built by interpolation. The house markdown rules all fail SILENTLY in GitLab'"'"'s renderer, so an unchecked body is a real risk, not a formality (incident 2026-07-30, !1112 note 26122: an unbalanced <details> hid the conclusion).\n\nWrite the body to a file and gate the post on the checker — either form is accepted:\n\n  ~/.claude/skills/glab-mr-workflow/check-gitlab-markdown.py body.md && \\\n    glab mr create --title '"'"'<TICKET-N> <imperative english>'"'"' --description \"$(cat body.md)\" \\\n      --remove-source-branch --squash-before-merge --yes\n\n  ~/.claude/skills/glab-mr-workflow/check-gitlab-markdown.py reply.md && \\\n    jq -n --rawfile body reply.md '"'"'{body:$body}'"'"' | GITLAB_TOKEN=$TOK glab api --method POST --input - \".../discussions/<id>/notes\"\n\nUse a LITERAL path, not $VAR, or this guard cannot resolve it. Writing the body to a file is also what keeps backticks, <details> tags and shell quotes from breaking the call. See glab-mr-workflow SKILL.md, \"Gate every post on the checker\"."
         )
       }
     }'
