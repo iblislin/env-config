@@ -46,17 +46,19 @@ vim.api.nvim_create_autocmd('LspAttach', {
   end,
 })
 
--- gd is deliberately the only other keymap set here.  nvim already provides grn, grr,
--- gra, gri and gO globally, and maps K to hover on attach -- but only when no
--- custom K mapping exists, which the vimrc's dead LanguageClient-neovim block
--- used to defeat.  gd has no LSP default: 'tagfunc' makes <C-]> work instead,
--- and plain gd stays vim's local-declaration search wherever no server attached.
+-- gd has no LSP default of its own ('tagfunc' makes <C-]> work instead), so it
+-- is ours to define.  It goes to goto.goto_definition rather than
+-- vim.lsp.buf.definition: a path under the cursor should open the file, and only
+-- a symbol should reach the server.  See goto.lua for why the fallback cannot be
+-- written the other way round.
+local goto_ = require('goto')
+
 vim.api.nvim_create_autocmd('LspAttach', {
   callback = function(ev)
     local client = vim.lsp.get_client_by_id(ev.data.client_id)
     if client and client:supports_method('textDocument/definition') then
-      vim.keymap.set('n', 'gd', vim.lsp.buf.definition,
-        { buffer = ev.buf, silent = true, desc = 'LSP go to definition' })
+      vim.keymap.set('n', 'gd', goto_.goto_definition,
+        { buffer = ev.buf, silent = true, desc = 'go to definition or file' })
     end
   end,
 })
