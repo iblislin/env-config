@@ -1,0 +1,214 @@
+#!/usr/bin/env python3
+"""PreToolUse/Bash guard: steer source-file writes to the Read+Edit path.
+
+WHY
+---
+Path-scoped rules under `.claude/rules/` load when a matching file is READ.
+Measured 2026-08-26, three controlled `claude --model haiku` runs, verdict
+taken from the transcripts rather than the agents' self-reports:
+
+  bash heredoc creating a .py   -> 0 rule injections
+  Write creating a .py          -> 0 rule injections
+  Read of that .py              -> 1 injection (.claude/rules/python-style.md)
+  Read of a non-matching .rst   -> 0 injections   (negative control)
+
+So a file edited through Bash never loads its own conventions. `Edit` is
+immune by construction -- it hard-fails with "File has not been read yet"
+(measured, same day), which forces the Read that triggers the injection.
+
+This guard therefore denies Bash-mediated writes to source files inside a git
+work tree and points at Read+Edit instead. It does NOT fix the brand-new-file
+case: `Write` needs no prior Read, so a file created from nothing still misses
+its rules. That gap is real and is not what this script is for.
+
+SCOPE, deliberately narrow
+--------------------------
+Scratch work is exempt -- `tmp/`, `/tmp/`, scratchpad dirs. Writing throwaway
+probe scripts there is normal and blocking it would make the guard hated and
+then disabled. Only tracked-looking source paths in a repo are refused.
+
+NOT A BOUNDARY. This pattern-matches a command string, so a dynamically built
+path, a generated script, or an interpreter reading from a variable all walk
+straight past it. It is a nudge toward the tool that loads the rules, nothing
+more. Fails open on any internal error: a guard that crashes must not become a
+guard that blocks everything.
+"""
+
+import json
+import os
+import re
+import sys
+
+# Extensions whose directories carry conventions worth loading before editing.
+SOURCE_EXT = (
+    "py|ts|tsx|js|mjs|cjs|scala|java|sh|bash|zsh|"
+    "md|rst|less|css|scss|pug|html|"
+    "yaml|yml|json|toml|graphql|gql|sql|jinja2|properties"
+)
+
+# A write is any of these aimed at a path. Kept as separate patterns rather
+# than one mega-regex so a false positive is traceable to a single rule.
+WRITE_PATTERNS = [
+    ("shell redirect", re.compile(r">>?\s*(?P<path>[^\s;|&>]+\.(?:" + SOURCE_EXT + r"))\b")),
+    ("tee", re.compile(r"\btee\s+(?:-a\s+)?(?P<path>[^\s;|&]+\.(?:" + SOURCE_EXT + r"))\b")),
+    ("sed -i", re.compile(r"\bsed\b[^|;]*?\s-i\b[^|;]*?(?P<path>[^\s;|&]+\.(?:" + SOURCE_EXT + r"))\b")),
+    ("perl -i", re.compile(r"\bperl\b[^|;]*?\s-\w*i\w*\b[^|;]*?(?P<path>[^\s;|&]+\.(?:" + SOURCE_EXT + r"))\b")),
+    ("python write_text", re.compile(r"\.write_text\s*\(")),
+    ("python open(...,'w')", re.compile(r"\bopen\s*\([^)]*['\"][wa]\+?['\"]")),
+    ("python writelines", re.compile(r"\.writelines\s*\(")),
+]
+
+# Paths where throwaway writes are legitimate.
+EXEMPT_PATH = re.compile(
+    r"(^|/)(tmp|scratchpad|node_modules|\.git|__pycache__|dist|build|target)(/|$)"
+    r"|^/tmp/|/\.claude/projects/"
+)
+
+STEER = (
+    "Bash-mediated writes to source files skip the path-scoped rules under "
+    ".claude/rules/ -- those load on Read, and Bash never triggers one. "
+    "Measured: 40 .py-touching Bash calls in one session produced zero rule "
+    "injections.\n"
+    "Use Read then Edit for an existing file (Edit hard-fails without the Read, "
+    "which is what pulls the rules in), or the Write tool for a new one.\n"
+    "Scratch paths are exempt: tmp/, /tmp/, scratchpad/. If this is throwaway "
+    "work, write it there instead."
+)
+
+
+HEREDOC = re.compile(r"<<-?\s*(['\"]?)(?P<tag>[A-Za-z_][A-Za-z0-9_]*)\1.*?^\s*(?P=tag)\s*$",
+                     re.S | re.M)
+
+
+def strip_heredocs(cmd: str) -> str:
+    """Drop heredoc BODIES before matching.
+
+    The body is the document being written, not shell syntax, and it routinely
+    contains `->` arrows, `open(...)` examples and path-shaped strings. Matching
+    against it produced three false positives on a real 182-command corpus
+    (an `->` in a comment read as a redirect). The `cat > file <<'EOF'` part
+    lives in the command half, so stripping the body keeps every true positive.
+    """
+    return HEREDOC.sub("<<HEREDOC-BODY-ELIDED>>", cmd)
+
+
+def cd_target_is_exempt(cmd: str) -> bool:
+    """True when the command cds into a scratch/exempt directory.
+
+    Commands that `cd` somewhere and then name a BARE filename (Path("mr.md"))
+    defeat a path-based exemption, because the bare name carries no directory.
+    Six false positives on the same corpus were exactly this shape.
+    """
+    for m in re.finditer(r"\bcd\s+(?P<dir>[^\s;|&]+)", cmd):
+        if EXEMPT_PATH.search(m.group("dir")):
+            return True
+    return False
+
+
+# Prefer the argument of the call that actually opens the file. A free scan of
+# the whole command picks the first source-looking token anywhere -- including
+# one quoted inside a docstring in the heredoc body -- which produced a
+# correctly-blocked command with a completely wrong path in its message.
+PY_TARGET = re.compile(
+    r"""(?:Path|open)\s*\(\s*(?P<q>['"])(?P<path>[^'"]+\.(?:""" + SOURCE_EXT + r"""))(?P=q)"""
+)
+
+
+def python_target(cmd: str):
+    for m in PY_TARGET.finditer(cmd):
+        cand = m.group("path")
+        if not EXEMPT_PATH.search(cand):
+            return cand
+    return None
+
+
+QUOTED = re.compile(r"'[^']*'|\"[^\"]*\"", re.S)
+
+
+def mask_quoted(cmd: str) -> str:
+    """Blank out quoted string literals before shell-level matching.
+
+    A quoted region is an ARGUMENT, not shell syntax, so a `sed -i .. foo.py`
+    sitting inside one is text being passed around -- a JSON payload, a grep
+    pattern, a message. Matching it produced a guard that could not be tested
+    from the shell without blocking its own test command.
+
+    True positives survive because the interesting half is unquoted: in
+    `sed -i 's/a/b/' AGENTS.md` the script is quoted and the PATH is not.
+    Applied only to the shell-level patterns -- the python ones need their
+    quotes, since `Path("x.py")` keeps the target inside them.
+    """
+    return QUOTED.sub(lambda m: " " * len(m.group(0)), cmd)
+
+
+def looks_like_source_write(raw: str):
+    """Return (rule_name, path_or_None) for the first write pattern that hits.
+
+    TWO PASSES, because a heredoc body means opposite things depending on what
+    consumes it:
+
+      cat > file <<'EOF' ... EOF     the body is the DOCUMENT -- strip it, or an
+                                     `->` arrow inside reads as a redirect
+      python3 - <<'PY' ... PY        the body is the PROGRAM -- keep it, or the
+                                     write_text() call it performs disappears
+
+    Stripping for both was measured wrong on the same corpus: it took the block
+    count from 26 to 7 by hiding every python-mediated edit.
+    """
+    if cd_target_is_exempt(raw):
+        return None, None
+
+    stripped = mask_quoted(strip_heredocs(raw))
+    for name, pat in WRITE_PATTERNS:
+        # shell-level writes: match the command, not the document it carries
+        cmd = stripped if not name.startswith("python") else raw
+        m = pat.search(cmd)
+        if not m:
+            continue
+        path = m.groupdict().get("path") if m.groupdict() else None
+        if path and EXEMPT_PATH.search(path):
+            continue
+        # The python patterns carry no path group; fall back to scanning the
+        # whole command for a non-exempt source path.
+        if not path:
+            path = python_target(cmd)
+            if not path:
+                continue
+        return name, path
+    return None, None
+
+
+def main() -> None:
+    try:
+        payload = json.load(sys.stdin)
+    except Exception:
+        sys.exit(0)  # fail open
+
+    if payload.get("tool_name") != "Bash":
+        sys.exit(0)
+
+    cmd = (payload.get("tool_input") or {}).get("command") or ""
+    if not cmd or EXEMPT_PATH.search(os.getcwd()):
+        sys.exit(0)
+
+    try:
+        rule, path = looks_like_source_write(cmd)
+    except Exception:
+        sys.exit(0)  # fail open
+
+    if not rule:
+        sys.exit(0)
+
+    print(json.dumps({
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": (
+                f"Blocked: this looks like a {rule} write to {path}.\n\n{STEER}"
+            ),
+        }
+    }))
+
+
+if __name__ == "__main__":
+    main()
