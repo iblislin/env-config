@@ -7,61 +7,84 @@ Path-scoped rules under `.claude/rules/` load when a matching file is READ.
 Measured 2026-08-26, three controlled `claude --model haiku` runs, verdict
 taken from the transcripts rather than the agents' self-reports:
 
-  bash heredoc creating a .py   -> 0 rule injections
-  Write creating a .py          -> 0 rule injections
-  Read of that .py              -> 1 injection (.claude/rules/python-style.md)
-  Read of a non-matching .rst   -> 0 injections   (negative control)
+  bash heredoc creating a .py -> 0 rule injections
+  Write creating a .py        -> 0 rule injections
+  Read of that .py            -> 1 injection (.claude/rules/python-style.md)
+  Read of a non-matching .rst -> 0 injections   (negative control)
 
 So a file edited through Bash never loads its own conventions. `Edit` is
 immune by construction -- it hard-fails with "File has not been read yet"
 (measured, same day), which forces the Read that triggers the injection.
 
-This guard therefore denies Bash-mediated writes to source files inside a git
-work tree and points at Read+Edit instead. It does NOT fix the brand-new-file
-case: `Write` needs no prior Read, so a file created from nothing still misses
-its rules. That gap is real and is not what this script is for.
+DESIGN: RESOLVE THE CONTEXT, THEN LOOK FOR WRITES
+-------------------------------------------------
+The first version pattern-matched the whole command string and scored a 39%
+false-positive rate over 56,513 real commands. Three of its worst families had
+one root cause: a write pattern was matched against text that was never going
+to execute -- a document sitting in a heredoc, an example inside a quoted
+string, a read-only `open()` in the same script as the real write.
 
-SCOPE, deliberately narrow
---------------------------
-Scratch work is exempt -- `tmp/`, `/tmp/`, scratchpad dirs. Writing throwaway
-probe scripts there is normal and blocking it would make the guard hated and
-then disabled. Only tracked-looking source paths in a repo are refused.
+So this version separates the command into what the shell runs and what an
+interpreter runs, matches shell patterns only against the former and python
+patterns only against the latter, and binds each match to the path in that
+same call. Then the target is resolved (variables expanded, `~` expanded, made
+absolute) before any exemption is consulted.
 
-NOT A BOUNDARY. This pattern-matches a command string, so a dynamically built
-path, a generated script, or an interpreter reading from a variable all walk
-straight past it. It is a nudge toward the tool that loads the rules, nothing
-more. Fails open on any internal error: a guard that crashes must not become a
-guard that blocks everything.
+WHAT IS OUT OF SCOPE, and why
+-----------------------------
+- remote and in-container writes (`ssh …`, `docker exec …`): the file tools
+  have no reach there, so steering to them would name an impossible action.
+  The credential-rotation pattern in CLAUDE.md § Secret Handling depends on
+  exactly this shape.
+- targets outside a git work tree: the rules this guard exists to protect live
+  in a repo, so there is nothing to load for a file that is not in one. The
+  previous version's docstring claimed this limit without implementing it.
+- generated artifacts (`git log … > CHANGELOG.md`, `curl … > schema.json`):
+  the left side is a producer, not an editor. CLAUDE.md's own test is whether
+  a person or a linter reads the result AS SOURCE.
+- scratch and process-log paths: `tmp/`, `/tmp/`, scratchpad, `.superpowers/`,
+  caches. Blocking a subagent's own task report is pure friction.
+
+NOT A BOUNDARY. It still pattern-matches, so a path assembled at runtime walks
+past. It is a nudge toward the tool that loads the rules. Fails open on any
+internal error: a guard that crashes must not become a guard that blocks
+everything.
 """
 
 import json
 import os
 import re
+import subprocess
 import sys
 
-# Extensions whose directories carry conventions worth loading before editing.
 SOURCE_EXT = (
     "py|ts|tsx|js|mjs|cjs|scala|java|sh|bash|zsh|"
     "md|rst|less|css|scss|pug|html|"
     "yaml|yml|json|toml|graphql|gql|sql|jinja2|properties"
 )
+EXT_RE = r"(?:" + SOURCE_EXT + r")"
 
-# A write is any of these aimed at a path. Kept as separate patterns rather
-# than one mega-regex so a false positive is traceable to a single rule.
-WRITE_PATTERNS = [
-    ("shell redirect", re.compile(r">>?\s*(?P<path>[^\s;|&>]+\.(?:" + SOURCE_EXT + r"))\b")),
-    ("tee", re.compile(r"\btee\s+(?:-a\s+)?(?P<path>[^\s;|&]+\.(?:" + SOURCE_EXT + r"))\b")),
-    ("sed -i", re.compile(r"\bsed\b[^|;]*?\s-i\b[^|;]*?(?P<path>[^\s;|&]+\.(?:" + SOURCE_EXT + r"))\b")),
-    ("perl -i", re.compile(r"\bperl\b[^|;]*?\s-\w*i\w*\b[^|;]*?(?P<path>[^\s;|&]+\.(?:" + SOURCE_EXT + r"))\b")),
-    ("python write_text", re.compile(r"\.write_text\s*\(")),
-    ("python open(...,'w')", re.compile(r"\bopen\s*\([^)]*['\"][wa]\+?['\"]")),
-    ("python writelines", re.compile(r"\.writelines\s*\(")),
-]
+# Writes that happen somewhere the file tools cannot reach. Checked first: a
+# steer message naming Read+Edit for a path on another host is just wrong.
+REMOTE = re.compile(r"^\s*(?:sudo\s+)?(?:ssh|scp|rsync)\b|\b(?:docker|podman|kubectl)\s+(?:compose\s+)?exec\b")
 
-# Paths where throwaway writes are legitimate.
+# Producers, for the redirect case. `cat` is deliberately absent -- `cat > f`
+# is the canonical heredoc write, not generation.
+GENERATOR = {
+    "git", "curl", "wget", "jq", "yq", "docker", "kubectl", "helm", "glab", "gh",
+    "npm", "yarn", "pnpm", "poetry", "pip", "pip3", "make", "cargo", "go", "sbt",
+    "mvn", "gradle", "pytest", "ruff", "black", "mypy", "openssl", "base64",
+    "sha256sum", "md5sum", "find", "ls", "env", "printenv", "date", "uname",
+    "ps", "df", "du", "systemctl", "journalctl", "dmesg", "kafka-topics.sh",
+}
+
+# Paths where a Bash-mediated write is legitimate: scratch, caches, and the
+# process-log locations subagents are TOLD to write to.
 EXEMPT_PATH = re.compile(
-    r"(^|/)(tmp|scratchpad|node_modules|\.git|__pycache__|dist|build|target)(/|$)"
-    r"|^/tmp/|/\.claude/projects/"
+    r"(^|/)(tmp|scratchpad|\.superpowers|node_modules|\.git|__pycache__"
+    r"|dist|build|target|out|\.cache|\.venv|venv|site-packages"
+    r"|coverage|htmlcov|\.next|\.nuxt|\.svelte-kit|\.pytest_cache|\.mypy_cache)(/|$)"
+    r"|^/tmp/|^/var/tmp/|/\.claude/projects/"
 )
 
 STEER = (
@@ -70,111 +93,233 @@ STEER = (
     "Measured: 40 .py-touching Bash calls in one session produced zero rule "
     "injections.\n"
     "Use Read then Edit for an existing file (Edit hard-fails without the Read, "
-    "which is what pulls the rules in), or the Write tool for a new one.\n"
-    "Scratch paths are exempt: tmp/, /tmp/, scratchpad/. If this is throwaway "
-    "work, write it there instead."
+    "and that Read is what pulls the rules in), or the Write tool for a new one.\n"
+    "Out of scope, so not this: remote/container writes, targets outside a git "
+    "work tree, generated artifacts, and scratch paths (tmp/, /tmp/, scratchpad, "
+    ".superpowers/)."
 )
 
+# --- context splitting -------------------------------------------------------
 
-HEREDOC = re.compile(r"<<-?\s*(['\"]?)(?P<tag>[A-Za-z_][A-Za-z0-9_]*)\1.*?^\s*(?P=tag)\s*$",
-                     re.S | re.M)
-
-
-def strip_heredocs(cmd: str) -> str:
-    """Drop heredoc BODIES before matching.
-
-    The body is the document being written, not shell syntax, and it routinely
-    contains `->` arrows, `open(...)` examples and path-shaped strings. Matching
-    against it produced three false positives on a real 182-command corpus
-    (an `->` in a comment read as a redirect). The `cat > file <<'EOF'` part
-    lives in the command half, so stripping the body keeps every true positive.
-    """
-    return HEREDOC.sub("<<HEREDOC-BODY-ELIDED>>", cmd)
-
-
-def cd_target_is_exempt(cmd: str) -> bool:
-    """True when the command cds into a scratch/exempt directory.
-
-    Commands that `cd` somewhere and then name a BARE filename (Path("mr.md"))
-    defeat a path-based exemption, because the bare name carries no directory.
-    Six false positives on the same corpus were exactly this shape.
-    """
-    for m in re.finditer(r"\bcd\s+(?P<dir>[^\s;|&]+)", cmd):
-        if EXEMPT_PATH.search(m.group("dir")):
-            return True
-    return False
-
-
-# Prefer the argument of the call that actually opens the file. A free scan of
-# the whole command picks the first source-looking token anywhere -- including
-# one quoted inside a docstring in the heredoc body -- which produced a
-# correctly-blocked command with a completely wrong path in its message.
-PY_TARGET = re.compile(
-    r"""(?:Path|open)\s*\(\s*(?P<q>['"])(?P<path>[^'"]+\.(?:""" + SOURCE_EXT + r"""))(?P=q)"""
+HEREDOC = re.compile(
+    r"<<-?\s*(['\"]?)(?P<tag>[A-Za-z_][A-Za-z0-9_]*)\1(?P<body>.*?)^\s*(?P=tag)\s*$",
+    re.S | re.M,
 )
+INTERPRETER = re.compile(r"\b(?:python3?|bash|sh|zsh|perl|ruby|node)\b\s*-?\s*(?:<<|$|\s)")
 
 
-def python_target(cmd: str):
-    for m in PY_TARGET.finditer(cmd):
-        cand = m.group("path")
-        if not EXEMPT_PATH.search(cand):
-            return cand
-    return None
+def split_context(cmd: str):
+    """Return (shell_text, program_texts).
+
+    A heredoc body is a DOCUMENT when the heredoc feeds a file redirect
+    (`cat > f <<'EOF'`) and a PROGRAM when it feeds an interpreter
+    (`python3 - <<'PY'`). The first must not be scanned for writes -- it is
+    content, and scanning it blocked the very report describing this bug. The
+    second must be, because that is where the write actually happens.
+    """
+    programs = []
+    shell_parts = []
+    pos = 0
+    for m in HEREDOC.finditer(cmd):
+        head = cmd[pos:m.start()]
+        shell_parts.append(head)
+        # Does the text introducing this heredoc invoke an interpreter?
+        last_segment = re.split(r"[;&|]|&&", head)[-1]
+        if INTERPRETER.search(last_segment + " <<"):
+            programs.append(m.group("body"))
+        pos = m.end()
+    shell_parts.append(cmd[pos:])
+    shell_text = " ".join(shell_parts)
+
+    # `-c '...'` bodies are programs too.
+    for m in re.finditer(r"\b(?:python3?|bash|sh|zsh|perl|ruby|node)\s+-c\s+(['\"])(.*?)\1", cmd, re.S):
+        programs.append(m.group(2))
+    return shell_text, programs
 
 
 QUOTED = re.compile(r"'[^']*'|\"[^\"]*\"", re.S)
+SHELL_WRAPPER = re.compile(r"\b(?:bash|sh|zsh)\s+-c\s+(['\"])(?P<body>.*?)\1", re.S)
 
 
-def mask_quoted(cmd: str) -> str:
-    """Blank out quoted string literals before shell-level matching.
+BARE_PATH = re.compile(r"^[\w./~$@{}-]+\." + EXT_RE + r"$")
 
-    A quoted region is an ARGUMENT, not shell syntax, so a `sed -i .. foo.py`
-    sitting inside one is text being passed around -- a JSON payload, a grep
-    pattern, a message. Matching it produced a guard that could not be tested
-    from the shell without blocking its own test command.
 
-    True positives survive because the interesting half is unquoted: in
-    `sed -i 's/a/b/' AGENTS.md` the script is quoted and the PATH is not.
-    Applied only to the shell-level patterns -- the python ones need their
-    quotes, since `Path("x.py")` keeps the target inside them.
+def _mask_one(m: re.Match) -> str:
+    """Blank one quoted literal -- unless it is a quoted PATH.
+
+    Quoting the target is defensive shell, not evasion: `sed -i 's/a/b/'
+    "server/app.py"` has the script quoted AND the path quoted. Blanking both
+    let five real writes through in regression. So a quoted region whose whole
+    content is a bare path with a source extension is preserved (unquoted,
+    padded to keep offsets stable); everything else is blanked.
     """
-    return QUOTED.sub(lambda m: " " * len(m.group(0)), cmd)
+    body = m.group(0)[1:-1]
+    if BARE_PATH.match(body):
+        return " " + body + " "
+    return " " * len(m.group(0))
 
 
-def looks_like_source_write(raw: str):
-    """Return (rule_name, path_or_None) for the first write pattern that hits.
+def mask_quoted(text: str) -> str:
+    """Blank quoted literals -- they are arguments, not shell syntax.
 
-    TWO PASSES, because a heredoc body means opposite things depending on what
-    consumes it:
-
-      cat > file <<'EOF' ... EOF     the body is the DOCUMENT -- strip it, or an
-                                     `->` arrow inside reads as a redirect
-      python3 - <<'PY' ... PY        the body is the PROGRAM -- keep it, or the
-                                     write_text() call it performs disappears
-
-    Stripping for both was measured wrong on the same corpus: it took the block
-    count from 26 to 7 by hiding every python-mediated edit.
+    Two exceptions the first version missed. The quoted body of `bash -c '…'`
+    IS a command, so it is spliced back in unquoted -- without that, wrapping
+    any write in `bash -c` walked straight past. And a quoted path is still a
+    path, see :func:`_mask_one`.
     """
-    if cd_target_is_exempt(raw):
+    inner = [m.group("body") for m in SHELL_WRAPPER.finditer(text)]
+    masked = QUOTED.sub(_mask_one, text)
+    return " ; ".join([masked] + inner) if inner else masked
+
+
+# --- write patterns ----------------------------------------------------------
+
+SHELL_WRITES = [
+    # (?<!\\) so an escaped `\>` -- POSIX `[ $a \> $b ]` string comparison --
+    # is not read as a redirect. That misfire blocked an `if` statement.
+    ("shell redirect", re.compile(r"(?P<pre>^|[;&|])(?P<lhs>[^;&|>]*?)(?<!\\)>>?\s*(?P<path>[^\s;|&>]+\." + EXT_RE + r")\b")),
+    ("tee", re.compile(r"\btee\s+(?:-a\s+)?(?P<path>[^\s;|&]+\." + EXT_RE + r")\b")),
+    ("sed -i", re.compile(r"\bsed\b[^|;]*?\s(?:-i\b|--in-place\b)[^|;]*?(?P<path>[^\s;|&]+\." + EXT_RE + r")\b")),
+    ("perl -i", re.compile(r"\bperl\b[^|;]*?\s-\w*i\w*\b[^|;]*?(?P<path>[^\s;|&]+\." + EXT_RE + r")\b")),
+]
+
+# Bind the trigger to the path in the SAME call. The first version matched
+# `write_text(` anywhere then scanned for any Path()/open() in the command,
+# which named read-only files as the write target and made the steer message
+# itself wrong.
+PY_WRITES = [
+    ("Path.write_text", re.compile(r"Path\s*\(\s*['\"](?P<path>[^'\"]+\." + EXT_RE + r")['\"]\s*\)\s*\.\s*write_text")),
+    ("open(...,'w')", re.compile(r"open\s*\(\s*['\"](?P<path>[^'\"]+\." + EXT_RE + r")['\"]\s*,\s*['\"][wa][btx+]*['\"]")),
+    ("p.write_text", re.compile(r"(?P<var>\w+)\s*=\s*Path\s*\(\s*['\"](?P<path>[^'\"]+\." + EXT_RE + r")['\"]\s*\)")),
+]
+
+
+def strip_quotes(p: str) -> str:
+    return p.strip().strip("'\"")
+
+
+def expand_vars(path: str, cmd: str) -> str:
+    """Resolve `$VAR` / `${VAR}` from assignments in the same command.
+
+    59% of the first version's false positives were this: `S=/tmp/x; cat >
+    $S/f.md` never matched a path-based exemption because the exemption saw the
+    unexpanded string. Putting a path in a variable is ordinary shell.
+    """
+    assigns = dict(re.findall(r"(?:^|[;&\s])([A-Za-z_]\w*)=([^\s;&|]+)", cmd))
+    for _ in range(3):  # resolve a couple of levels of indirection
+        m = re.search(r"\$\{?([A-Za-z_]\w*)\}?", path)
+        if not m or m.group(1) not in assigns:
+            break
+        path = path[:m.start()] + strip_quotes(assigns[m.group(1)]) + path[m.end():]
+    return path
+
+
+def in_git_tree(path: str) -> bool:
+    """True when the target sits inside a git work tree.
+
+    The rules this guard protects live in a repo, so a file outside one has
+    nothing to load. Walk up to the nearest existing ancestor, since the target
+    itself may not exist yet.
+    """
+    d = os.path.dirname(os.path.abspath(path)) or "/"
+    while not os.path.isdir(d) and d != "/":
+        d = os.path.dirname(d)
+    try:
+        r = subprocess.run(
+            ["git", "-C", d, "rev-parse", "--is-inside-work-tree"],
+            capture_output=True, text=True, timeout=5,
+        )
+        return r.returncode == 0 and r.stdout.strip() == "true"
+    except Exception:
+        return False  # fail open
+
+
+UNRESOLVED = re.compile(r"\$\(|`|\$\{?\w")
+
+
+def effective_cwd(shell_text: str, cmd: str) -> str:
+    """The directory a RELATIVE target actually lands in.
+
+    A command that `cd`s first and then names a bare filename -- `cd
+    /tmp/.../scratchpad && … > scan.json` -- must resolve against that `cd`
+    target, not against the hook's own cwd. Resolving against the hook's cwd
+    put scratch files inside the repo and produced a fresh batch of false
+    positives in regression, which is how this function earned its place.
+
+    Takes SHELL_TEXT, not the raw command: a `cd` inside a heredoc body belongs
+    to the document being written, not to this shell. Scanning the raw string
+    picked up a `cd "$T/t"` from inside a script being generated and resolved a
+    scratch target into the repo -- one surviving false positive, found by
+    sampling the newly-caught set rather than by any test case.
+    """
+    last = None
+    for m in re.finditer(r"(?:^|[;&\n]|&&)\s*cd\s+(?P<dir>[^\s;|&]+)", shell_text):
+        last = m.group("dir")
+    if not last:
+        return os.getcwd()
+    d = expand_vars(strip_quotes(last), cmd)
+    if UNRESOLVED.search(d):
+        return os.getcwd()
+    d = os.path.expanduser(d)
+    return d if os.path.isabs(d) else os.path.join(os.getcwd(), d)
+
+
+def resolve(path: str, cmd: str, base: str) -> str | None:
+    """Absolute target, or None when it cannot be pinned down.
+
+    None means allow. A path still carrying `$(...)`, a backtick, or an
+    unresolved variable is one this guard cannot reason about, and guessing
+    produced garbage targets like `$(mktemp/block.sh` in regression -- a
+    nonsense path in a deny message is worse than no deny at all.
+    """
+    p = expand_vars(strip_quotes(path), cmd)
+    if UNRESOLVED.search(p):
+        return None
+    p = os.path.expanduser(p)
+    if not os.path.isabs(p):
+        p = os.path.join(base, p)
+    return os.path.normpath(p)
+
+
+def lhs_is_generator(lhs: str) -> bool:
+    toks = [t for t in re.split(r"\s+", lhs.strip()) if t and "=" not in t]
+    if not toks:
+        return False
+    first = os.path.basename(toks[0])
+    if first in ("sudo", "timeout", "env", "nice") and len(toks) > 1:
+        first = os.path.basename(toks[1])
+    return first in GENERATOR
+
+
+def find_write(cmd: str):
+    """Return (rule, resolved_path) for a write this guard should refuse."""
+    if REMOTE.search(cmd):
         return None, None
 
-    stripped = mask_quoted(strip_heredocs(raw))
-    for name, pat in WRITE_PATTERNS:
-        # shell-level writes: match the command, not the document it carries
-        cmd = stripped if not name.startswith("python") else raw
-        m = pat.search(cmd)
-        if not m:
-            continue
-        path = m.groupdict().get("path") if m.groupdict() else None
-        if path and EXEMPT_PATH.search(path):
-            continue
-        # The python patterns carry no path group; fall back to scanning the
-        # whole command for a non-exempt source path.
-        if not path:
-            path = python_target(cmd)
-            if not path:
+    shell_text, programs = split_context(cmd)
+    base = effective_cwd(shell_text, cmd)
+    shell_text = mask_quoted(shell_text)
+
+    for name, pat in SHELL_WRITES:
+        for m in pat.finditer(shell_text):
+            if name == "shell redirect" and lhs_is_generator(m.group("lhs")):
                 continue
-        return name, path
+            p = resolve(m.group("path"), cmd, base)
+            if p is None or EXEMPT_PATH.search(p) or not in_git_tree(p):
+                continue
+            return name, p
+
+    for body in programs:
+        for name, pat in PY_WRITES:
+            for m in pat.finditer(body):
+                if name == "p.write_text":
+                    var = m.group("var")
+                    if not re.search(rf"\b{re.escape(var)}\s*\.\s*write_text", body):
+                        continue
+                p = resolve(m.group("path"), cmd, base)
+                if p is None or EXEMPT_PATH.search(p) or not in_git_tree(p):
+                    continue
+                return name, p
     return None, None
 
 
@@ -182,19 +327,22 @@ def main() -> None:
     try:
         payload = json.load(sys.stdin)
     except Exception:
-        sys.exit(0)  # fail open
+        sys.exit(0)
 
     if payload.get("tool_name") != "Bash":
         sys.exit(0)
-
     cmd = (payload.get("tool_input") or {}).get("command") or ""
-    if not cmd or EXEMPT_PATH.search(os.getcwd()):
+    if not cmd:
         sys.exit(0)
 
+    # NOTE: no cwd short-circuit. The first version exited early when the
+    # session cwd matched an exempt path, which silently disabled the whole
+    # guard for any session working out of /tmp -- measured to let even
+    # absolute-path edits of real repo source through.
     try:
-        rule, path = looks_like_source_write(cmd)
+        rule, path = find_write(cmd)
     except Exception:
-        sys.exit(0)  # fail open
+        sys.exit(0)
 
     if not rule:
         sys.exit(0)
@@ -203,9 +351,7 @@ def main() -> None:
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",
             "permissionDecision": "deny",
-            "permissionDecisionReason": (
-                f"Blocked: this looks like a {rule} write to {path}.\n\n{STEER}"
-            ),
+            "permissionDecisionReason": f"Blocked: {rule} write to {path}.\n\n{STEER}",
         }
     }))
 
