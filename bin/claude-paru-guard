@@ -21,6 +21,13 @@ payload="$(cat)"
 cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty' 2>/dev/null)"
 [ -n "$cmd" ] || exit 0
 
+# A command that builds a hook payload is testing a guard, not installing
+# anything. Without this, the guard blocks its own test the moment the test
+# command contains the string it matches on -- observed the first time this one
+# was registered. A pattern over a command string cannot otherwise tell
+# "invoking" from "quoting".
+printf '%s' "$cmd" | grep -q 'tool_input' && exit 0
+
 # The first option token belonging to a `pacman` (or `sudo pacman`) invocation.
 # `paru` cannot match here: the pattern needs the literal string pacman.
 op="$(printf '%s' "$cmd" \
