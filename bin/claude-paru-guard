@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# PreToolUse(Bash) guard: this machine installs through `paru`, not `pacman`.
+#
+# Scoped deliberately to the MUTATING operations, because that is the only place
+# the choice changes the outcome:
+#
+#   blocked   -S -Sy -Syu -Sw -Sc -U -R ...   install / upgrade / remove
+#   allowed   -Q* -Ss -Si -Sl -Sg -Sp -T -V   read-only queries
+#
+# The read-only exemption is not politeness, it is correctness. CLAUDE.md's
+# pass-strict tripwire IS `pacman -Q pass`, and `pacman -Ss <pkg>` is the normal
+# way to check whether something is in the official repos rather than the AUR.
+# A blanket deny would fire on both and teach working around the guard, which is
+# worse than no guard -- see CLAUDE.md "Writing a PreToolUse deny".
+#
+# Silence (exit 0, no output) means "no opinion" -- the call proceeds normally.
+
+set -uo pipefail
+
+payload="$(cat)"
+cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty' 2>/dev/null)"
+[ -n "$cmd" ] || exit 0
+
+# The first option token belonging to a `pacman` (or `sudo pacman`) invocation.
+# `paru` cannot match here: the pattern needs the literal string pacman.
+op="$(printf '%s' "$cmd" \
+      | grep -oE '(^|[;&|[:space:]])(sudo[[:space:]]+)?pacman[[:space:]]+-{1,2}[A-Za-z-]+' \
+      | head -1 \
+      | grep -oE '\-{1,2}[A-Za-z-]+$')" || true
+[ -n "${op:-}" ] || exit 0
+
+case "$op" in
+    # -S plus only sync/upgrade/download/clean modifiers. -Ss, -Si, -Sl, -Sg and
+    # -Sp deliberately fall through to the allow branch.
+    -S|-S[yuwc]*|-U*|-R*|--sync|--upgrade|--remove|--refresh|--sysupgrade)
+        jq -n '{
+          hookSpecificOutput: {
+            hookEventName: "PreToolUse",
+            permissionDecision: "deny",
+            permissionDecisionReason: (
+              "This box installs through paru, not pacman:\n\n  paru -Syu            full upgrade, AUR and DKMS rebuilds included\n  paru -S <pkg>        install (searches the AUR too)\n  paru -Sua            AUR/DKMS side only\n  paru -R <pkg>        remove\n\nBare pacman skips the AUR and does not rebuild DKMS modules, which is how a partial upgrade leaves nvidia and the DKMS tree stale against a new kernel -- the failure the arch-system-upgrade skill exists to sequence around. Read that skill before any upgrade; it also covers archlinux-keyring first, the archive snapshot, and bootctl.\n\nRead-only pacman calls are NOT blocked and need no change: -Q, -Qi, -Ql, -Ss, -Si, -T. If you were only checking whether a package exists or which repo it is in, keep the command as it is -- only this operation is the mutating kind."
+            )
+          }
+        }'
+        exit 0
+        ;;
+esac
+
+exit 0
