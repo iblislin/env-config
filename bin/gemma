@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# One-shot prompt to the local Gemma 4 E2B via ollama's HTTP API.
+#
+#   gemma "what is 2+2"
+#   echo "summarise this" | gemma
+#   gemma --gpu "..."         # try the GPU path (see the warning below)
+#
+# CPU BY DEFAULT, ON PURPOSE. Measured 2026-08-28 on this box (RTX 5060 Ti,
+# 8 GiB, ~3.1 GiB free with a desktop running): letting ollama split the 4.3 GB
+# model between GPU and CPU crashes the runner outright --
+#
+#   GGML_ASSERT(n_inputs < GGML_SCHED_MAX_SPLIT_INPUTS) failed
+#
+# Forcing num_gpu=0 removes the split and it answers reliably at ~17.6 tok/s.
+# So the default here is the configuration that works, not the fastest one.
+#
+# --gpu is untested rather than known-good: a FULL GPU load needs roughly 4.5+
+# GiB free, which on this machine means closing the browser first. If it crashes
+# with the assert above, that is the partial-offload path again, not a new bug.
+
+set -uo pipefail
+
+MODEL="${GEMMA_MODEL:-gemma4:e2b-it-qat}"
+HOST="${OLLAMA_HOST:-http://127.0.0.1:11434}"
+num_gpu=0
+
+if [ "${1:-}" = "--gpu" ]; then
+    num_gpu=-1   # ollama: -1 means "offload as many layers as fit"
+    shift
+fi
+
+if [ "$#" -gt 0 ]; then
+    prompt="$*"
+else
+    prompt="$(cat)"
+fi
+[ -n "${prompt// /}" ] || { echo "gemma: empty prompt" >&2; exit 2; }
+
+resp="$(jq -n --arg m "$MODEL" --arg p "$prompt" --argjson g "$num_gpu" \
+        '{model:$m, prompt:$p, stream:false, options:{num_gpu:$g}}' \
+        | curl -sS --max-time 300 "$HOST/api/generate" -d @- )" || {
+    echo "gemma: could not reach ollama at $HOST -- is the service started?" >&2
+    echo "       systemctl start ollama" >&2
+    exit 1
+}
+
+printf '%s' "$resp" | jq -e 'has("error")' >/dev/null 2>&1 && {
+    printf 'gemma: %s\n' "$(printf '%s' "$resp" | jq -r '.error')" >&2
+    exit 1
+}
+
+# The answer on stdout; the speed on stderr, so piping stays clean.
+printf '%s' "$resp" | jq -r '.response'
+printf '%s' "$resp" | jq -r '
+  "  [\(.eval_count // 0) tok, \(((.eval_count // 0) / (((.eval_duration // 1) / 1000000000) | if . <= 0 then 1e-9 else . end)) | floor) tok/s, num_gpu='"$num_gpu"']"' >&2
