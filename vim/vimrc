@@ -1040,6 +1040,11 @@ tmap <C-W>c <C-W><C-C>
         " happens, and telescope is lua so vim cannot load it anyway.
         Plug 'nvim-lua/plenary.nvim'
         Plug 'nvim-telescope/telescope.nvim'
+        " In-buffer markdown rendering.  Every install recipe upstream lists
+        " nvim-treesitter as a dependency, but what it actually needs is the
+        " markdown and markdown_inline PARSERS, and nvim 0.12 ships both in
+        " /usr/lib/nvim/parser -- so the plugin is not pulled in here.
+        Plug 'MeanderingProgrammer/render-markdown.nvim'
     else
         Plug 'powerline/powerline', {'rtp': 'powerline/bindings/vim/', 'branch': 'develop'}
         " Arch linux issue
