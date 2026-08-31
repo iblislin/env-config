@@ -1,3 +1,9 @@
+Xft.antialias: 1
+Xcursor.size: 32
+
+XTerm*faceName: JuliaMono
+XTerm*faceSize: 20
+
 ! Urxvt {{{
 ! color settings
 URxvt*termName:              rxvt-256color
@@ -14,12 +20,29 @@ URxvt*scrollWithBuffer:      true
 URxvt*scrollTtyKeypress:     true
 
 ! font
-URxvt*font:                  xft:Droid Sans Mono for Powerline:size=16:style=Regular,xft:Noto Sans CJK TC:size=16:style=Regular
+! "Symbols Nerd Font Mono" (pkg ttf-nerd-fonts-symbols-mono) is a glyphs-only
+! fallback, not a text font -- JuliaMono still draws every letter.  It is here
+! because JuliaMono carries powerline (U+E0B0) but nothing in the Nerd Font
+! icon ranges, so the heading, checkbox, link and callout icons that
+! render-markdown.nvim uses -- U+F0001..U+F1AF0, Material Design Icons -- had no
+! font at all and came out as tofu.  Measured with fc-list charset queries: 0
+! fonts before, 1 after.  Note: xrdb runs cpp over this file, so an apostrophe
+! anywhere, comments included, is reported as an unterminated character constant.
+! Ahead of the emoji font so its monospace glyph wins any overlap.
+!
+! size=12, NOT 20, and this is the whole trick.  man urxvt on the font list says
+! the first font defines the cell size and the others may be smaller but not, in
+! general, larger.  urxvt enforces that by SILENTLY declining a fallback that
+! does not fit -- no warning on stderr, the glyph just stays tofu, which is
+! indistinguishable from the font not being installed at all.
+! Swept in an Xvfb urxvt with letsp -1: size 20, 16 and 14 all tofu, 12 renders.
+! So the icons come out smaller than the text; that is the price of the rule.
+URxvt*font:                  xft:JuliaMono:size=20:style=Regular,xft:Noto Sans CJK TC:size=20:style=Regular,xft:Symbols Nerd Font Mono:size=12,xft:Noto Color Emoji:size=16:style=Regular
 ! URxvt*font:                  xft:Droid Sans Mono:size=20:style=Regular,xft:Noto Sans CJK TC:size=18:style=Regular,xft:PowerlineSymbols:style=Medium
 ! URxvt*font:                  xft:Ubuntu Mono derivative Powerline:size=14:style=Regular,xft:Noto Sans CJK TC:size=14:style=Regular,xft:Noto Color Emoji:size=14:style:Regular
 
 ! This works for `echo '\uf30e'`
-! xft:FuraCode Nerd Font:pixelsize=22:antialias=true:hinting=true:style=Regular 
+! xft:JuliaMono:pixelsize=2-:antialias=true:hinting=true:style=Regular
 
 URxvt*internalBorder:        1
 URxvt*letterSpace:           -1
@@ -30,6 +53,9 @@ Urxvt*modifier:              alt
 URxvt.keysym.C-Return:       \012
 ! map Shift-Return to <ESC><CR> for Claude Code "insert newline"
 URxvt.keysym.S-Return:       \033\015
+! force numpad Enter (KP_Enter) to send <CR>; overrides application keypad
+! mode (smkx) set by tmux, which otherwise makes urxvt emit ^J for this key
+URxvt.keysym.KP_Enter:       \015
 
 ! Tango Color Theme
 urxvt*color0:                rgba:1b1b/0808/0202/CCCC
@@ -54,9 +80,11 @@ URxvt*saveLines:             65535
 URxvt*urgentOnBell:          true
 URxvt.iso14755:              true
 URxvt.iso14755_52:           false
+! disable the legacy Media Copy (ESC[5i) print-to-printer escape sequence
+URxvt.print-pipe:            cat > /dev/null
 
 ! copy/paste
-URxvt.perl-ext-common:       default,selection-autotransform
+URxvt.perl-ext-common:       default,selection-autotransform,-confirm-paste
 URxvt.selection-autotransform.0: s/ +$//gm
 
 ! Urxvt }}}
