@@ -38,6 +38,18 @@ URxvt*scrollTtyKeypress:     true
 ! Swept in an Xvfb urxvt with letsp -1: size 20, 16 and 14 all tofu, 12 renders.
 ! So the icons come out smaller than the text; that is the price of the rule.
 URxvt*font:                  xft:JuliaMono:size=20:style=Regular,xft:Noto Sans CJK TC:size=20:style=Regular,xft:Symbols Nerd Font Mono:size=12,xft:Noto Color Emoji:size=16:style=Regular
+
+! boldFont and friends must be spelled out, and this is not tidiness either.
+! With only `font` set, urxvt asks fontconfig for a bold face on its own and the
+! one it gets does not carry the whole powerline range: U+E0B2 renders in normal
+! text and is tofu in bold, in the same window, while U+E0B0 survives both.
+! vim-airline draws its statusline sections bold, so the right-hand separators
+! were boxes while the left-hand ones were fine -- and everything looked correct
+! in a buffer, which is what made it read as an airline or a nvim problem.
+! JuliaMono itself is not at fault: all fourteen weights have U+E0B2 in cmap.
+URxvt*boldFont:              xft:JuliaMono:size=20:style=Bold,xft:Noto Sans CJK TC:size=20:style=Bold,xft:Symbols Nerd Font Mono:size=12,xft:Noto Color Emoji:size=16:style=Regular
+URxvt*italicFont:            xft:JuliaMono:size=20:style=Italic,xft:Noto Sans CJK TC:size=20:style=Regular,xft:Symbols Nerd Font Mono:size=12,xft:Noto Color Emoji:size=16:style=Regular
+URxvt*boldItalicFont:        xft:JuliaMono:size=20:style=BoldItalic,xft:Noto Sans CJK TC:size=20:style=Bold,xft:Symbols Nerd Font Mono:size=12,xft:Noto Color Emoji:size=16:style=Regular
 ! URxvt*font:                  xft:Droid Sans Mono:size=20:style=Regular,xft:Noto Sans CJK TC:size=18:style=Regular,xft:PowerlineSymbols:style=Medium
 ! URxvt*font:                  xft:Ubuntu Mono derivative Powerline:size=14:style=Regular,xft:Noto Sans CJK TC:size=14:style=Regular,xft:Noto Color Emoji:size=14:style:Regular
 
