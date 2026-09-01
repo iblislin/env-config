@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""Print the glyphs vim-airline, powerline and render-markdown rely on.
+
+Run it in the terminal you are actually looking at, not through a screenshot or
+a capture-pane: whether a glyph renders is a property of that window's font
+chain, and urxvt only picks up an xrdb change on newly launched instances -- so
+an old window and a new one legitimately disagree.
+
+Each line carries its own codepoint, so a tofu box can be named precisely
+instead of described.  Report the U+XXXX of any box.
+"""
+
+GROUPS = [
+    ("controls -- these MUST render, or the test itself is broken", [
+        (0x0041, "ASCII A"),
+        (0x4E2D, "CJK"),
+    ]),
+    ("airline / powerline separators (left-hand side)", [
+        (0xE0B0, "left_sep"),
+        (0xE0B1, "left_alt_sep"),
+        (0xE0B2, "right_sep"),
+        (0xE0B3, "right_alt_sep"),
+    ]),
+    ("airline symbols", [
+        (0xE0A0, "branch"),
+        (0xE0A1, "linenr"),
+        (0xE0A2, "readonly"),
+        (0x2632, "whitespace"),
+        (0x2261, "maxlinenr"),
+        (0x2105, "colnr"),
+        (0x0246, "notexists"),
+        (0x26A1, "dirty"),
+        (0x2699, "executable"),
+        (0x1F512, "crypt (astral)"),
+    ]),
+    ("render-markdown icons (Nerd Fonts, plane 15)", [
+        (0xF0131, "checkbox off"),
+        (0xF0C52, "checkbox on"),
+        (0xF059F, "link"),
+        (0xF0CA3, "heading 2"),
+        (0xF0954, "callout clock"),
+    ]),
+]
+
+
+def main() -> None:
+    for title, entries in GROUPS:
+        print(f"\n{title}")
+        print("-" * len(title))
+        for cp, name in entries:
+            print(f"  U+{cp:05X}  [{chr(cp)}]  {name}")
+    print("\nA box means this window has no font for that codepoint.")
+    print("urxvt applies an xrdb change only to NEW windows -- open one before")
+    print("concluding a font is missing.")
+
+
+if __name__ == "__main__":
+    main()
