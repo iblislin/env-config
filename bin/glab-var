@@ -16,7 +16,8 @@
 #   glab-var keys        <groups/PATH|projects/PATH>
 #   glab-var exists      <groups/PATH|projects/PATH> <KEY>     # exit 0 / 1, no output
 #   glab-var fingerprint <groups/PATH|projects/PATH> <KEY>     # length + sha256
-#   glab-var set         <groups/PATH|projects/PATH> <KEY>     # value read from STDIN
+#   glab-var set         <groups/PATH|projects/PATH> <KEY> [--masked] [--protected] [--description TEXT]
+#                                                              # value read from STDIN
 #
 # <scope> is the API path prefix, URL-encoded as the API wants it, e.g.
 #   groups/internal-group            projects/internal-group%2Fclaude-relay
@@ -36,8 +37,9 @@ set -euo pipefail
 
 die() { printf '%s\n' "glab-var: $*" >&2; exit 2; }
 
-[ $# -ge 2 ] || die "usage: glab-var {keys|exists|fingerprint|set} <scope> [KEY]
-  scope examples: groups/internal-group   projects/internal-group%2Fclaude-relay"
+[ $# -ge 2 ] || die "usage: glab-var {keys|exists|fingerprint|set} <scope> [KEY] [--masked] [--protected] [--description TEXT]
+  scope examples: groups/internal-group   projects/internal-group%2Fclaude-relay
+  the trailing flags apply to 'set' only"
 
 cmd=$1; scope=$2; key=${3-}
 
@@ -84,19 +86,55 @@ case "$cmd" in
         ;;
     set)
         [ -n "$key" ] || die "set needs a KEY"
+        shift 3
+        # A flagless `set` used to be the ONLY way to create a variable through this
+        # wrapper, so every call so far has produced an unmasked, unprotected
+        # variable -- printable in every job log that touches it, which is the exact
+        # hazard this wrapper otherwise guards against on the read side. These flags
+        # let a caller opt in explicitly instead. An unrecognised flag must `die`
+        # rather than be silently dropped: a `--masked` that quietly did nothing
+        # would recreate the same hazard one layer up, invisibly.
+        masked=false
+        protected=false
+        description_set=false
+        description=""
+        while [ $# -gt 0 ]; do
+            case "$1" in
+                --masked) masked=true; shift ;;
+                --protected) protected=true; shift ;;
+                --description)
+                    [ $# -ge 2 ] || die "--description needs a TEXT argument"
+                    description=$2
+                    description_set=true
+                    shift 2
+                    ;;
+                *) die "set: unknown option: $1 (expected --masked | --protected | --description TEXT)" ;;
+            esac
+        done
         [ -t 0 ] && die "set reads the value from STDIN -- pipe it in, never pass it as an argument
-  printf %s \"\$NEW\" | glab-var set $scope $key"
+  printf %s \"\$NEW\" | glab-var set $scope $key [--masked] [--protected] [--description TEXT]"
         value=$(cat)
         [ -n "$value" ] || die "refusing to set an empty value"
+        # masked/protected/description are assembled once and merged (`+`) into
+        # each request body below, so both the PUT (update) and POST (create-on-404)
+        # path apply the same flags -- a variable created via the 404 fallback must
+        # not silently end up less protected than one created directly.
+        if [ "$description_set" = true ]; then
+            extra=$(jq -n --argjson masked "$masked" --argjson protected "$protected" --arg d "$description" \
+              '{masked:$masked, protected:$protected, description:$d}')
+        else
+            extra=$(jq -n --argjson masked "$masked" --argjson protected "$protected" \
+              '{masked:$masked, protected:$protected}')
+        fi
         # PUT first (the common case is rotating an existing key), POST on 404.
         # The value travels as JSON on stdin, so it never appears in a command line
         # or a process listing.
-        body=$(jq -n --arg v "$value" '{value:$v}')
+        body=$(jq -n --arg v "$value" --argjson extra "$extra" '{value:$v} + $extra')
         if printf '%s' "$body" | glab api --method PUT -H "Content-Type: application/json" \
              --input - "$scope/variables/$key" >/dev/null 2>&1; then
             printf 'updated %s\n' "$key"
         else
-            body=$(jq -n --arg k "$key" --arg v "$value" '{key:$k, value:$v}')
+            body=$(jq -n --arg k "$key" --arg v "$value" --argjson extra "$extra" '{key:$k, value:$v} + $extra')
             printf '%s' "$body" | glab api --method POST -H "Content-Type: application/json" \
               --input - "$scope/variables" >/dev/null
             printf 'created %s\n' "$key"
