@@ -28,16 +28,49 @@
 #   ATTN_MAX_AGE    hard time expiry, seconds; 0 = never expire  (default 0)
 #   ATTN_AGE_ALERT  unread entries older than this get an urgent (red)
 #                   dot instead of the normal one, seconds       (default 300)
-#   ATTN_KEEP       max Claude entries to retain as history; 0 = terminal
-#                   height (keep "until the screen is full")      (default 0)
+#   ATTN_KEEP       max Claude entries to retain as history; 0 = 4x the
+#                   terminal height                              (default 0)
+#   ATTN_ONCE=1     render one frame to stdout and exit (testing; no eviction)
 #
 # Inbox model: entries persist as read/unread history, like a mail inbox.
-#   * unread  = the window's bell is still set (you have not visited it):
-#               shown bold with a bright dot.
-#   * read    = bell cleared (you visited the window): kept, shown dimmed.
+#   * unread  = you have not had WM focus on that window since the event
+#               (claude-attn-focus hooks): shown bold with a bright dot.
+#   * read    = you looked at it after the event: kept, shown dimmed.
 # Newest event floats to the top; a status change re-stamps the entry so its
-# window jumps back to the top. History is capped to ATTN_KEEP (or screen
-# height); the oldest entries beyond the cap are evicted.
+# window jumps back to the top. History is capped to ATTN_KEEP; the oldest
+# entries beyond the cap are evicted.
+#
+# Threads: entries are GROUPED BY PROJECT (the pane's cwd), like mail
+# threads -- one header row per project, its windows indented beneath.
+# Groups order by their newest event. A group with nothing unread and
+# nothing running is folded to its header (▸); others are open (▾).
+# Keys:  j/k or arrows  move the cursor (>) between groups
+#        Enter / space  toggle the fold of the cursor group (sticks until a
+#                       newer event lands in that group, then auto-reopens)
+#        a              show all entries (ignore auto-fold), toggle
+#        g / G          first / last group        q  quit
+# ---- Why this is still bash, and when to stop (verdict of 2026-09-02) ----
+# Checked before adding the fold tree + keys: no fzf/gum on this box, dialog
+# cannot do a live list, textual/rich only exist as an old pip copy. Python's
+# stdlib curses is the right target -- getch+timeout replaces read -rsn1,
+# KEY_RESIZE/KEY_UP replace hand-parsed escapes, it diffs the redraw itself,
+# and clipping can use unicodedata.east_asian_width instead of the hand-
+# budgeted "W - namecap - 22" below. claude-attn-title is already Python, so
+# the tool would become one language. The two slowest bugs this round were
+# bash-specific (a subshell losing the group arrays; GROUPS being a builtin).
+#
+# Not ported yet because it works and is tested. PORT AT THE NEXT FEATURE that
+# needs a per-ROW cursor (Enter -> jump to that tmux window, search/filter,
+# mouse): the key/scroll logic would double again in bash. What the port
+# throws away: the ~250 lines of terminal layer here (clip, draw, read_key,
+# scroll, measure). What it keeps: every state file, the hook, the focus
+# tracker, the title cache -- the data model does not change.
+#
+# Dependencies for that port: the user is fine with any Python package in a
+# venv. Put one under ~/venv/ (they are cheap) and point the shebang at its
+# interpreter, e.g. #!/home/iblis/venv/attn/bin/python3 -- do NOT depend on
+# ~/venv/py3, which is a working venv for other projects. Prefer stdlib curses
+# unless a package removes real code.
 set -u
 
 INTERVAL="${1:-3}"
@@ -224,37 +257,67 @@ render_usage() {
   fi
 }
 
-# Emit Claude rows (already clipped to $W), newest first. Each row is an
-# inbox entry: unread (bell still set) = bold + bright dot; read (bell
-# cleared / visited) = dimmed, kept as history.
+# ---- Claude section: inbox grouped by project (pane cwd), like mail threads.
+# Each project is a "thread" (header row), each window an entry under it.
+# Groups are ordered by their newest event; entries inside by ts desc.
+# A group is FOLDED (header only) by default when it holds no unread and no
+# running entry -- all-read history stays reachable but out of the way.
+# Enter/space on the cursor group toggles the fold; the manual state is
+# remembered until a NEWER event lands in that group (then it auto-reopens,
+# consistent with "a status change re-floats the window").
+#
+# Output goes to globals (not stdout) because the main loop needs the
+# group list back and a pipeline/subshell would lose it:
+#   CL[]        rendered lines of the section
+#   G_PATHS[]    cpath per group, in display order (cursor indexes this)
+#   G_NEWEST[]  newest event ts per group (for the fold-override expiry)
+#   G_FOLDED[]  effective fold state per group (1 folded / 0 open)
+#   HDR_LINE[]  index into CL of each group's header row (for scrolling)
+# (Not named GROUPS: that is a bash builtin -- the user's gid list -- and
+# assignments to it are silently ignored, so the cursor indexed gids.)
+declare -a CL=() G_PATHS=() G_NEWEST=() G_FOLDED=() HDR_LINE=()
+declare -A FOLD_OVR=()   # cpath -> "<newest_ts_at_toggle>:<0|1>"
+CUR=0                    # cursor = index into G_PATHS
+SHOW_ALL=0               # 1 = ignore auto-fold (show every entry)
+
 render_claude() {
-  local W="$1" now key ts st winid wname sockname cpath label age viewed_ts f
-  local name meta namecap metacap dot icon icon_col
+  local W="$1" now key ts st winid wname sockname cpath label age viewed_ts f e
+  local name meta namecap metacap dot icon icon_col row
+  CL=(); G_PATHS=(); G_NEWEST=(); G_FOLDED=(); HDR_LINE=()
   now="$(date +%s)"
   shopt -s nullglob
   local files=("$STATE_DIR"/*)
   if [ ${#files[@]} -eq 0 ]; then
-    printf '   \033[2m(inbox empty)\033[0m\n'; return
+    CL+=("$(printf '   \033[2m(inbox empty)\033[0m')"); return
   fi
-  # Prefix each entry with its key (for the focus lookup), sort by ts desc.
-  for f in "${files[@]}"; do printf '%s\t%s\n' "$(basename "$f")" "$(cat "$f")"; done \
-    | sort -t$'\t' -k2,2rn \
-    | while IFS=$'\t' read -r key ts st winid wname sockname cpath label; do
+  # key<TAB>state-line per entry, sorted by ts desc (field 2).
+  local -a entries=()
+  for f in "${files[@]}"; do entries+=("$(basename "$f")	$(cat "$f")"); done
+  mapfile -t entries < <(printf '%s\n' "${entries[@]}" | sort -t$'\t' -k2,2rn)
+
+  # Row geometry. Rows are indented 2 under their header, so the non-name
+  # overhead is 22: indent (2), dot+sp (2), icon (7 -- ✅/⏳ are 2 cols
+  # wide), 2 spaces, name, space, age (5), 2 spaces, +1 slack.
+  namecap=30; [ "$namecap" -gt $(( W / 3 )) ] && namecap=$(( W / 3 ))
+  [ "$namecap" -lt 8 ] && namecap=8
+  metacap=$(( W - namecap - 22 ))
+
+  local -A g_rows=() g_unread=() g_read=() g_run=() g_newest=()
+  local -a g_order=()
+  for e in "${entries[@]}"; do
+    IFS=$'\t' read -r key ts st winid wname sockname cpath label <<<"$e"
+    [ -n "$ts" ] || continue
     age=$(( now - ts ))
+    if [ -z "${g_newest[$cpath]:-}" ]; then
+      g_order+=("$cpath"); g_newest[$cpath]="$ts"
+      g_unread[$cpath]=0; g_read[$cpath]=0; g_run[$cpath]=0; g_rows[$cpath]=""
+    fi
     # read = you actually looked at this window (had WM focus on it) AFTER the
     # event; unread otherwise. Focus-based, independent of the tmux bell.
     viewed_ts="$(stat -c%Y "$VIEWED_DIR/$key" 2>/dev/null || echo 0)"
-    # name = session label (else window name); session:window + cwd go in meta.
     [ -n "$label" ] && name="$label" || name="$wname"
-    namecap=30; [ "$namecap" -gt $(( W / 3 )) ] && namecap=$(( W / 3 ))
-    [ "$namecap" -lt 8 ] && namecap=8
-    # Non-name overhead in VISIBLE columns: dot+sp (2), icon (7 -- the
-    # ✅/⏳ glyphs are 2 cols wide), 2 spaces, name, space, age (5), 2
-    # spaces, +1 slack = 20. (Undercounting caused DONE/WAIT rows, whose
-    # emoji icon is 1 col wider than RUN's ▶, to wrap by one column.)
-    metacap=$(( W - namecap - 20 ))
     name="$(clip "$name" "$namecap")"
-    [ "$metacap" -ge 8 ] && meta="$(clip "[$winid] $(tilde "$cpath")" "$metacap")" || meta=""
+    [ "$metacap" -ge 8 ] && meta="$(clip "[$winid]" "$metacap")" || meta=""
     case "$st" in
       running) icon='▶ RUN  '; icon_col='\033[36m' ;;   # padded to 7 cols to align with emoji icons
       waiting) icon='⏳ WAIT'; icon_col='\033[1;33m' ;;
@@ -263,18 +326,54 @@ render_claude() {
     esac
     if [ "$st" = "running" ]; then
       # ACTIVE: Claude is working -- neutral cyan, no read/unread dimming.
-      printf '\033[36m▸\033[0m %b%s\033[0m  %-*s %5s  \033[2m%s\033[0m\n' \
-        "$icon_col" "$icon" "$namecap" "$name" "$(fmt_age "$age")" "$meta"
+      row="$(printf '\033[36m▸\033[0m %b%s\033[0m  %-*s %5s  \033[2m%s\033[0m' \
+        "$icon_col" "$icon" "$namecap" "$name" "$(fmt_age "$age")" "$meta")"
+      g_run[$cpath]=$(( g_run[$cpath] + 1 ))
     elif [ "$viewed_ts" -lt "$ts" ]; then
       # UNREAD: not viewed since the event. Bold, bright dot (red if long).
       [ "$age" -ge "$AGE_ALERT" ] && dot='\033[1;31m●\033[0m' || dot='\033[1;36m●\033[0m'
-      printf '%b %b%b\033[0m  \033[1m%-*s\033[0m %5s  \033[2m%s\033[0m\n' \
-        "$dot" "$icon_col" "$icon" "$namecap" "$name" "$(fmt_age "$age")" "$meta"
+      row="$(printf '%b %b%b\033[0m  \033[1m%-*s\033[0m %5s  \033[2m%s\033[0m' \
+        "$dot" "$icon_col" "$icon" "$namecap" "$name" "$(fmt_age "$age")" "$meta")"
+      g_unread[$cpath]=$(( g_unread[$cpath] + 1 ))
     else
       # READ: fully dimmed history, hollow dot.
-      printf '\033[2m○ %s  %-*s %5s  %s\033[0m\n' \
-        "$icon" "$namecap" "$name" "$(fmt_age "$age")" "$meta"
+      row="$(printf '\033[2m○ %s  %-*s %5s  %s\033[0m' \
+        "$icon" "$namecap" "$name" "$(fmt_age "$age")" "$meta")"
+      g_read[$cpath]=$(( g_read[$cpath] + 1 ))
     fi
+    g_rows[$cpath]+="  ${row}"$'\n'
+  done
+
+  # Emit groups. Header: "<cursor><fold> <~cpath>  ●N ○N ▶N  age".
+  local n=${#g_order[@]} i=0 cp folded ovr hdr hdrcap cur fold_glyph cnt cnt_plain
+  [ "$CUR" -ge "$n" ] && CUR=$(( n - 1 )); [ "$CUR" -lt 0 ] && CUR=0
+  # Header overhead: cursor+fold+sp (3), 2 sp, counts (~14), 2 sp, age (5).
+  hdrcap=$(( W - 26 )); [ "$hdrcap" -lt 8 ] && hdrcap=8
+  for cp in "${g_order[@]}"; do
+    folded=1
+    { [ "${g_unread[$cp]}" -gt 0 ] || [ "${g_run[$cp]}" -gt 0 ]; } && folded=0
+    [ "$SHOW_ALL" = 1 ] && folded=0
+    ovr="${FOLD_OVR[$cp]:-}"
+    if [ -n "$ovr" ]; then
+      # Manual toggle sticks until a newer event lands in the group.
+      if [ "${ovr%%:*}" -ge "${g_newest[$cp]}" ]; then folded="${ovr##*:}"
+      else unset "FOLD_OVR[$cp]"; fi
+    fi
+    G_PATHS+=("$cp"); G_NEWEST+=("${g_newest[$cp]}"); G_FOLDED+=("$folded")
+    [ "$i" -eq "$CUR" ] && cur=$'\033[1;33m>\033[0m' || cur=' '
+    [ "$folded" = 1 ] && fold_glyph='▸' || fold_glyph='▾'
+    cnt=""
+    [ "${g_unread[$cp]}" -gt 0 ] && cnt+="$(printf '\033[1;36m●%-2d\033[0m ' "${g_unread[$cp]}")" || cnt+="    "
+    [ "${g_run[$cp]}"    -gt 0 ] && cnt+="$(printf '\033[36m▶%-2d\033[0m '   "${g_run[$cp]}")"    || cnt+="    "
+    cnt+="$(printf '\033[2m○%-2d\033[0m' "${g_read[$cp]}")"
+    hdr="$(printf '%s%s \033[1m%-*s\033[0m  %s  %5s' \
+      "$cur" "$fold_glyph" "$hdrcap" "$(clip "$(tilde "$cp")" "$hdrcap")" \
+      "$cnt" "$(fmt_age $(( now - g_newest[$cp] )))")"
+    HDR_LINE+=("${#CL[@]}"); CL+=("$hdr")
+    if [ "$folded" != 1 ]; then
+      while IFS= read -r row; do [ -n "$row" ] && CL+=("$row"); done <<<"${g_rows[$cp]}"
+    fi
+    i=$(( i + 1 ))
   done
 }
 
@@ -298,37 +397,141 @@ render_bells() {
   [ "$any" -eq 0 ] && printf '   \033[2m(none)\033[0m\n'
 }
 
-render() {
-  local W="$1"
-  printf '\033[1m tmux attention board \033[0m %s  \033[2m(every %ss · Ctrl-C quits)\033[0m\n' \
-    "$(date '+%H:%M:%S')" "$INTERVAL"
-  render_usage "$W"
-  printf '%s\n' "$(clip ' ─────────────────────────────────────────────────────────────────────' "$W")"
-  printf '\033[1;36m Claude\033[0m\n'
+# Build the whole frame into OUT[] (globals; see render_claude for why).
+# Layout: head (title, usage, rule, "Claude" heading) / Claude section, which
+# scrolls so the cursor group stays visible / Bell section at the bottom.
+declare -a OUT=()
+SCROLL=0
+render_frame() {
+  local W="$1" H="$2" tmp
+  OUT=()
+  # Title: drop the key hint when it does not fit (clip cannot see ESC bytes).
+  local hint="(every ${INTERVAL}s · j/k move · Enter fold · a all · q quit)" ts
+  ts="$(date '+%H:%M:%S')"
+  [ $(( 23 + ${#ts} + 2 + ${#hint} )) -gt "$W" ] && hint="(every ${INTERVAL}s)"
+  OUT+=("$(printf '\033[1m tmux attention board \033[0m%s  \033[2m%s\033[0m' "$ts" "$hint")")
+  mapfile -t tmp < <(render_usage "$W"); OUT+=("${tmp[@]}")
+  OUT+=("$(clip ' ─────────────────────────────────────────────────────────────────────' "$W")")
+  OUT+=("$(printf '\033[1;36m Claude\033[0m  \033[2m(grouped by project cwd)\033[0m')")
   render_claude "$W"
-  printf '\033[1;35m Bell (other windows)\033[0m\n'
-  render_bells "$W"
+  local -a BL=("$(printf '\033[1;35m Bell (other windows)\033[0m')")
+  mapfile -t tmp < <(render_bells "$W"); BL+=("${tmp[@]}")
+
+  # Height budget: bells keep their lines unless that would starve the
+  # Claude section below 4 lines; then bells get "+N more" instead.
+  local avail total cur_line hidden_below
+  avail=$(( H - 1 - ${#OUT[@]} - ${#BL[@]} ))
+  if [ "$avail" -lt 4 ]; then
+    avail=4; [ "$avail" -gt "${#CL[@]}" ] && avail="${#CL[@]}"
+    local bl_avail=$(( H - 1 - ${#OUT[@]} - avail ))
+    if [ "$bl_avail" -lt "${#BL[@]}" ]; then
+      [ "$bl_avail" -lt 2 ] && bl_avail=2
+      hidden_below=$(( ${#BL[@]} - (bl_avail - 1) ))
+      BL=( "${BL[@]:0:bl_avail-1}" "$(printf '\033[2m   … +%d more (enlarge window)\033[0m' "$hidden_below")" )
+    fi
+  fi
+  # Scroll the Claude section so the cursor's header row is visible, keeping
+  # the first/last visible line free for the ↑/↓ "more" markers when needed.
+  total="${#CL[@]}"
+  if [ "$total" -le "$avail" ]; then
+    SCROLL=0
+    OUT+=("${CL[@]}")
+  else
+    cur_line="${HDR_LINE[$CUR]:-0}"
+    [ "$cur_line" -lt $(( SCROLL + 1 )) ] && SCROLL=$(( cur_line - 1 ))
+    [ "$cur_line" -gt $(( SCROLL + avail - 2 )) ] && SCROLL=$(( cur_line - avail + 2 ))
+    [ "$SCROLL" -gt $(( total - avail )) ] && SCROLL=$(( total - avail ))
+    [ "$SCROLL" -lt 0 ] && SCROLL=0
+    local -a view=("${CL[@]:SCROLL:avail}")
+    hidden_below=$(( total - SCROLL - avail ))
+    [ "$SCROLL" -gt 0 ] && view[0]="$(printf '\033[2m   ↑ %d more\033[0m' "$SCROLL")"
+    [ "$hidden_below" -gt 0 ] && view[avail-1]="$(printf '\033[2m   ↓ %d more\033[0m' "$hidden_below")"
+    OUT+=("${view[@]}")
+  fi
+  OUT+=("${BL[@]}")
 }
+
+draw() {
+  printf '\033[H'
+  local ln; for ln in "${OUT[@]}"; do printf '%s\033[K\n' "$ln"; done
+  printf '\033[J'
+}
+
+# One keypress (or the refresh interval elapsing). Sets KEY to one of:
+# TIMEOUT, ENTER, UP, DOWN, or the literal character.
+read_key() {
+  local k k2 k3 rc
+  IFS= read -rsn1 -t "${1:-$INTERVAL}" k; rc=$?
+  if [ "$rc" -gt 128 ]; then KEY=TIMEOUT; return; fi
+  [ "$rc" -ne 0 ] && { KEY=TIMEOUT; return; }
+  case "$k" in
+    ''|$'\r'|$'\n')  KEY=ENTER ;;   # '' = newline consumed as delimiter; raw ttys send \r
+    $'\033')
+      KEY=ESC
+      if IFS= read -rsn1 -t 0.05 k2 && IFS= read -rsn1 -t 0.05 k3; then
+        case "$k2$k3" in '[A') KEY=UP ;; '[B') KEY=DOWN ;; esac
+      fi ;;
+    *)   KEY="$k" ;;
+  esac
+}
+
+toggle_fold() {
+  local cp="${G_PATHS[$CUR]:-}" cur
+  [ -n "$cp" ] || return
+  # Current state = a pending override from this same key burst if any (the
+  # frame has not been redrawn yet), else what the last frame showed.
+  cur="${G_FOLDED[$CUR]}"
+  [ -n "${FOLD_OVR[$cp]:-}" ] && cur="${FOLD_OVR[$cp]##*:}"
+  FOLD_OVR[$cp]="${G_NEWEST[$CUR]}:$(( 1 - cur ))"
+}
+
+measure() {
+  W="${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}"
+  H="${LINES:-$(tput lines 2>/dev/null || echo 24)}"
+  # History cap: ATTN_KEEP if set (>0), else 4x the terminal height. (Was 1x
+  # when every entry cost a line; folded groups now hide most read history,
+  # so the screen holds far more entries than it has lines.)
+  keep_cap="$KEEP"; [ "$keep_cap" -lt 1 ] 2>/dev/null && keep_cap=$(( H * 4 ))
+}
+
+# ATTN_ONCE=1: render a single frame to stdout and exit (testing / piping).
+# Deliberately does NOT evict history -- a small test terminal must not
+# delete live entries.
+if [ "${ATTN_ONCE:-0}" = 1 ]; then
+  measure; refresh_windows; refresh_viewed; render_frame "$W" "$H"
+  printf '%s\n' "${OUT[@]}"; exit 0
+fi
 
 cleanup() { printf '\033[?25h\033[?1049l'; exit 0; }
 trap cleanup INT TERM
 printf '\033[?1049h\033[?25l'   # alt screen + hide cursor
 
+INTERACTIVE=0; [ -t 0 ] && INTERACTIVE=1
 while :; do
-  W="${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}"
-  H="${LINES:-$(tput lines 2>/dev/null || echo 24)}"
-  # History cap: ATTN_KEEP if set (>0), else the terminal height.
-  keep_cap="$KEEP"; [ "$keep_cap" -lt 1 ] 2>/dev/null && keep_cap="$H"
+  measure
   cleanup_stale "$keep_cap"
-  mapfile -t buf < <(render "$W")
-  # Cap to terminal height with a "+N more" footer.
-  local_max=$(( H - 1 ))
-  if [ "${#buf[@]}" -gt "$local_max" ] && [ "$local_max" -gt 1 ]; then
-    hidden=$(( ${#buf[@]} - (local_max - 1) ))
-    buf=( "${buf[@]:0:local_max-1}" "$(printf '\033[2m   … +%d more (enlarge window)\033[0m' "$hidden")" )
+  render_frame "$W" "$H"
+  draw
+  if [ "$INTERACTIVE" = 1 ]; then
+    # Wait for a key (or the interval), then drain any keys already queued
+    # so a burst like "jjj" costs one redraw, not three (a frame is ~0.5s).
+    read_key
+    while [ "$KEY" != TIMEOUT ]; do
+      case "$KEY" in
+        j|DOWN) CUR=$(( CUR + 1 )) ;;
+        k|UP)   CUR=$(( CUR - 1 )) ;;
+        g)      CUR=0 ;;
+        G)      CUR=$(( ${#G_PATHS[@]} - 1 )) ;;
+        ENTER|' '|o) toggle_fold ;;
+        a)      SHOW_ALL=$(( 1 - SHOW_ALL )); FOLD_OVR=() ;;
+        q)      cleanup ;;
+      esac
+      [ "$CUR" -lt 0 ] && CUR=0
+      [ "$CUR" -ge "${#G_PATHS[@]}" ] && CUR=$(( ${#G_PATHS[@]} - 1 ))
+      [ "$CUR" -lt 0 ] && CUR=0
+      read_key 0.02
+    done
+  else
+    sleep "$INTERVAL"
   fi
-  printf '\033[H'
-  for ln in "${buf[@]}"; do printf '%s\033[K\n' "$ln"; done
-  printf '\033[J'
-  sleep "$INTERVAL"
 done
