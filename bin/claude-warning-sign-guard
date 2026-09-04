@@ -1,0 +1,148 @@
+#!/usr/bin/env python3
+"""PreToolUse deny: keep the ⚠ WARNING SIGN out of newly written prose.
+
+The standard (internal-group/claude-plugins !12, note_30790, in the user's own words):
+"just no that emoji symbol. we found that it buys nothing, well, the attention
+still could decay if the context is long. so originally we have lots of them in
+repo, but for newly rewritten doc, I tried to get rid of those emoji."
+
+Settled in note_30793 as "none at all", not "do not overuse" — the reviewer
+removed even the one occurrence they had argued was doing real work.
+
+Why a deny and not a PostToolUse strip
+--------------------------------------
+Deleting a character is mechanical, so CLAUDE.md's "does this need to be READ or
+only to HAPPEN" test seems to point at a silent side effect. It does not, and the
+reason is the discriminator below: whether a given occurrence is *emphasis* or
+*subject matter* is a judgement, and a silent strip would quietly corrupt prose
+that was quoting the symbol. So: deny, and let the message carry the fix.
+
+What it denies, and the one discriminator that matters
+-----------------------------------------------------
+Only occurrences this edit INTRODUCES. Legacy is explicitly not being swept, so
+an Edit that carries an existing ⚠ through unchanged is fine, and only a net
+increase is refused. That is what makes the hook implement the actual standard
+rather than a stricter one nobody agreed to.
+
+Prose *about* the symbol stays writable: inside backticks, inside a fenced block,
+or on a blockquote line. Without that, the hook blocks its own documentation —
+and every reply on the thread that decided this legitimately contained one.
+
+Both codepoint forms are matched: U+26A0 alone, and U+26A0 + U+FE0F. A pattern
+for the emoji-presentation form alone lets the bare character walk through.
+
+Limits, stated rather than discovered later
+-------------------------------------------
+* Fence tracking runs over the ADDED text only, so an Edit landing inside a
+  fenced block that opened earlier in the file reads as prose. That direction is
+  deliberate: it over-refuses rather than under-refuses, and the message says how
+  to proceed.
+* Bash is matched only for heredoc/redirect writes to a doc. An arbitrary command
+  carrying the character — `glab api` posting a comment that discusses it — is
+  left alone on purpose; blocking that was the failure mode to avoid.
+
+Exit 0 with no output = no opinion. Never blocks on its own error.
+"""
+import json
+import os
+import re
+import sys
+
+WARN = re.compile("⚠️?")
+
+# The standard is about docs. Code comments are out of scope until asked.
+DOCISH = re.compile(r"\.(md|markdown|mdx)$|(^|/)(AGENTS|CLAUDE|README|SKILL)\.md$", re.I)
+
+# A shell write that lands in a doc: heredoc, redirect, or tee.
+BASH_DOC_WRITE = re.compile(
+    r"(<<-?\s*'?\w+'?[\s\S]*?)?(>>?|\btee\b)\s*[\"']?([^\s\"'|;&]+\.(?:md|markdown|mdx))",
+    re.I)
+
+
+def added_prose_hits(text):
+    """Occurrences in TEXT that are prose rather than subject matter."""
+    hits, in_fence = [], False
+    for raw in text.split("\n"):
+        line = raw.strip()
+        if line.startswith("```") or line.startswith("~~~"):
+            in_fence = not in_fence
+            continue
+        if in_fence or line.startswith(">"):
+            continue
+        # strip inline code spans, then look at what is left
+        bare = re.sub(r"`[^`]*`", "", raw)
+        if WARN.search(bare):
+            hits.append(line[:90])
+    return hits
+
+
+def deny(reason):
+    print(json.dumps({"hookSpecificOutput": {
+        "hookEventName": "PreToolUse",
+        "permissionDecision": "deny",
+        "permissionDecisionReason": reason}}))
+    sys.exit(0)
+
+
+MESSAGE = (
+    "Drop the ⚠ and move the emphasis into the opening bold clause:\n"
+    "    ⚠ **A guard may be doing a second job nobody wrote down.**\n"
+    " -> **A guard may be doing a second job nobody wrote down, and this is "
+    "the trap in the rule.**\n"
+    "The symbol buys nothing and attention decays anyway once the context is "
+    "long (internal-group/claude-plugins !12, note_30790). Legacy occurrences are NOT "
+    "being swept — only newly written prose. To write ABOUT the symbol, put it "
+    "in backticks, a fenced block, or a blockquote line, which this guard "
+    "allows.\n%s")
+
+
+def main():
+    try:
+        payload = json.load(sys.stdin)
+    except Exception:
+        return
+    tool = payload.get("tool_name") or ""
+    inp = payload.get("tool_input") or {}
+
+    if tool == "Edit":
+        path = inp.get("file_path") or ""
+        if not DOCISH.search(path):
+            return
+        old = len(WARN.findall(inp.get("old_string") or ""))
+        new = added_prose_hits(inp.get("new_string") or "")
+        # only a NET increase — carrying legacy through unchanged is fine
+        if len(new) > old:
+            deny(MESSAGE % ("Introduced on: " + new[0] if new else ""))
+
+    elif tool == "Write":
+        path = inp.get("file_path") or ""
+        if not DOCISH.search(path):
+            return
+        new = added_prose_hits(inp.get("content") or "")
+        if not new:
+            return
+        existing = 0
+        try:
+            with open(os.path.expanduser(path), encoding="utf-8") as fh:
+                existing = len(WARN.findall(fh.read()))
+        except OSError:
+            existing = 0
+        if len(new) > existing:
+            deny(MESSAGE % ("Introduced on: " + new[0]))
+
+    elif tool == "Bash":
+        cmd = inp.get("command") or ""
+        if not WARN.search(cmd) or not BASH_DOC_WRITE.search(cmd):
+            return
+        deny(MESSAGE % (
+            "Also: this writes a doc through the shell, where a Write/Edit-scoped "
+            "guard cannot see it. Use the Write or Edit tool instead — see "
+            "CLAUDE.md § Write files with Write / Edit, not through Bash."))
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        pass
+    sys.exit(0)
