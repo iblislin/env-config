@@ -3,12 +3,18 @@
 #
 #   Rule 1 — a polling loop, pointing at the event-driven watchers (IOT-438).
 #   Rule 2 — reading ONE MR note by id, pointing at `glab-mr-note` (RIC-540).
-#   Rule 3 — listing CI/CD variables, or writing one with the value inline (IOT-502).
-#   Rule 4 — posting a body to GitLab without gating it on the markdown checker.
+#   Rule 3 — POSTING an MR note, pointing at `glab-mr-reply` (IOT-647).
+#   Rule 4 — listing CI/CD variables, or writing one with the value inline (IOT-502).
+#   Rule 5 — posting a body to GitLab without gating it on the markdown checker.
 #
-# Named `claude-glab-poll-guard` until 2026-08-25, when Rule 4 landed and made
-# the misnomer impossible to ignore: only Rule 1 was ever about polling. It is
-# a guard over how `glab` gets used, not over one failure mode.
+# Named `claude-glab-poll-guard` until 2026-08-25, when the markdown-gate rule
+# landed and made the misnomer impossible to ignore: only Rule 1 was ever about
+# polling. It is a guard over how `glab` gets used, not over one failure mode.
+#
+# ⚠ Rules are referenced BY NAME in prose elsewhere, not by number — the numbers
+# shift whenever one is inserted (Rule 3 was inserted 2026-09-04 and pushed the
+# variables and markdown rules down one each). glab-mr-workflow SKILL.md cites
+# "Rule 2" and survived only because the insert landed after it.
 #
 # Reads the hook payload on stdin, emits a PreToolUse decision on stdout.
 # Silence (exit 0, no output) means "no opinion" — the call proceeds normally.
@@ -81,14 +87,61 @@ if [ "$has_glab" -eq 1 ] && [ "$is_note_read" -eq 1 ]; then
         hookEventName: "PreToolUse",
         permissionDecision: "deny",
         permissionDecisionReason: (
-          "Reading one MR note by id already has a tool: `glab-mr-note <note_id>` (or the full note URL). It prints author, created_at, file/line for diff notes, the url and the body — no jq/python parsing to write, and it resolves the project and MR iid from the cwd'"'"'s git remote plus current branch.\n\n  glab-mr-note 27725\n  glab-mr-note https://<host>/<group>/<project>/-/merge_requests/<iid>#note_<id>\n\nEvery glab-mr-watch COMMENT event line ends with `read=glab-mr-note` naming this exact tool. If you need a field it does not print, say so rather than re-deriving the whole fetch — and note that listing notes or posting one is NOT this rule, so those calls still go through."
+          "Reading one MR note by id already has a tool: `glab-mr-note <note_id>` (or the full note URL). It prints author, created_at, file/line for diff notes, the url and the body — no jq/python parsing to write, and it resolves the project and MR iid from the cwd'"'"'s git remote plus current branch.\n\n  glab-mr-note 27725\n  glab-mr-note https://<host>/<group>/<project>/-/merge_requests/<iid>#note_<id>\n\nEvery glab-mr-watch COMMENT event line ends with `read=glab-mr-note` naming this exact tool. If you need a field it does not print, say so rather than re-deriving the whole fetch — and note that listing notes is NOT this rule, while POSTING one is Rule 3 below."
         )
       }
     }'
     exit 0
 fi
 
-# Rule 3 — CI/CD variables: the mass-dump read, and a write with the value inline.
+# Rule 3 — posting an MR note or a thread reply by hand (IOT-647).
+#
+# The write-side twin of Rule 2. `glab-mr-reply <note_id|note_url> body.md`
+# replies into that note'"'"'s thread; `--mr <project> <iid> body.md` opens a new
+# top-level one. It bundles four steps that each failed separately before it
+# existed, and three of them fail SILENTLY or misleadingly:
+#
+#   • the markdown gate — Rule 5 below only checks that SOME gate exists; the
+#     tool always runs it and refuses to post on a violation (exit 3);
+#   • -H "Content-Type: application/json" — `glab api --input -` sends no
+#     content-type and GitLab answers HTTP 415 "The provided content-type ''
+#     is not supported.". Measured on glab 1.92.1 against the CMUH instance
+#     2026-09-04, and the three one-liners in glab-mr-workflow SKILL.md
+#     omitted this flag until the same day;
+#   • GITLAB_TOKEN on `glab`, not on `jq` — the prefix binds to the FIRST
+#     command of a pipeline, so `GITLAB_TOKEN=$(...) jq ... | glab api ...`
+#     posts as the human. That one SUCCEEDS: the note appears under A38767,
+#     glab-mr-watch stops recognising the agent'"'"'s own replies as self, and
+#     every reply comes back as a new COMMENT event (HTF-21 !5, ~15 echoes in
+#     one review session; internal-group/claude-plugins!9 repeated it 2026-08-28);
+#   • resolving the enclosing discussion from a note id, so a reply lands in
+#     the right thread instead of a copied-wrong id'"'"'s.
+#
+# ⚠ Scoped to the two endpoints the tool actually covers, and NOT to
+# `merge_requests/<iid>/discussions`, which CREATES a discussion — that is the
+# pinned-DiffNote flow (glab-mr-workflow SKILL.md, "Posting inline (pinned)
+# review comments"), it needs a nested `position` object, and glab-mr-reply
+# cannot do it. Denying a call with no replacement is how a guard teaches
+# people to route around it, so that endpoint stays open on purpose.
+is_note_post=0
+printf '%s' "$cmd" | grep -qE -- '(--method|-X)[[:space:]]*POST' \
+    && printf '%s' "$cmd" | grep -qE 'discussions/[^/[:space:]]+/notes|merge_requests/[0-9]+/notes' \
+    && is_note_post=1
+
+if [ "$has_glab" -eq 1 ] && [ "$is_note_post" -eq 1 ]; then
+    jq -n '{
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "deny",
+        permissionDecisionReason: (
+          "Posting an MR note has a tool — use it, and the four things this hand-rolled call has to get right are already handled:\n\n  glab-mr-reply <note_id|note_url> body.md      # reply in that note'"'"'s thread\n  glab-mr-reply --mr <project> <iid> body.md    # new top-level thread\n\nIt runs the markdown checker and refuses to post on a violation (exit 3), sends the Content-Type header that `glab api --input -` omits (GitLab answers HTTP 415 without it), resolves the interactive bot token from pass, and resolves the enclosing discussion from the note id so the reply lands in the right thread. Add --as-me to post as yourself, --no-check to skip the checker, --dry-run to see what would go out.\n\nTwo of those fail without failing loudly: a note posted on the human identity SUCCEEDS and then makes glab-mr-watch echo every agent reply back as a new COMMENT (HTF-21 !5, ~15 echoes in one session).\n\nNOT this rule: POSTing to `merge_requests/<iid>/discussions` to CREATE a pinned DiffNote — that needs a nested position object, glab-mr-reply cannot do it, and it still goes through. Body in a FILE either way; argv breaks on backticks and <details> tags."
+        )
+      }
+    }'
+    exit 0
+fi
+
+# Rule 4 — CI/CD variables: the mass-dump read, and a write with the value inline.
 #
 # 2026-08-20: `GET /groups/internal-group/variables` printed ~43 credential VALUES into a
 # transcript in one call — Harbor robot passwords, DOCKER_AUTH_CONFIG, the bot
@@ -147,7 +200,7 @@ if [ "$touches_gitlab" -eq 1 ] && { [ "$is_var_list" -eq 1 ] || [ "$is_var_inlin
     exit 0
 fi
 
-# Rule 4 — a body posted to GitLab that was never run past the markdown checker.
+# Rule 5 — a body posted to GitLab that was never run past the markdown checker.
 #
 # Every mechanical rule in the house GitLab style (glab-mr-workflow SKILL.md)
 # fails SILENTLY in GitLab's renderer. The worst is an unbalanced <details>:
@@ -223,7 +276,7 @@ if [ "$posts_body" -eq 1 ] && [ -x "$CHECKER" ]; then
         hookEventName: "PreToolUse",
         permissionDecision: "deny",
         permissionDecisionReason: (
-          "This posts a body to GitLab, but the body cannot be checked from the command string — it is a heredoc, a shell variable, or a path built by interpolation.\n\nPosting an MR NOTE or a reply — use the tool, which needs no checker chaining because it gates itself, and also carries the bot token and the Content-Type header this hand-rolled form drops:\n\n  glab-mr-reply <note_id|note_url> reply.md      # reply in that note'"'"'s thread\n  glab-mr-reply --mr <project> <iid> reply.md    # new top-level thread\n\nAn MR DESCRIPTION has no such tool — write it to a file and chain the checker yourself:\n\n  ~/.claude/skills/glab-mr-workflow/check-gitlab-markdown.py body.md && \\\n    glab mr create --title '"'"'<TICKET-N> <imperative english>'"'"' --description \"$(cat body.md)\" \\\n      --remove-source-branch --squash-before-merge --yes\n\nThe && is load-bearing: a checker on the line above gates nothing, the post goes out anyway and the findings scroll past unread. Use a LITERAL path, not $VAR, or this guard cannot resolve it.\n\nWhy this is not a formality: every house markdown rule fails SILENTLY in GitLab'"'"'s renderer (incident 2026-07-30, !1112 note 26122 — an unbalanced <details> hid the conclusion), and a body in a file is also what keeps backticks, <details> tags and shell quotes from breaking the call. See glab-mr-workflow SKILL.md, \"Gate every post on the checker\"."
+          "This posts a body to GitLab, but the body cannot be checked from the command string — it is a heredoc, a shell variable, or a path built by interpolation. Write the body to a file at a LITERAL path (not $VAR, or this guard cannot resolve it) and chain the checker with && — the && is load-bearing, a checker on the line above gates nothing and the findings scroll past unread while the post goes out anyway:\n\n  ~/.claude/skills/glab-mr-workflow/check-gitlab-markdown.py body.md && \\\n    glab mr create --title '"'"'<TICKET-N> <imperative english>'"'"' --description \"$(cat body.md)\" \\\n      --remove-source-branch --squash-before-merge --yes\n\n  ~/.claude/skills/glab-mr-workflow/check-gitlab-markdown.py note.md && \\\n    glab api --method POST -H \"Content-Type: application/json\" --input note.json \\\n      \".../merge_requests/<iid>/discussions\"     # pinned DiffNote: body+position in note.json\n\nThose are the two cases that reach this rule. A plain MR note or a thread reply does NOT — that is Rule 3, which points at `glab-mr-reply` and needs no chaining because the tool gates itself. Do not reach for glab-mr-reply here: it cannot attach the nested `position` a DiffNote needs.\n\nWhy this is not a formality: every house markdown rule fails SILENTLY in GitLab'"'"'s renderer (incident 2026-07-30, !1112 note 26122 — an unbalanced <details> hid the conclusion), and a body in a file is also what keeps backticks, <details> tags and shell quotes from breaking the call. See glab-mr-workflow SKILL.md, \"Gate every post on the checker\"."
         )
       }
     }'
