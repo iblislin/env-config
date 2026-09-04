@@ -1018,7 +1018,7 @@ tmap <C-W>c <C-W><C-C>
     if !has('nvim')
         Plug 'yegappan/lsp'
     endif
-    Plug 'SirVer/ultisnips' | Plug 'iblis17/vim-snippets'
+    Plug 'SirVer/ultisnips' | Plug 'iblislin/vim-snippets'
     "" git
     Plug 'tpope/vim-fugitive'
     " 'branch' is pinned on a few plugins below because their upstream renamed
@@ -1068,7 +1068,7 @@ tmap <C-W>c <C-W><C-C>
 
     " julia
     " Plug 'JuliaEditorSupport/julia-vim'
-    Plug 'iblis17/julia-vim'
+    Plug 'iblislin/julia-vim'
     Plug 'kdheepak/JuliaFormatter.vim', {'for': 'julia'}
 
     " python
@@ -1083,7 +1083,7 @@ tmap <C-W>c <C-W><C-C>
     Plug 'petRUShka/vim-opencl', {'for': ['c', 'opencl', 'cpp']}
 
     " nim
-    " Plug 'iblis17/nim.vim'
+    " Plug 'iblislin/nim.vim'
 
     " erlang
     Plug 'vim-erlang/vim-erlang-omnicomplete', {'for': ['erlang']}
@@ -1094,7 +1094,7 @@ tmap <C-W>c <C-W><C-C>
     " https://github.com/nsf/gocode
 
     " hylang
-    Plug 'iblis17/vim-hy', {'for': ['hy']}
+    Plug 'iblislin/vim-hy', {'for': ['hy']}
 
     " toml
     Plug 'cespare/vim-toml', {'branch': 'main'}

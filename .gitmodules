@@ -1,6 +1,6 @@
 [submodule "vimpager"]
 	path = vimpager
-	url = https://github.com/iblis17/vimpager.git
+	url = https://github.com/iblislin/vimpager.git
 [submodule "vim/bundle/pyCalltips"]
 	path = vim/bundle/pyCalltips
 	url = https://github.com/vim-scripts/python_calltips.git
@@ -9,7 +9,7 @@
 	url = https://github.com/bling/vim-airline.git
 [submodule "zsh/completions"]
 	path = zsh/completions
-	url = https://github.com/iblis17/zsh-completions.git
+	url = https://github.com/iblislin/zsh-completions.git
 [submodule "vim/bundle/signature"]
 	path = vim/bundle/signature
 	url = https://github.com/kshenoy/vim-signature.git
