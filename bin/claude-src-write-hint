@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+"""PostToolUse/Bash: hint (never block) when a source file was written via Bash.
+
+WHY A SECOND, SOFTER HOOK
+-------------------------
+`claude-src-write-guard` is a PreToolUse *deny*. A deny has to be right, so it
+is deliberately narrow: literal paths only, and a hand-picked extension list.
+Two gaps in it were found on 2026-09-06 by a control matrix against the guard
+itself (arm B, a literal `.md` path, DENIED -- so the instrument was live):
+
+    variable path + .tex   -> allow    <- both gaps at once
+    literal  path + .md    -> DENY     <- control
+    variable path + .md    -> allow    <- gap 1: path held in a variable
+    literal  path + .tex   -> allow    <- gap 2: `tex` absent from SOURCE_EXT
+    io.open  literal + .md -> DENY     <- `io.` prefix is NOT a gap
+
+Both gaps are real and either alone lets a whole repo through: an editing
+session that does `p = "foo.tex"` then `open(p, "w")` is invisible to the guard.
+That is exactly the shape a model reaches for when patching a file with an
+`assert old in s` guard rail, so it is not a rare form.
+
+Widening the deny to cover them is the wrong fix. A deny that fires on a
+variable-held path has to guess what the variable holds, and a wrong deny costs
+a turn plus a guess. So this hook takes the wide net and gives up the block:
+the write has already happened when PostToolUse runs, so being wrong here costs
+one line of text and nothing else.
+
+Layering, by construction non-overlapping: if the guard denied, the tool never
+ran, so this never fires for the same command.
+
+WHICH OUTPUT CHANNEL, AND HOW THAT WAS SETTLED
+----------------------------------------------
+CLAUDE.md records that PostToolUse stdout on exit 0 never reaches the model.
+True, but it only ever tested stdout. Measured 2026-09-06 in a throwaway
+CLAUDE_CONFIG_DIR, three arms, the hook emitting a token that could come from
+nowhere else, with a no-hook arm as control:
+
+    no hook              -> model reports the ambient reminders, no token   (control)
+    exit 2, stderr       -> "PostToolUse:Bash hook blocking error ... <token>"
+    exit 0, JSON field   -> "PostToolUse:Bash hook additional context: <token>"
+
+Both reach the model. `additionalContext` is used here because exit 2 is
+presented to the model as a *blocking error* -- wrong register for a hint about
+something that already succeeded, and it trains the reader to discount the
+channel. The control matters: it shows the model faithfully reports extra text
+it is given and does not invent tokens, so the two positives are real.
+
+NOT A BOUNDARY, and not trying to be. Fails open on anything unexpected.
+"""
+
+import importlib.machinery
+import importlib.util
+import json
+import os
+import re
+import sys
+
+GUARD = "/home/iblis/env-config/bin/claude-src-write-guard"
+
+# Everything the deny covers, plus the typesetting family it omits. os-lecture-notes
+# is mostly .tex, so without these the hook would be blind to that entire repo.
+EXTRA_EXT = "tex|cls|sty|bib|dtx|ins|typ|Rmd|qmd"
+
+
+def load_guard():
+    """Reuse the deny hook's context machinery rather than re-deriving it.
+
+    Its splitting/masking/resolution carries a documented false-positive
+    history (39% down to near zero). Forking that logic would mean re-earning
+    every one of those fixes.
+    """
+    loader = importlib.machinery.SourceFileLoader("srcguard", GUARD)
+    spec = importlib.util.spec_from_loader("srcguard", loader)
+    mod = importlib.util.module_from_spec(spec)
+    loader.exec_module(mod)
+    return mod
+
+
+# --- the wide net ------------------------------------------------------------
+
+ASSIGN = re.compile(r"^\s*(?P<var>\w+)\s*=\s*(?P<q>['\"])(?P<val>[^'\"]+)(?P=q)\s*$", re.M)
+
+
+def inline_literal_vars(body: str) -> str:
+    """Substitute single-assignment literal string variables into the body.
+
+    `p = "notes.md"` ... `open(p, "w")` is the form the deny hook cannot see.
+    Only a variable assigned exactly once, to a plain string literal, at the
+    start of a line is substituted -- a name reassigned in a loop is left alone,
+    because guessing which value was live would produce a wrong path in the
+    message, and a wrong path is worse than no message.
+    """
+    counts = {}
+    for m in ASSIGN.finditer(body):
+        counts[m.group("var")] = counts.get(m.group("var"), 0) + 1
+    out = body
+    for m in ASSIGN.finditer(body):
+        var, val = m.group("var"), m.group("val")
+        if counts.get(var) != 1:
+            continue
+        out = re.sub(rf"(?<![\w.'\"]){re.escape(var)}(?=\s*[,)])", '"%s"' % val, out)
+    return out
+
+
+def build_py_writes(ext_alt: str):
+    """Same three python write shapes the deny hook uses, over a wider extension set."""
+    e = r"(?:" + ext_alt + r")"
+    return [
+        ("Path.write_text",
+         re.compile(r"Path\s*\(\s*['\"](?P<path>[^'\"]+\." + e + r")['\"]\s*\)\s*\.\s*write_text")),
+        ("open(...,'w')",
+         re.compile(r"open\s*\(\s*['\"](?P<path>[^'\"]+\." + e + r")['\"]\s*,\s*['\"][wa][btx+]*['\"]")),
+        ("open(..., mode=...)",
+         re.compile(r"open\s*\(\s*['\"](?P<path>[^'\"]+\." + e + r")['\"][^)]*?mode\s*=\s*['\"][wa]")),
+    ]
+
+
+def build_shell_writes(ext_alt: str):
+    e = r"(?:" + ext_alt + r")"
+    return [
+        ("shell redirect",
+         re.compile(r"(?P<pre>^|[;&|])(?P<lhs>[^;&|>]*?)(?<!\\)>>?\s*(?P<path>[^\s;|&>]+\." + e + r")\b")),
+        ("tee", re.compile(r"\btee\s+(?:-a\s+)?(?P<path>[^\s;|&]+\." + e + r")\b")),
+        ("sed -i", re.compile(r"\bsed\b[^|;]*?\s(?:-i\b|--in-place\b)[^|;]*?(?P<path>[^\s;|&]+\." + e + r")\b")),
+    ]
+
+
+def find_writes(g, cmd: str):
+    """Every source write in this command, as (rule, absolute path)."""
+    if g.REMOTE.search(cmd):
+        return []
+    ext_alt = g.SOURCE_EXT + "|" + EXTRA_EXT
+    shell_text, programs = g.split_context(cmd)
+    base = g.effective_cwd(shell_text, cmd)
+    masked = g.mask_quoted(shell_text)
+
+    hits, seen = [], set()
+
+    def keep(name, raw):
+        p = g.resolve(raw, cmd, base)
+        if p is None or g.EXEMPT_PATH.search(p) or not g.in_git_tree(p):
+            return
+        if p not in seen:
+            seen.add(p)
+            hits.append((name, p))
+
+    for name, pat in build_shell_writes(ext_alt):
+        for m in pat.finditer(masked):
+            if name == "shell redirect" and g.lhs_is_generator(m.group("lhs")):
+                continue
+            keep(name, m.group("path"))
+
+    for body in programs:
+        body = inline_literal_vars(body)
+        for name, pat in build_py_writes(ext_alt):
+            for m in pat.finditer(body):
+                keep(name, m.group("path"))
+    return hits
+
+
+HINT = (
+    "Heads-up: {n} source file(s) were just written through Bash instead of "
+    "Write/Edit -- {paths}.\n"
+    "Next edit of these, use Read then Edit. The reason is not style: "
+    "path-scoped rules under .claude/rules/ load on Read, and a Bash-mediated "
+    "write never triggers one, so the file was edited without its own "
+    "conventions in context. Edit also hard-fails without the prior Read, "
+    "which is what makes that reliable.\n"
+    "Ignore this if it was a genuine bulk transform across many files -- that "
+    "case is explicitly allowed."
+)
+
+
+def main() -> None:
+    try:
+        payload = json.load(sys.stdin)
+    except Exception:
+        sys.exit(0)
+    if payload.get("tool_name") != "Bash":
+        sys.exit(0)
+    cmd = (payload.get("tool_input") or {}).get("command") or ""
+    if not cmd:
+        sys.exit(0)
+
+    try:
+        g = load_guard()
+        hits = find_writes(g, cmd)
+    except Exception:
+        sys.exit(0)  # fail open: a hint hook must never become a failure mode
+
+    if not hits:
+        sys.exit(0)
+
+    # A real bulk transform is the sanctioned case; saying nothing there keeps
+    # the hint credible for the single-file edits it is actually aimed at.
+    if len(hits) > 5:
+        sys.exit(0)
+
+    shown = ", ".join(os.path.relpath(p) for _, p in hits[:4])
+    print(json.dumps({
+        "hookSpecificOutput": {
+            "hookEventName": "PostToolUse",
+            "additionalContext": HINT.format(n=len(hits), paths=shown),
+        }
+    }))
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
