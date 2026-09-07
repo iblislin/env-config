@@ -60,7 +60,14 @@ import sys
 SOURCE_EXT = (
     "py|ts|tsx|js|mjs|cjs|scala|java|sh|bash|zsh|"
     "md|rst|less|css|scss|pug|html|"
-    "yaml|yml|json|toml|graphql|gql|sql|jinja2|properties"
+    "yaml|yml|json|toml|graphql|gql|sql|jinja2|properties|"
+    # Typesetting sources, added 2026-09-07. Omitting them was not a decision --
+    # the transcript record shows the family was never considered, while every
+    # measurement pass was hunting false positives and therefore only ever
+    # narrowing this list. A repo that is mostly .tex was invisible to the deny,
+    # and an unanchored `sed -i` silently rewrote the wrong figure's dimensions
+    # in os-lecture-notes; only the PostToolUse hint caught it, after the fact.
+    "tex|cls|sty|bib|dtx|ins|typ|Rmd|qmd"
 )
 EXT_RE = r"(?:" + SOURCE_EXT + r")"
 

@@ -11,13 +11,36 @@ itself (arm B, a literal `.md` path, DENIED -- so the instrument was live):
     variable path + .tex   -> allow    <- both gaps at once
     literal  path + .md    -> DENY     <- control
     variable path + .md    -> allow    <- gap 1: path held in a variable
-    literal  path + .tex   -> allow    <- gap 2: `tex` absent from SOURCE_EXT
+    literal  path + .tex   -> allow    <- gap 2, CLOSED 2026-09-07: the
+                                          typesetting family is now in the
+                                          guard's own SOURCE_EXT, so a literal
+                                          `.tex` path is denied outright
     io.open  literal + .md -> DENY     <- `io.` prefix is NOT a gap
 
-Both gaps are real and either alone lets a whole repo through: an editing
-session that does `p = "foo.tex"` then `open(p, "w")` is invisible to the guard.
-That is exactly the shape a model reaches for when patching a file with an
-`assert old in s` guard rail, so it is not a rare form.
+**Gap 1 was supposed to be what this hook still exists for -- and it is NOT
+implemented. Measured 2026-09-07, immediately after closing gap 2:**
+
+    p=<abs>/foo.tex; sed -i "s/a/b/" "$p"   -> 0 hits   quoted
+    p=<abs>/foo.tex; sed -i "s/a/b/" $p     -> 0 hits   bare
+    p=<abs>/foo.tex; sed -i "s/a/b/" ${p}   -> 0 hits   braced
+    P=<abs>/foo.tex; sed -i "s/a/b/" "$P"   -> 0 hits   uppercase
+    p="<abs>/foo.tex"; open(p,"w")          -> 0 hits   python
+    sed -i "s/a/b/" <abs>/foo.tex           -> 1 hit    CONTROL, literal
+
+`find_writes` does not raise on any of those -- it returns an empty list, so the
+`except Exception` below was not hiding a crash. And the scoping is inherited
+wholesale from the guard: a `.tex` outside a git work tree, or under an exempt
+path, is 0 hits here exactly as it is `allow` there.
+
+**So as of closing gap 2 this hook has no reachable case.** Everything it
+matches, the guard now denies first -- and per the layering note above, a denied
+command never reaches PostToolUse. It is armed and dead.
+
+That needs a decision, not a patch in passing: either implement the
+variable-held path properly (track assignments in the same command and resolve
+them before matching), or retire the hook and let the guard's extension list be
+the whole mechanism. Leaving it armed and dead is the one option that teaches
+the next reader something false.
 
 Widening the deny to cover them is the wrong fix. A deny that fires on a
 variable-held path has to guess what the variable holds, and a wrong deny costs
@@ -57,9 +80,13 @@ import sys
 
 GUARD = "/home/iblis/env-config/bin/claude-src-write-guard"
 
-# Everything the deny covers, plus the typesetting family it omits. os-lecture-notes
-# is mostly .tex, so without these the hook would be blind to that entire repo.
-EXTRA_EXT = "tex|cls|sty|bib|dtx|ins|typ|Rmd|qmd"
+# The typesetting family moved into the guard's own SOURCE_EXT on 2026-09-07, so
+# there is nothing left to add here: ONE extension list, owned by the deny hook.
+# Kept as an empty string rather than deleted so the extension point stays
+# visible -- the next family to be found missing belongs in the GUARD, not here.
+# `join_ext` below tolerates it being empty; an empty alternation branch would
+# otherwise match the empty string and widen the pattern to everything.
+EXTRA_EXT = ""
 
 
 def load_guard():
@@ -125,11 +152,22 @@ def build_shell_writes(ext_alt: str):
     ]
 
 
+def join_ext(*groups):
+    """Alternation of the non-empty groups only.
+
+    A bare `A + "|" + B` with B empty yields a trailing empty branch, which
+    matches the empty string and quietly widens every pattern built from it to
+    any path at all. That is a silent over-match, not an error, so it would
+    have shown up as a flood of hints rather than as a traceback.
+    """
+    return "|".join(g for g in groups if g)
+
+
 def find_writes(g, cmd: str):
     """Every source write in this command, as (rule, absolute path)."""
     if g.REMOTE.search(cmd):
         return []
-    ext_alt = g.SOURCE_EXT + "|" + EXTRA_EXT
+    ext_alt = join_ext(g.SOURCE_EXT, EXTRA_EXT)
     shell_text, programs = g.split_context(cmd)
     base = g.effective_cwd(shell_text, cmd)
     masked = g.mask_quoted(shell_text)
