@@ -18,15 +18,19 @@ carry the human's identity rather than a bot's. Using the bot token would mean
 `pass show`, which carries an ask rule and would reintroduce exactly the stall
 this exists to remove.
 
-WHY IT POLLS THE PIPELINE FIRST
--------------------------------
+WHY IT CHECKS THE PIPELINE, AND WHO DECIDES
+-------------------------------------------
 On `internal-group/*`, `marge-bot-approval-sync` assigns marge-bot the moment approval
-lands, so **approve is merge** and it inherits the merge gate. GitLab's own
-"Pipelines must succeed" check is per project and was deliberately left off
-where there was no MR-pipeline history (IOT-228), so on those projects the
-project setting will not catch an early approval. Do not quote a project count
-from memory here -- it drifts; re-run
-`internal-group/ci-common:scripts/enforce-pipeline-required.py` for a current list.
+lands, so **approve is merge** and it inherits the merge gate.
+
+Whether a pipeline is *required* is the project's call, read from
+`only_allow_merge_if_pipeline_succeeds` rather than decided here -- see
+`pipeline_gate_ok`. A pipeline that exists and is not `success` refuses either
+way; a missing one refuses only where the project requires it. That keeps this
+tool aligned with `enforce-pipeline-required.py` (IOT-228) instead of drifting
+from it, and usable on the projects that deliberately run no MR CI. Do not quote
+a project count from memory here -- it drifts; re-run that script for a current
+list.
 
 WHY A DENIAL IS LOUD
 --------------------
@@ -138,22 +142,56 @@ def glab(*args, timeout=60):
                           timeout=timeout)
 
 
-def pipeline_is_green(project, iid):
-    """(ok, description). Anything not a terminal success is a refusal."""
-    r = glab("api", "projects/%s/merge_requests/%s"
-             % (project.replace("/", "%2F"), iid))
+def pipeline_gate_ok(project, iid):
+    """(ok, description). The PROJECT decides whether a pipeline is required.
+
+    The first version refused whenever the head commit had no pipeline. That is
+    stricter than the server's own policy and it makes the tool unusable on the
+    repos that deliberately run no MR CI -- 40 `internal-group/*` projects were skipped
+    for exactly that reason (IOT-228), and `internal-group/agent-chain-e2e` is one, with
+    `only_allow_merge_if_pipeline_succeeds = False` and no pipeline on an MR.
+    Refusing there would have been my guess overriding the project's decision.
+
+    The risk being guarded is approving BEFORE CI finishes, not approving where
+    CI does not exist. So:
+
+    * project requires pipelines -> one must exist AND be `success`. A missing
+      pipeline refuses, which also covers the race just after a push.
+    * project does not require them -> a missing pipeline is the project's
+      accepted state, so allow. A pipeline that EXISTS and is not `success`
+      still refuses: approving onto a red run is wrong whatever the policy says.
+
+    Asking the server rather than deciding here also means the answer tracks
+    `enforce-pipeline-required.py` instead of drifting from it.
+    """
+    esc = project.replace("/", "%2F")
+    r = glab("api", "projects/%s/merge_requests/%s" % (esc, iid))
     if r.returncode != 0:
         return False, "could not read the MR: %s" % (r.stderr.strip()[:200] or "?")
     try:
         mr = json.loads(r.stdout)
     except ValueError:
         return False, "unparseable MR payload"
+
+    p = glab("api", "projects/%s" % esc)
+    required = True          # fail safe if the project cannot be read
+    if p.returncode == 0:
+        try:
+            required = bool(json.loads(p.stdout)
+                            .get("only_allow_merge_if_pipeline_succeeds", True))
+        except ValueError:
+            pass
+
     pl = mr.get("head_pipeline") or mr.get("pipeline")
     if not pl:
-        return False, ("no pipeline on the head commit -- cannot confirm CI, so "
-                       "this needs a human rather than a ticket")
+        if required:
+            return False, ("no pipeline on the head commit, and this project "
+                           "requires one to succeed before merge")
+        return True, "project requires no pipeline, and none ran"
     st = pl.get("status")
-    return (st == "success"), "head pipeline is %s" % st
+    if st == "success":
+        return True, "head pipeline %s succeeded" % pl.get("id")
+    return False, "head pipeline %s is %s" % (pl.get("id"), st)
 
 
 def spend(target, project, iid):
@@ -184,7 +222,7 @@ def spend(target, project, iid):
             if not fnmatch.fnmatch(project, scope):
                 return False, "ticket scope %r does not cover %s" % (scope, project)
 
-        ok, why = pipeline_is_green(project, iid)
+        ok, why = pipeline_gate_ok(project, iid)
         if not ok:
             return False, why
 
