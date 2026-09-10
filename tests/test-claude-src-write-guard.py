@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Regression matrix for `claude-src-write-guard`.
 
-Run: python3 bin/tests/test-claude-src-write-guard.py
+Run: python3 tests/test-claude-src-write-guard.py
 
 Every case is a (command -> DENY|allow) assertion fed through the hook's real
 stdin/stdout contract, so this exercises the shipped code path rather than an
@@ -21,7 +21,7 @@ import os
 import subprocess
 import sys
 
-GUARD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
+GUARD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "bin",
                      "claude-src-write-guard")
 # A directory that really is inside a git work tree, since the guard checks.
 REPO = os.path.expanduser("~/env-config")
