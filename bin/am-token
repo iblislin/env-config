@@ -355,7 +355,7 @@ def main():
 
     g = sub.add_parser("grant", help="issue a ticket for THIS session "
                                      "(run it as `! am-token grant ...`)")
-    g.add_argument("--uses", type=int, default=1,
+    g.add_argument("-n", "--uses", type=int, default=1,
                    help="approvals allowed; this is the bound that matters (default 1)")
     g.add_argument("--ttl", default="0",
                    help="30m/5h/3d, or 0 for no expiry (default 0 -- see the docstring)")

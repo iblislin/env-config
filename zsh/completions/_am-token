@@ -34,8 +34,10 @@ _am-token() {
           derived=$(am-token scope 2>/dev/null)
           [[ -n $derived ]] && scopes=("$derived:this repo (the default)")
           scopes+=('*:any project -- wider than you probably want')
+          # {-n,--uses} declares both spellings as one option, so zsh will not
+          # offer the other after either has been given.
           _arguments \
-            '--uses[approvals allowed; the bound that matters (default 1)]:count:(1 2 3 5)' \
+            {-n,--uses}'[approvals allowed; the bound that matters (default 1)]:count:(1 2 3 5)' \
             '--ttl[expiry, or 0 for none (default 0)]:duration:(0 30m 2h 5h 3d)' \
             '--scope[project glob it may be spent on]:project:->scope'
           ;;
