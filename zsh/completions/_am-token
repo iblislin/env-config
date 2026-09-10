@@ -1,0 +1,53 @@
+#compdef am-token
+# Hand-written, like _tnew next to it. argparse generates no completions of its
+# own, and the two packages that can (argcomplete at runtime, shtab as a build
+# step) are both uninstalled here -- argcomplete would also add an import to
+# every invocation of a tool that shells out, and a shtab-generated file drifts
+# from the parser it was generated from.
+#
+# --scope candidates come from `am-token scope`, not from re-parsing the origin
+# URL in zsh: that derivation has one home, in the tool.
+
+_am-token() {
+  local -a verbs
+  verbs=(
+    'grant:issue an approve ticket for this session'
+    'status:show this session'\''s ticket'
+    'list:every ticket, plus runs that asked and had none'
+    'scope:what --scope would default to in this directory'
+    'revoke:drop this session'\''s ticket'
+  )
+
+  _arguments -C '1:verb:->verb' '*::opts:->opts'
+
+  case "$state" in
+    verb)
+      _describe 'verb' verbs
+      ;;
+    opts)
+      case "$words[1]" in
+        grant)
+          local -a scopes
+          # Offer the derived project first, then the wildcard -- which is
+          # deliberately second, being wider than a default ever should be.
+          local derived
+          derived=$(am-token scope 2>/dev/null)
+          [[ -n $derived ]] && scopes=("$derived:this repo (the default)")
+          scopes+=('*:any project -- wider than you probably want')
+          _arguments \
+            '--uses[approvals allowed; the bound that matters (default 1)]:count:(1 2 3 5)' \
+            '--ttl[expiry, or 0 for none (default 0)]:duration:(0 30m 2h 5h 3d)' \
+            '--scope[project glob it may be spent on]:project:->scope'
+          ;;
+        *)
+          # status / list / scope / revoke take no arguments.
+          ;;
+      esac
+      ;;
+    scope)
+      _describe -t projects 'project' scopes
+      ;;
+  esac
+}
+
+_am-token "$@"

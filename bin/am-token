@@ -61,10 +61,6 @@ while that door stands open.
    so that an approval nobody authorised is *detectable*, since it cannot be
    *prevented*.
 
-**So the real control is not cryptographic. It is: do not create the motive.**
-Never write a /goal condition that ends at "MR approved" -- a run under that
-pressure has every reason to route around this gate rather than report BLOCKED.
-
 WHY THE TICKET IS KEYED BY SESSION ID
 -------------------------------------
 `CLAUDE_CODE_SESSION_ID` is byte-identical in the parent, in its subagents, and
@@ -84,6 +80,7 @@ import argparse
 import fcntl
 import json
 import os
+import subprocess
 import sys
 import time
 
@@ -132,6 +129,41 @@ def parse_ttl(s):
         die("bad --ttl %r" % s, 64)
 
 
+def origin_project(cwd=None):
+    """`internal-group/latex-common` from this directory's origin remote, or None.
+
+    The default scope, because `! am-token grant` is typed from inside the repo
+    being worked on. Works in a worktree, which is where an L3 run lives.
+
+    Returns None rather than falling back to `*`: a failure to identify the repo
+    must not silently WIDEN a ticket the user asked to narrow. cmd_grant turns
+    None into a refusal that names `--scope`.
+    """
+    try:
+        r = subprocess.run(["git", "remote", "get-url", "origin"],
+                           capture_output=True, text=True, timeout=10,
+                           cwd=cwd or os.getcwd())
+    except Exception:
+        return None
+    if r.returncode != 0:
+        return None
+    url = r.stdout.strip()
+    if not url:
+        return None
+    if url.endswith(".git"):
+        url = url[:-4]
+    # scp-like (git@host:group/project) has no scheme; a URL does.
+    if "://" in url:
+        path = url.split("://", 1)[1].split("/", 1)
+        path = path[1] if len(path) > 1 else ""
+    elif ":" in url:
+        path = url.split(":", 1)[1]
+    else:
+        path = url
+    path = path.strip("/")
+    return path or None
+
+
 def load(session=None):
     try:
         with open(ticket_path(session), encoding="utf-8") as fh:
@@ -171,17 +203,27 @@ def cmd_grant(args):
     # No tty check and no confirmation prompt: see the module docstring. Both
     # were tried, both fail closed for the HUMAN as well, and neither would
     # stop an agent. The gate is the permissions.deny rule on this command.
+    scope = args.scope
+    if scope is None:
+        scope = origin_project()
+        if not scope:
+            die("cannot tell which project to scope this to: no `origin` remote "
+                "in %s.\n  Run it from inside the repo, or pass --scope "
+                "'<group>/<project>' (or --scope '*' to allow any, which is "
+                "wider than you probably want)." % os.getcwd(), 64)
+
     ttl = parse_ttl(args.ttl)
     now = int(time.time())
     ensure_dir()
     t = dict(session=SESSION, uses_granted=args.uses, uses_remaining=args.uses,
              granted_at=now, expires_at=(now + ttl) if ttl else 0,
-             scope=args.scope, granted_from_pane=os.environ.get("TMUX_PANE", ""))
+             scope=scope, granted_from_pane=os.environ.get("TMUX_PANE", ""),
+             granted_from_cwd=os.getcwd())
     path = ticket_path()
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(t, fh, indent=2, sort_keys=True)
     os.chmod(path, 0o600)
-    audit("grant", uses=args.uses, scope=args.scope, expires_at=t["expires_at"])
+    audit("grant", uses=args.uses, scope=scope, expires_at=t["expires_at"])
 
     # This line lands in the agent's context, because `!` output does (observed).
     # STATE ONLY, never an instruction: an imperative here would send a helpful
@@ -192,7 +234,7 @@ def cmd_grant(args):
     # copy that gets reprinted daily.
     print("AMToken issued for this session: %d use(s), %s, scope %s."
           % (args.uses, "no expiry" if not ttl else "expires in " + args.ttl,
-             args.scope))
+             scope))
     print("(state only -- use it when you reach the approve step)")
 
 
@@ -238,6 +280,21 @@ def cmd_list(args):
                                             b.get("target", "?")))
 
 
+def cmd_scope(args):
+    """Print what `grant` would default --scope to, here. Read-only.
+
+    Exists so the zsh completion and a human sanity-check can both ask THIS
+    tool rather than re-implementing the origin-URL parsing in shell -- one
+    home for that rule. Not gated: it grants nothing.
+    """
+    p = origin_project()
+    if not p:
+        sys.stderr.write("am-token: no origin remote in %s\n" % os.getcwd())
+        return 1
+    print(p)
+    return 0
+
+
 def cmd_revoke(args):
     path = ticket_path()
     if os.path.exists(path):
@@ -258,12 +315,17 @@ def main():
                    help="approvals allowed; this is the bound that matters (default 1)")
     g.add_argument("--ttl", default="0",
                    help="30m/5h/3d, or 0 for no expiry (default 0 -- see the docstring)")
-    g.add_argument("--scope", default="*",
-                   help="project glob the ticket may be spent on, e.g. 'internal-group/*'")
+    g.add_argument("--scope", default=None,
+                   help="project the ticket may be spent on, as a glob. Default: "
+                        "this directory's `git remote get-url origin` project, "
+                        "since this is typed from inside the repo being worked "
+                        "on. Refuses rather than widening to '*' if that cannot "
+                        "be determined.")
     g.set_defaults(fn=cmd_grant)
 
     for name, fn, helptext in (("status", cmd_status, "this session's ticket"),
                                ("list", cmd_list, "every ticket, plus blocked runs"),
+                               ("scope", cmd_scope, "what --scope would default to here"),
                                ("revoke", cmd_revoke, "drop this session's ticket")):
         s = sub.add_parser(name, help=helptext)
         s.set_defaults(fn=fn)
