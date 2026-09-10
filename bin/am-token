@@ -17,29 +17,49 @@ tool issues that ticket. `glab-mr-approve` consumes it.
 Full motivation, the research, and the rejected alternatives:
 ~/doc/2026-09-10-unattended-approval-starvation.md
 
-WHAT THE /dev/tty CHECK IS, AND WHAT IT IS NOT
-----------------------------------------------
-`grant` refuses unless it can open /dev/tty. Measured 2026-09-10: a command run
-through Claude's Bash tool has NO controlling terminal (`/dev/tty` ->
-"no such device or address"), while a command the human types with the `!`
-prefix runs in the session's own shell and does.
+THERE IS NO WAY FOR THIS TOOL TO TELL THE HUMAN FROM THE AGENT
+--------------------------------------------------------------
+The first version refused unless it could open /dev/tty, on the theory that the
+`!` prefix runs in the session's own shell and therefore has a controlling
+terminal while a tool-run shell does not. **Measured on both sides, and the
+theory is wrong**: `/dev/tty` is "no such device or address" in *both*, and
+`tty` reports "not a tty" in both. That check refused the legitimate user and
+stopped nobody, so it is gone.
 
-**This is a speed bump, not a boundary, and the first description of it here was
-wrong.** It claimed an agent "cannot attach a controlling terminal to itself".
-It can, trivially: `script -q -c 'am-token grant --uses 9' /dev/null` allocates
-a pty, and so does `python3 -c 'import pty; pty.spawn(...)'` or a container run
-with `-t`. The same trick feeds the y/N confirmation. So the whole grant path is
-bypassable by anything that means to bypass it.
+Nothing replaced it, deliberately, because nothing available would work:
 
-What the check is actually worth: it stops the *accidental* and the *helpful*
-case -- an agent that read about this command in CLAUDE.md and ran it because it
-seemed like the next step. That is the failure most likely to happen, so the
-check earns its place. It is not what stops a run under pressure.
+* **The environment is shared.** `CLAUDE_CODE_SESSION_ID` and `TMUX_PANE` are
+  byte-identical across the `!` shell, the Bash tool, and subagents -- which is
+  the property this design *relies* on for keying, and the same property that
+  makes env useless as a discriminator.
+* **An interactive confirmation is impossible in either context.** Neither has a
+  terminal to read from, so a y/N prompt fails closed for the human too.
+* **A secret typed on the command line is not secret.** A `!` command line
+  arrives in the agent's context verbatim, as `<bash-input>`.
+* **A pty is cheap to fake anyway.** `script -q -c '...' /dev/null` allocates
+  one, as does `python3 -c 'import pty; pty.spawn(...)'` or a container with
+  `-t` -- the user's own observation, and it defeats any tty-shaped test.
 
-Nor is it the weakest link. `~/.config/glab-cli/config.yml` holds a live token,
-so anything that can read a file can approve an MR over the REST API without
-this tool at all. Hardening the ticket past this point is locking a window while
-that door stands open.
+**So the gate is the `permissions.deny` rule on this command, and nothing else.**
+That rule is a pattern match over the command string, not a sandbox (Anthropic's
+words: it "isn't a security boundary around the program"), and it is measured to
+fire: a tool-run command containing `am-token grant` was refused by the harness
+on the first attempt. It stops the cooperative and the accidental path, which is
+the one that actually happens.
+
+Nor is the ticket the weakest link. `~/.config/glab-cli/config.yml` holds a live
+token, so anything that can read a file can approve an MR over the REST API
+without this tool at all. Hardening the ticket further would be locking a window
+while that door stands open.
+
+**The real controls are therefore not mechanisms:**
+
+1. **Do not create the motive.** Never write a /goal condition ending at "MR
+   approved" -- a run under that pressure has every reason to route around the
+   gate rather than report BLOCKED.
+2. **Make every spend visible.** The audit log and the `blocked/` records exist
+   so that an approval nobody authorised is *detectable*, since it cannot be
+   *prevented*.
 
 **So the real control is not cryptographic. It is: do not create the motive.**
 Never write a /goal condition that ends at "MR approved" -- a run under that
@@ -148,35 +168,15 @@ def cmd_grant(args):
         die("CLAUDE_CODE_SESSION_ID is unset -- run this inside a Claude "
             "session with the `!` prefix, not from a bare shell.", 64)
 
-    # The structural check. See the module docstring for why /dev/tty and not
-    # an env var: the `!` shell and the Bash tool share their environment
-    # exactly (measured), so nothing in `env` can tell them apart.
-    try:
-        tty = open("/dev/tty", "r+")
-    except OSError:
-        die("refusing to grant: no controlling terminal.\n"
-            "  This must be typed by a human, as `! am-token grant ...` inside\n"
-            "  the session you want to authorise. A tool-run shell has no\n"
-            "  /dev/tty, which is what this check is for.\n"
-            "  If you are an agent reading this: do not retry, do not look for\n"
-            "  another way to issue a ticket. Report BLOCKED and say a ticket\n"
-            "  is needed.", 77)
-
+    # No tty check and no confirmation prompt: see the module docstring. Both
+    # were tried, both fail closed for the HUMAN as well, and neither would
+    # stop an agent. The gate is the permissions.deny rule on this command.
     ttl = parse_ttl(args.ttl)
     now = int(time.time())
-    tty.write("grant %d approve use(s), scope %s, %s, to session %s? [y/N] "
-              % (args.uses, args.scope,
-                 "no expiry" if not ttl else "expires in " + args.ttl,
-                 SESSION[:8]))
-    tty.flush()
-    if (tty.readline() or "").strip().lower() not in ("y", "yes"):
-        die("aborted, nothing written", 1)
-
     ensure_dir()
     t = dict(session=SESSION, uses_granted=args.uses, uses_remaining=args.uses,
              granted_at=now, expires_at=(now + ttl) if ttl else 0,
-             scope=args.scope, granted_from_pane=os.environ.get("TMUX_PANE", ""),
-             granted_from_tty=os.ttyname(tty.fileno()) if hasattr(os, "ttyname") else "")
+             scope=args.scope, granted_from_pane=os.environ.get("TMUX_PANE", ""))
     path = ticket_path()
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(t, fh, indent=2, sort_keys=True)
@@ -252,7 +252,8 @@ def main():
     p = argparse.ArgumentParser(prog="am-token", description=__doc__.split("\n")[0])
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    g = sub.add_parser("grant", help="issue a ticket for THIS session (needs a tty)")
+    g = sub.add_parser("grant", help="issue a ticket for THIS session "
+                                     "(run it as `! am-token grant ...`)")
     g.add_argument("--uses", type=int, default=1,
                    help="approvals allowed; this is the bound that matters (default 1)")
     g.add_argument("--ttl", default="0",
