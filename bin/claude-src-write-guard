@@ -186,8 +186,16 @@ SHELL_WRITES = [
     # is not read as a redirect. That misfire blocked an `if` statement.
     ("shell redirect", re.compile(r"(?P<pre>^|[;&|])(?P<lhs>[^;&|>]*?)(?<!\\)>>?\s*(?P<path>[^\s;|&>]+\." + EXT_RE + r")\b")),
     ("tee", re.compile(r"\btee\s+(?:-a\s+)?(?P<path>[^\s;|&]+\." + EXT_RE + r")\b")),
-    ("sed -i", re.compile(r"\bsed\b[^|;]*?\s(?:-i\b|--in-place\b)[^|;]*?(?P<path>[^\s;|&]+\." + EXT_RE + r")\b")),
-    ("perl -i", re.compile(r"\bperl\b[^|;]*?\s-\w*i\w*\b[^|;]*?(?P<path>[^\s;|&]+\." + EXT_RE + r")\b")),
+    # The gap between the program and its in-place flag must not cross a NEWLINE
+    # either. `[^|;]` alone let the pattern stitch a `sed` on one line to an
+    # unrelated `-i` further down a multi-line command -- measured 2026-09-10,
+    # where `rg -c x f | sed 's/^/h: /'` followed on the next line by
+    # `rg -n -i pat CLAUDE.md` was refused as an in-place write. Paired control:
+    # the same two statements joined with `;` were allowed, because `;` was
+    # already excluded. A multi-line command is the normal shape here, so this
+    # fired on ordinary read-only work.
+    ("sed -i", re.compile(r"\bsed\b[^|;\n]*?\s(?:-i\b|--in-place\b)[^|;\n]*?(?P<path>[^\s;|&]+\." + EXT_RE + r")\b")),
+    ("perl -i", re.compile(r"\bperl\b[^|;\n]*?\s-\w*i\w*\b[^|;\n]*?(?P<path>[^\s;|&]+\." + EXT_RE + r")\b")),
 ]
 
 # Bind the trigger to the path in the SAME call. The first version matched
