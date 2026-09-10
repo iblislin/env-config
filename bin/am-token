@@ -129,20 +129,58 @@ def parse_ttl(s):
         die("bad --ttl %r" % s, 64)
 
 
-def origin_project(cwd=None):
-    """`internal-group/latex-common` from this directory's origin remote, or None.
+def scope_dir():
+    """The directory the default scope is derived FROM. Not `os.getcwd()`.
 
-    The default scope, because `! am-token grant` is typed from inside the repo
-    being worked on. Works in a worktree, which is where an L3 run lives.
+    Measured 2026-09-10, and this is the whole reason the function exists: a
+    command run with the `!` prefix inherits the AGENT'S working directory, not
+    the human's. With the Bash tool sitting in ~/git/latex-common,
+    `! am-token scope` answered `internal-group/latex-common` while the pane was in ~.
+
+    That is not merely the wrong directory -- **it makes the authorisation scope
+    agent-influenceable.** An agent that wants a ticket pointed elsewhere only
+    has to `cd` there before the human types grant, and the human's own command
+    scopes the ticket to the agent's choice. The `!` prefix is the human's
+    TRIGGER; it is not a human-only CONTEXT, and treating it as one was the
+    error here.
+
+    `#{pane_current_path}` is the pane's foreground process -- the claude
+    process itself -- whose cwd an agent cannot change: tmux exposes no setter
+    for it, and a subshell's `cd` does not propagate to its parent. So the pane
+    path is stable under anything the agent does, which is the property this
+    needs.
+
+    Returns None outside tmux, which cmd_grant turns into a refusal naming
+    --scope rather than a guess.
+    """
+    pane = os.environ.get("TMUX_PANE")
+    if not pane:
+        return None
+    try:
+        r = subprocess.run(["tmux", "display-message", "-p", "-t", pane,
+                            "#{pane_current_path}"],
+                           capture_output=True, text=True, timeout=5)
+    except Exception:
+        return None
+    path = r.stdout.strip()
+    return path if r.returncode == 0 and path else None
+
+
+def origin_project(cwd=None):
+    """`internal-group/latex-common` from CWD's origin remote, or None.
+
+    Callers pass `scope_dir()`, never `os.getcwd()` -- see that function for
+    why. Works in a worktree, which is where an L3 run lives: a worktree's
+    origin is the same project.
 
     Returns None rather than falling back to `*`: a failure to identify the repo
-    must not silently WIDEN a ticket the user asked to narrow. cmd_grant turns
-    None into a refusal that names `--scope`.
+    must not silently WIDEN a ticket the user asked to narrow.
     """
+    if cwd is None:
+        return None
     try:
         r = subprocess.run(["git", "remote", "get-url", "origin"],
-                           capture_output=True, text=True, timeout=10,
-                           cwd=cwd or os.getcwd())
+                           capture_output=True, text=True, timeout=10, cwd=cwd)
     except Exception:
         return None
     if r.returncode != 0:
@@ -205,12 +243,16 @@ def cmd_grant(args):
     # stop an agent. The gate is the permissions.deny rule on this command.
     scope = args.scope
     if scope is None:
-        scope = origin_project()
+        d = scope_dir()
+        scope = origin_project(d)
         if not scope:
-            die("cannot tell which project to scope this to: no `origin` remote "
-                "in %s.\n  Run it from inside the repo, or pass --scope "
-                "'<group>/<project>' (or --scope '*' to allow any, which is "
-                "wider than you probably want)." % os.getcwd(), 64)
+            die("cannot tell which project to scope this to.\n"
+                "  Looked at this tmux pane's directory: %s\n"
+                "  (deliberately NOT the shell's cwd -- a `!` command inherits\n"
+                "   the agent's cwd, which would let the agent steer the scope.)\n"
+                "  Pass --scope '<group>/<project>', or start the session in the\n"
+                "  repo you mean. --scope '*' allows any project, which is wider\n"
+                "  than you probably want." % (d or "(not in tmux)"), 64)
 
     ttl = parse_ttl(args.ttl)
     now = int(time.time())
@@ -218,7 +260,7 @@ def cmd_grant(args):
     t = dict(session=SESSION, uses_granted=args.uses, uses_remaining=args.uses,
              granted_at=now, expires_at=(now + ttl) if ttl else 0,
              scope=scope, granted_from_pane=os.environ.get("TMUX_PANE", ""),
-             granted_from_cwd=os.getcwd())
+             granted_from_pane_path=scope_dir() or "")
     path = ticket_path()
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(t, fh, indent=2, sort_keys=True)
@@ -287,9 +329,11 @@ def cmd_scope(args):
     tool rather than re-implementing the origin-URL parsing in shell -- one
     home for that rule. Not gated: it grants nothing.
     """
-    p = origin_project()
+    d = scope_dir()
+    p = origin_project(d)
     if not p:
-        sys.stderr.write("am-token: no origin remote in %s\n" % os.getcwd())
+        sys.stderr.write("am-token: no origin remote in %s (this pane's directory, "
+                         "not the shell's cwd)\n" % (d or "(not in tmux)"))
         return 1
     print(p)
     return 0
