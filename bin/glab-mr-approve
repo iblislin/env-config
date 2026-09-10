@@ -61,15 +61,27 @@ WHY A DENIAL IS LOUD
 --------------------
 The motivating failure was discovering hours later that nothing had happened. A
 design that fails fast but says nothing only moves the discovery. So a refusal
-writes to the attention board and to a persistent `blocked` record that
-`am-token list` reports.
+does four things: exits 75, prints the replacement action, writes a persistent
+`blocked` record that `am-token list` reports, and **rings the tmux window's
+bell**.
 
-Known limitation, stated rather than found later: the attention board keys its
-state by tmux window, and `claude-attn-hook` overwrites that same key when
-Claude next stops -- which is moments after the agent reports BLOCKED. So the
-board entry this writes is short-lived. The durable records are `.attn.log` and
-the `blocked/` file; surfacing it on the board permanently would need a second
-state directory there.
+The bell is the part that reaches a human who is not looking. It is the same
+mechanism `claude-attn-hook` uses -- write `\a` to `#{pane_tty}`, which sets
+tmux's `window_bell_flag`, shows the `!` marker in the window list, and is
+cleared only when someone SELECTS that window. Nothing a running agent does
+resets it.
+
+**Why not the attention board's state file, which this used to write.** The
+board keys its state by tmux window, and `claude-attn-hook` owns that key. The
+docstring here first said the entry would survive "until Claude next stops";
+measured 2026-09-10, it is overwritten within SECONDS -- the hook rewrites the
+key as `running` on ordinary tool activity, not only at a stop. So a `waiting`
+entry written by this script is gone before anyone could see it, which defeats
+the one requirement that mattered. The board entry is still written, because it
+is correct while it lasts and costs nothing, but it is not the notification.
+
+Durable, in order of how likely you are to notice: the bell, then
+`am-token list` (the `blocked/` record), then `.attn.log`.
 
 Exit codes: 0 approved · 75 no valid ticket, or the pipeline is not green (both
 are "stop and report", not "retry") · 64 usage · 1 other failure.
@@ -111,10 +123,11 @@ def audit(event, **fields):
 
 
 def tmux_key():
-    """socket__session__window, the same key claude-attn-hook uses.
+    """socket__session__window plus the pane's tty, from TMUX_PANE.
 
-    Derived from TMUX_PANE, which a process in the pane inherits -- measured
-    identical between the Bash tool and the `!` shell."""
+    TMUX_PANE is inherited by a process in the pane -- measured identical
+    between the Bash tool and the `!` shell. `pane_tty` comes along because the
+    bell is written to it directly; see `ring_bell`."""
     pane = os.environ.get("TMUX_PANE")
     if not pane:
         return None
@@ -122,33 +135,71 @@ def tmux_key():
         fields = subprocess.run(
             ["tmux", "display-message", "-p", "-t", pane,
              "#{socket_path}\t#{session_name}\t#{window_index}\t"
-             "#{window_name}\t#{pane_current_path}"],
+             "#{window_name}\t#{pane_current_path}\t#{pane_tty}"],
             capture_output=True, text=True, timeout=5).stdout.strip().split("\t")
-        sock, sess, win, wname, cpath = fields
+        sock, sess, win, wname, cpath, ptty = fields
     except Exception:
         return None
     safe = lambda s: re.sub(r"[/ \t]", "_", s)
     sockname = os.path.basename(sock)
     return ("%s__%s__%s" % (safe(sockname), safe(sess), safe(win)),
-            sess, win, wname, sockname, cpath)
+            sess, win, wname, sockname, cpath, ptty)
 
 
-def notify(status, label):
-    """Best-effort entry for claude-attn-board. Fields, in its own order:
-    ts, status, sess:win, wname, sockname, cpath, label."""
+def ring_bell(ptty):
+    """Set this tmux window's bell flag by writing \\a to its tty.
+
+    The same mechanism `claude-attn-hook` uses, and the reason it is the
+    notification of record here: tmux's `window_bell_flag` is cleared only when
+    someone SELECTS the window, so nothing a running agent does resets it. The
+    attention board's state file, by contrast, is rewritten as `running` within
+    seconds by ordinary tool activity.
+
+    Best-effort by design -- outside tmux, or with an unwritable tty, a missing
+    bell must never turn a refusal into a crash.
+    """
+    if not ptty:
+        return False
+    try:
+        with open(ptty, "w") as fh:
+            fh.write("\a")
+        return True
+    except OSError:
+        return False
+
+
+def notify(status, label, bell=False):
+    """Record the event and, when it needs a human, ring the window's bell.
+
+    Three destinations with different lifetimes, which is the point:
+
+    * the bell -- survives until someone selects the window. `bell=True` only
+      for states that actually need attention; a successful approve does not.
+    * `.attn.log` -- append-only history, survives everything.
+    * the board's state file -- correct while it lasts, and it does not last:
+      `claude-attn-hook` rewrites this key as `running` on ordinary tool
+      activity within seconds. Written anyway because it costs nothing, but it
+      is not what notifies anyone.
+
+    Fields follow claude-attn-hook's own order: ts, status, sess:win, wname,
+    sockname, cpath, label.
+    """
     key = tmux_key()
     if not key:
         return
-    name, sess, win, wname, sockname, cpath = key
+    name, sess, win, wname, sockname, cpath, ptty = key
     os.makedirs(ATTN, exist_ok=True)
     row = "\t".join([str(int(time.time())), status, "%s:%s" % (sess, win),
                      wname, sockname, cpath, label])
+    rang = ring_bell(ptty) if bell else False
     try:
         with open(os.path.join(ATTN, name), "w", encoding="utf-8") as fh:
             fh.write(row + "\n")
         with open(os.path.join(ATTN, ".attn.log"), "a", encoding="utf-8") as fh:
-            fh.write("%s\t%-7s\t%s:%s\t[%s]\t%s\n"
-                     % (time.strftime("%F %T"), status, sess, win, sockname, label))
+            fh.write("%s\t%-7s\t%s:%s\t[%s]\t%s%s\n"
+                     % (time.strftime("%F %T"), status, sess, win, sockname,
+                        label, "" if not bell else (" [bell]" if rang
+                                                    else " [bell FAILED]")))
     except OSError:
         pass
 
@@ -158,7 +209,8 @@ def record_blocked(target, reason):
     with open(os.path.join(BLOCKED, "%s.json" % SESSION), "w", encoding="utf-8") as fh:
         json.dump(dict(ts=int(time.time()), target=target, reason=reason,
                        session=SESSION), fh)
-    notify("waiting", "AMToken needed: %s (%s)" % (target, reason))
+    # bell=True: this is the one state that needs a human who is not looking.
+    notify("waiting", "AMToken needed: %s (%s)" % (target, reason), bell=True)
     audit("blocked", target=target, reason=reason)
 
 
