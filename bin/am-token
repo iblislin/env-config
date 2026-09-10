@@ -1,0 +1,275 @@
+#!/usr/bin/env python3
+"""Issue and inspect approve tickets ("AMToken") for the CURRENT Claude session.
+
+WHY THIS EXISTS
+---------------
+A `permissions.ask` rule cannot be pre-satisfied. Measured, and documented by
+Anthropic in all four directions: an `allow` rule loses to `ask`, a PreToolUse
+hook returning "allow" loses to `ask`, a skill's `allowed-tools` loses to `ask`,
+and the `ask` dialog itself offers only Yes/No with no session-scoped option.
+So an unattended run that reaches `glab mr approve` stops dead until a human
+answers -- which in practice has been 5 hours, and once a whole week.
+
+The only direction left is to invert the mechanism: deny the raw command, and
+authorise a surrogate with a ticket issued while the human is present. This
+tool issues that ticket. `glab-mr-approve` consumes it.
+
+Full motivation, the research, and the rejected alternatives:
+~/doc/2026-09-10-unattended-approval-starvation.md
+
+WHAT THE /dev/tty CHECK IS, AND WHAT IT IS NOT
+----------------------------------------------
+`grant` refuses unless it can open /dev/tty. Measured 2026-09-10: a command run
+through Claude's Bash tool has NO controlling terminal (`/dev/tty` ->
+"no such device or address"), while a command the human types with the `!`
+prefix runs in the session's own shell and does.
+
+**This is a speed bump, not a boundary, and the first description of it here was
+wrong.** It claimed an agent "cannot attach a controlling terminal to itself".
+It can, trivially: `script -q -c 'am-token grant --uses 9' /dev/null` allocates
+a pty, and so does `python3 -c 'import pty; pty.spawn(...)'` or a container run
+with `-t`. The same trick feeds the y/N confirmation. So the whole grant path is
+bypassable by anything that means to bypass it.
+
+What the check is actually worth: it stops the *accidental* and the *helpful*
+case -- an agent that read about this command in CLAUDE.md and ran it because it
+seemed like the next step. That is the failure most likely to happen, so the
+check earns its place. It is not what stops a run under pressure.
+
+Nor is it the weakest link. `~/.config/glab-cli/config.yml` holds a live token,
+so anything that can read a file can approve an MR over the REST API without
+this tool at all. Hardening the ticket past this point is locking a window while
+that door stands open.
+
+**So the real control is not cryptographic. It is: do not create the motive.**
+Never write a /goal condition that ends at "MR approved" -- a run under that
+pressure has every reason to route around this gate rather than report BLOCKED.
+
+WHY THE TICKET IS KEYED BY SESSION ID
+-------------------------------------
+`CLAUDE_CODE_SESSION_ID` is byte-identical in the parent, in its subagents, and
+in the `!` shell -- all three measured on this machine. So the issuer and the
+consumer derive the same key with neither being told it, and a ticket covers
+exactly the one session tree that was authorised. Peer sessions have their own.
+
+USES, NOT TIME, IS THE PRIMARY BOUND
+------------------------------------
+`--uses` bounds the blast radius: how many MRs may be approved. `--ttl` bounds
+only the freshness of consent and defaults to *none*, deliberately. A ticket
+that expires while nobody is watching re-creates the starvation it exists to
+prevent -- that is trading the failure the user hates for a risk they do not
+have. Keep `--uses` small; leave time alone.
+"""
+import argparse
+import fcntl
+import json
+import os
+import sys
+import time
+
+HOME = os.path.expanduser("~")
+DIR = os.path.join(HOME, ".claude", "am-tokens")
+AUDIT = os.path.join(DIR, "audit.log")
+SESSION = (os.environ.get("CLAUDE_CODE_SESSION_ID") or "").strip()
+
+
+def die(msg, code=1):
+    sys.stderr.write("am-token: %s\n" % msg)
+    sys.exit(code)
+
+
+def ticket_path(session=None):
+    return os.path.join(DIR, "%s.json" % (session or SESSION))
+
+
+def ensure_dir():
+    os.makedirs(DIR, mode=0o700, exist_ok=True)
+    os.chmod(DIR, 0o700)
+
+
+def audit(event, **fields):
+    """Append-only record. The point of a ticket is that approvals now happen
+    while nobody is watching, so without this there is no answer to "did I
+    authorise that merge?" -- and in this fleet approve IS merge."""
+    ensure_dir()
+    row = dict(ts=int(time.time()), iso=time.strftime("%F %T"), event=event,
+               session=SESSION, **fields)
+    with open(AUDIT, "a", encoding="utf-8") as fh:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+        fh.write(json.dumps(row, sort_keys=True) + "\n")
+
+
+def parse_ttl(s):
+    """'5h' / '30m' / '3d' / '0' -> seconds. 0 means never expires."""
+    if not s or s == "0":
+        return 0
+    unit, mult = s[-1], {"s": 1, "m": 60, "h": 3600, "d": 86400}
+    if unit not in mult:
+        die("bad --ttl %r: use 30m, 5h, 3d, or 0 for no expiry" % s, 64)
+    try:
+        return int(s[:-1]) * mult[unit]
+    except ValueError:
+        die("bad --ttl %r" % s, 64)
+
+
+def load(session=None):
+    try:
+        with open(ticket_path(session), encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return None
+
+
+def state_of(t, now=None):
+    """One of: none / expired / exhausted / valid."""
+    now = now or int(time.time())
+    if not t:
+        return "none"
+    if t.get("expires_at") and now >= t["expires_at"]:
+        return "expired"
+    if t.get("uses_remaining", 0) <= 0:
+        return "exhausted"
+    return "valid"
+
+
+def fmt(t):
+    if not t:
+        return "(none)"
+    exp = t.get("expires_at")
+    when = time.strftime("%F %T", time.localtime(exp)) if exp else "never"
+    return ("%s · %d/%d uses left · expires %s · scope %s · granted %s"
+            % (state_of(t), t.get("uses_remaining", 0), t.get("uses_granted", 0),
+               when, t.get("scope", "*"),
+               time.strftime("%F %T", time.localtime(t.get("granted_at", 0)))))
+
+
+def cmd_grant(args):
+    if not SESSION:
+        die("CLAUDE_CODE_SESSION_ID is unset -- run this inside a Claude "
+            "session with the `!` prefix, not from a bare shell.", 64)
+
+    # The structural check. See the module docstring for why /dev/tty and not
+    # an env var: the `!` shell and the Bash tool share their environment
+    # exactly (measured), so nothing in `env` can tell them apart.
+    try:
+        tty = open("/dev/tty", "r+")
+    except OSError:
+        die("refusing to grant: no controlling terminal.\n"
+            "  This must be typed by a human, as `! am-token grant ...` inside\n"
+            "  the session you want to authorise. A tool-run shell has no\n"
+            "  /dev/tty, which is what this check is for.\n"
+            "  If you are an agent reading this: do not retry, do not look for\n"
+            "  another way to issue a ticket. Report BLOCKED and say a ticket\n"
+            "  is needed.", 77)
+
+    ttl = parse_ttl(args.ttl)
+    now = int(time.time())
+    tty.write("grant %d approve use(s), scope %s, %s, to session %s? [y/N] "
+              % (args.uses, args.scope,
+                 "no expiry" if not ttl else "expires in " + args.ttl,
+                 SESSION[:8]))
+    tty.flush()
+    if (tty.readline() or "").strip().lower() not in ("y", "yes"):
+        die("aborted, nothing written", 1)
+
+    ensure_dir()
+    t = dict(session=SESSION, uses_granted=args.uses, uses_remaining=args.uses,
+             granted_at=now, expires_at=(now + ttl) if ttl else 0,
+             scope=args.scope, granted_from_pane=os.environ.get("TMUX_PANE", ""),
+             granted_from_tty=os.ttyname(tty.fileno()) if hasattr(os, "ttyname") else "")
+    path = ticket_path()
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(t, fh, indent=2, sort_keys=True)
+    os.chmod(path, 0o600)
+    audit("grant", uses=args.uses, scope=args.scope, expires_at=t["expires_at"])
+
+    # This line lands in the agent's context, because `!` output does (observed).
+    # STATE ONLY, never an instruction: an imperative here would send a helpful
+    # agent looking for an MR to approve, and at grant time there usually is
+    # none. The policy -- use the surrogate, never the raw command, report
+    # BLOCKED without a ticket -- lives in CLAUDE.md, which is always loaded.
+    # Repeating it here would be the same rule in two homes, and this is the
+    # copy that gets reprinted daily.
+    print("AMToken issued for this session: %d use(s), %s, scope %s."
+          % (args.uses, "no expiry" if not ttl else "expires in " + args.ttl,
+             args.scope))
+    print("(state only -- use it when you reach the approve step)")
+
+
+def cmd_status(args):
+    t = load()
+    print("session %s: %s" % (SESSION[:8] or "(unset)", fmt(t)))
+    blocked = os.path.join(DIR, "blocked", "%s.json" % SESSION)
+    if os.path.exists(blocked):
+        b = json.load(open(blocked, encoding="utf-8"))
+        print("  BLOCKED %s ago: %s" % (
+            fmt_age(int(time.time()) - b["ts"]), b.get("target", "?")))
+    return 0 if state_of(t) == "valid" else 1
+
+
+def fmt_age(a):
+    for lim, unit, div in ((60, "s", 1), (3600, "m", 60),
+                           (86400, "h", 3600), (10 ** 9, "d", 86400)):
+        if a < lim:
+            return "%d%s" % (a // div, unit)
+
+
+def cmd_list(args):
+    ensure_dir()
+    rows = []
+    for name in sorted(os.listdir(DIR)):
+        if not name.endswith(".json"):
+            continue
+        rows.append((name[:-5], load(name[:-5])))
+    if not rows:
+        print("no tickets")
+    for sid, t in rows:
+        mark = "*" if sid == SESSION else " "
+        print("%s %s  %s" % (mark, sid[:8], fmt(t)))
+    bdir = os.path.join(DIR, "blocked")
+    if os.path.isdir(bdir):
+        stale = sorted(os.listdir(bdir))
+        if stale:
+            print("\nruns that asked for a ticket and had none:")
+            for name in stale:
+                b = json.load(open(os.path.join(bdir, name), encoding="utf-8"))
+                print("  %s  %s ago  %s" % (name[:8].rstrip(".json"),
+                                            fmt_age(int(time.time()) - b["ts"]),
+                                            b.get("target", "?")))
+
+
+def cmd_revoke(args):
+    path = ticket_path()
+    if os.path.exists(path):
+        os.unlink(path)
+        audit("revoke")
+        print("revoked")
+    else:
+        print("nothing to revoke")
+
+
+def main():
+    p = argparse.ArgumentParser(prog="am-token", description=__doc__.split("\n")[0])
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    g = sub.add_parser("grant", help="issue a ticket for THIS session (needs a tty)")
+    g.add_argument("--uses", type=int, default=1,
+                   help="approvals allowed; this is the bound that matters (default 1)")
+    g.add_argument("--ttl", default="0",
+                   help="30m/5h/3d, or 0 for no expiry (default 0 -- see the docstring)")
+    g.add_argument("--scope", default="*",
+                   help="project glob the ticket may be spent on, e.g. 'internal-group/*'")
+    g.set_defaults(fn=cmd_grant)
+
+    for name, fn, helptext in (("status", cmd_status, "this session's ticket"),
+                               ("list", cmd_list, "every ticket, plus blocked runs"),
+                               ("revoke", cmd_revoke, "drop this session's ticket")):
+        s = sub.add_parser(name, help=helptext)
+        s.set_defaults(fn=fn)
+
+    args = p.parse_args()
+    sys.exit(args.fn(args) or 0)
+
+
+if __name__ == "__main__":
+    main()

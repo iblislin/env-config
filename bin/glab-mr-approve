@@ -1,0 +1,237 @@
+#!/usr/bin/env python3
+"""Approve a merge request, spending one use of this session's AMToken.
+
+    glab-mr-approve <project>!<iid>        e.g. glab-mr-approve internal-group/latex-common!42
+
+This is the sanctioned way for an agent to approve. The raw `glab mr approve`
+carries a `permissions.ask` rule and `glab api *approve*` is denied, because an
+`ask` rule cannot be pre-satisfied and therefore stalls an unattended run for as
+long as nobody looks -- five hours in the case that prompted this, once a week.
+See ~/doc/2026-09-10-unattended-approval-starvation.md.
+
+WHY THIS RUNS AS THE HUMAN, NOT AS THE BOT
+------------------------------------------
+It shells out to plain `glab`, which reads its own config, so this script never
+touches a credential -- nothing to leak, nothing to redact. That is also the
+right attribution: the ticket IS the human's consent, so the approval should
+carry the human's identity rather than a bot's. Using the bot token would mean
+`pass show`, which carries an ask rule and would reintroduce exactly the stall
+this exists to remove.
+
+WHY IT POLLS THE PIPELINE FIRST
+-------------------------------
+On `internal-group/*`, `marge-bot-approval-sync` assigns marge-bot the moment approval
+lands, so **approve is merge** and it inherits the merge gate. GitLab's own
+"Pipelines must succeed" check is per project and was deliberately left off
+where there was no MR-pipeline history (IOT-228), so on those projects the
+project setting will not catch an early approval. Do not quote a project count
+from memory here -- it drifts; re-run
+`internal-group/ci-common:scripts/enforce-pipeline-required.py` for a current list.
+
+WHY A DENIAL IS LOUD
+--------------------
+The motivating failure was discovering hours later that nothing had happened. A
+design that fails fast but says nothing only moves the discovery. So a refusal
+writes to the attention board and to a persistent `blocked` record that
+`am-token list` reports.
+
+Known limitation, stated rather than found later: the attention board keys its
+state by tmux window, and `claude-attn-hook` overwrites that same key when
+Claude next stops -- which is moments after the agent reports BLOCKED. So the
+board entry this writes is short-lived. The durable records are `.attn.log` and
+the `blocked/` file; surfacing it on the board permanently would need a second
+state directory there.
+
+Exit codes: 0 approved · 75 no valid ticket, or the pipeline is not green (both
+are "stop and report", not "retry") · 64 usage · 1 other failure.
+"""
+import fcntl
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+
+HOME = os.path.expanduser("~")
+DIR = os.path.join(HOME, ".claude", "am-tokens")
+BLOCKED = os.path.join(DIR, "blocked")
+AUDIT = os.path.join(DIR, "audit.log")
+ATTN = os.path.join(HOME, ".claude", "tmux-status")
+SESSION = (os.environ.get("CLAUDE_CODE_SESSION_ID") or "").strip()
+TARGET_RE = re.compile(r"^(?P<project>[\w.\-/]+)!(?P<iid>\d+)$")
+
+GUIDANCE = """\
+  Do NOT retry, and do NOT fall back to `glab mr approve` or the REST API --
+  both are gated for the same reason and will not get further.
+  Report STATUS = BLOCKED, naming this MR and saying an approve ticket is
+  needed. A human issues one with `! am-token grant --uses 1`."""
+
+
+def out(msg):
+    sys.stderr.write(msg.rstrip() + "\n")
+
+
+def audit(event, **fields):
+    os.makedirs(DIR, mode=0o700, exist_ok=True)
+    row = dict(ts=int(time.time()), iso=time.strftime("%F %T"), event=event,
+               session=SESSION, **fields)
+    with open(AUDIT, "a", encoding="utf-8") as fh:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+        fh.write(json.dumps(row, sort_keys=True) + "\n")
+
+
+def tmux_key():
+    """socket__session__window, the same key claude-attn-hook uses.
+
+    Derived from TMUX_PANE, which a process in the pane inherits -- measured
+    identical between the Bash tool and the `!` shell."""
+    pane = os.environ.get("TMUX_PANE")
+    if not pane:
+        return None
+    try:
+        fields = subprocess.run(
+            ["tmux", "display-message", "-p", "-t", pane,
+             "#{socket_path}\t#{session_name}\t#{window_index}\t"
+             "#{window_name}\t#{pane_current_path}"],
+            capture_output=True, text=True, timeout=5).stdout.strip().split("\t")
+        sock, sess, win, wname, cpath = fields
+    except Exception:
+        return None
+    safe = lambda s: re.sub(r"[/ \t]", "_", s)
+    sockname = os.path.basename(sock)
+    return ("%s__%s__%s" % (safe(sockname), safe(sess), safe(win)),
+            sess, win, wname, sockname, cpath)
+
+
+def notify(status, label):
+    """Best-effort entry for claude-attn-board. Fields, in its own order:
+    ts, status, sess:win, wname, sockname, cpath, label."""
+    key = tmux_key()
+    if not key:
+        return
+    name, sess, win, wname, sockname, cpath = key
+    os.makedirs(ATTN, exist_ok=True)
+    row = "\t".join([str(int(time.time())), status, "%s:%s" % (sess, win),
+                     wname, sockname, cpath, label])
+    try:
+        with open(os.path.join(ATTN, name), "w", encoding="utf-8") as fh:
+            fh.write(row + "\n")
+        with open(os.path.join(ATTN, ".attn.log"), "a", encoding="utf-8") as fh:
+            fh.write("%s\t%-7s\t%s:%s\t[%s]\t%s\n"
+                     % (time.strftime("%F %T"), status, sess, win, sockname, label))
+    except OSError:
+        pass
+
+
+def record_blocked(target, reason):
+    os.makedirs(BLOCKED, mode=0o700, exist_ok=True)
+    with open(os.path.join(BLOCKED, "%s.json" % SESSION), "w", encoding="utf-8") as fh:
+        json.dump(dict(ts=int(time.time()), target=target, reason=reason,
+                       session=SESSION), fh)
+    notify("waiting", "AMToken needed: %s (%s)" % (target, reason))
+    audit("blocked", target=target, reason=reason)
+
+
+def glab(*args, timeout=60):
+    return subprocess.run(["glab", *args], capture_output=True, text=True,
+                          timeout=timeout)
+
+
+def pipeline_is_green(project, iid):
+    """(ok, description). Anything not a terminal success is a refusal."""
+    r = glab("api", "projects/%s/merge_requests/%s"
+             % (project.replace("/", "%2F"), iid))
+    if r.returncode != 0:
+        return False, "could not read the MR: %s" % (r.stderr.strip()[:200] or "?")
+    try:
+        mr = json.loads(r.stdout)
+    except ValueError:
+        return False, "unparseable MR payload"
+    pl = mr.get("head_pipeline") or mr.get("pipeline")
+    if not pl:
+        return False, ("no pipeline on the head commit -- cannot confirm CI, so "
+                       "this needs a human rather than a ticket")
+    st = pl.get("status")
+    return (st == "success"), "head pipeline is %s" % st
+
+
+def spend(target, project, iid):
+    """Take the lock, validate, decrement. Returns (ok, reason).
+
+    The lock is not optional: an L3 run dispatches several subagents and they
+    share one session id, so two concurrent approvals would read-modify-write
+    the same counter and lose a decrement."""
+    path = os.path.join(DIR, "%s.json" % SESSION)
+    os.makedirs(DIR, mode=0o700, exist_ok=True)
+    lock = open(os.path.join(DIR, ".%s.lock" % SESSION), "w")
+    fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+    try:
+        try:
+            with open(path, encoding="utf-8") as fh:
+                t = json.load(fh)
+        except (OSError, ValueError):
+            return False, "no ticket for this session"
+        now = int(time.time())
+        if t.get("expires_at") and now >= t["expires_at"]:
+            return False, "ticket expired"
+        if t.get("uses_remaining", 0) <= 0:
+            return False, "ticket exhausted (%d of %d used)" % (
+                t.get("uses_granted", 0), t.get("uses_granted", 0))
+        scope = t.get("scope", "*")
+        if scope != "*":
+            import fnmatch
+            if not fnmatch.fnmatch(project, scope):
+                return False, "ticket scope %r does not cover %s" % (scope, project)
+
+        ok, why = pipeline_is_green(project, iid)
+        if not ok:
+            return False, why
+
+        r = glab("mr", "approve", str(iid), "-R", project)
+        if r.returncode != 0:
+            return False, "glab mr approve failed: %s" % (
+                r.stderr.strip()[:300] or r.stdout.strip()[:300] or "?")
+
+        t["uses_remaining"] -= 1
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(t, fh, indent=2, sort_keys=True)
+        audit("approve", target=target, uses_remaining=t["uses_remaining"])
+        return True, "%d use(s) left" % t["uses_remaining"]
+    finally:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+        lock.close()
+
+
+def main():
+    if len(sys.argv) != 2 or sys.argv[1] in ("-h", "--help"):
+        out("usage: glab-mr-approve <project>!<iid>")
+        out("       e.g. glab-mr-approve internal-group/latex-common!42")
+        sys.exit(64)
+    m = TARGET_RE.match(sys.argv[1])
+    if not m:
+        out("not a target: %r -- want <project>!<iid>" % sys.argv[1])
+        sys.exit(64)
+    if not SESSION:
+        out("CLAUDE_CODE_SESSION_ID is unset, so there is no ticket to find.")
+        sys.exit(64)
+
+    target = sys.argv[1]
+    project, iid = m.group("project"), m.group("iid")
+
+    ok, why = spend(target, project, iid)
+    if ok:
+        # Consuming a ticket is also worth surfacing: an approval that happened
+        # while nobody watched should be visible without reading a log.
+        notify("done", "approved %s (%s)" % (target, why))
+        print("approved %s -- %s" % (target, why))
+        sys.exit(0)
+
+    record_blocked(target, why)
+    out("refusing to approve %s: %s" % (target, why))
+    out(GUIDANCE)
+    sys.exit(75)
+
+
+if __name__ == "__main__":
+    main()
