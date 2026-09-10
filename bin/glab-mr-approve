@@ -9,14 +9,39 @@ carries a `permissions.ask` rule and `glab api *approve*` is denied, because an
 long as nobody looks -- five hours in the case that prompted this, once a week.
 See ~/doc/2026-09-10-unattended-approval-starvation.md.
 
-WHY THIS RUNS AS THE HUMAN, NOT AS THE BOT
-------------------------------------------
-It shells out to plain `glab`, which reads its own config, so this script never
-touches a credential -- nothing to leak, nothing to redact. That is also the
-right attribution: the ticket IS the human's consent, so the approval should
-carry the human's identity rather than a bot's. Using the bot token would mean
-`pass show`, which carries an ask rule and would reintroduce exactly the stall
-this exists to remove.
+WHY IT APPROVES AS THE BOT ON `internal-group/*`
+--------------------------------------
+The first version used plain `glab`, so the approval was recorded as the human.
+Reading an MR's own history showed why that is wrong: the note said
+`A38767 approved this merge request` -- **identical to the human clicking
+Approve in the UI.** GitLab's record could not distinguish a human decision from
+an agent spending a ticket, and in this fleet approve is merge.
+
+So two records answer two different questions:
+
+* **who authorised it** -> `am-token`'s audit log, which names the human
+* **who acted** -> GitLab, which now names `claude-code-interactive`
+
+Same reasoning as posting comments as that bot rather than as the user, and the
+bot holds Developer on `internal-group/*`, which is enough to approve.
+
+**This script therefore handles a credential, and that is a real cost.** Stated
+plainly rather than left implicit:
+
+* The token goes into the `glab` subprocess's environment only -- never argv
+  (visible in `ps`), never printed, never in an error message.
+* `pass show *` carries an `ask` rule, but the permission engine only sees
+  `glab-mr-approve <target>`, so it does not prompt. That means **this surrogate
+  has credential access the calling agent is gated from**. That is what a
+  surrogate is for, and it is also why this file must never grow a debug path
+  that echoes the token.
+* If `pass` cannot produce it -- a locked gpg-agent, a renamed entry -- the run
+  refuses with exit 75 and says so, rather than silently falling back to the
+  human's identity. A silent fallback would put the ambiguity back exactly where
+  nobody would look for it.
+* Only `internal-group/*`: the group access token has no scope on personal-namespace
+  projects, so those still use the human's own `glab` config. `glab-mr-watch`
+  makes the same distinction.
 
 WHY IT CHECKS THE PIPELINE, AND WHO DECIDES
 -------------------------------------------
@@ -137,9 +162,45 @@ def record_blocked(target, reason):
     audit("blocked", target=target, reason=reason)
 
 
-def glab(*args, timeout=60):
+BOT_ENTRY = "gitlab/internal-group-bot-interactive"
+
+
+def glab(*args, timeout=60, env=None):
     return subprocess.run(["glab", *args], capture_output=True, text=True,
-                          timeout=timeout)
+                          timeout=timeout, env=env)
+
+
+def bot_env(project):
+    """(env, description) for the `glab` call that performs the approval.
+
+    Returns the process environment with GITLAB_TOKEN set to the internal-group bot's
+    group access token, so GitLab records the approval as
+    `claude-code-interactive` rather than as the human -- see the module
+    docstring for why that distinction matters.
+
+    The token is placed in the environment of the child only. Never argv, which
+    `ps` exposes to every process on the box, and never returned in the
+    description or any error text.
+
+    (None, reason) means refuse. A missing credential must NOT fall back to the
+    human's identity: that would restore the exact ambiguity this exists to
+    remove, in the one case nobody would think to check.
+    """
+    if not project.startswith("internal-group/"):
+        return dict(os.environ), ("as you: the internal-group bot token has no scope on %s"
+                                  % project.split("/", 1)[0])
+    try:
+        r = subprocess.run(["pass", "show", BOT_ENTRY],
+                           capture_output=True, text=True, timeout=30)
+    except Exception as e:
+        return None, "could not run `pass` (%s)" % type(e).__name__
+    token = (r.stdout or "").splitlines()[0].strip() if r.stdout else ""
+    if r.returncode != 0 or not token:
+        return None, ("`pass show %s` produced nothing (a locked gpg-agent, or a "
+                      "renamed entry). Refusing rather than approving as you."
+                      % BOT_ENTRY)
+    env = dict(os.environ, GITLAB_TOKEN=token)
+    return env, "as claude-code-interactive (%d-char bot token)" % len(token)
 
 
 def pipeline_gate_ok(project, iid):
@@ -226,7 +287,10 @@ def spend(target, project, iid):
         if not ok:
             return False, why
 
-        r = glab("mr", "approve", str(iid), "-R", project)
+        env, who = bot_env(project)
+        if env is None:
+            return False, who
+        r = glab("mr", "approve", str(iid), "-R", project, env=env)
         if r.returncode != 0:
             return False, "glab mr approve failed: %s" % (
                 r.stderr.strip()[:300] or r.stdout.strip()[:300] or "?")
@@ -235,7 +299,7 @@ def spend(target, project, iid):
         with open(path, "w", encoding="utf-8") as fh:
             json.dump(t, fh, indent=2, sort_keys=True)
         audit("approve", target=target, uses_remaining=t["uses_remaining"])
-        return True, "%d use(s) left" % t["uses_remaining"]
+        return True, "%s, %d use(s) left" % (who, t["uses_remaining"])
     finally:
         fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
         lock.close()
