@@ -39,6 +39,18 @@ CASES = [
     ("perl -i on a .py",
      "perl -i -pe 's/a/b/' %s/bin/x.py" % REPO, "DENY"),
 
+    # --- extensionless scripts, covered from 2026-09-10 --------------------
+    # `bin/` has no extensions at all, so the extension list could never
+    # protect the directory these hooks live in. `is_script` narrows the broad
+    # patterns by shebang instead.
+    ("sed -i on an extensionless script (shebang)",
+     "sed -i 's/a/b/' %s/bin/claude-src-write-hint" % REPO, "DENY"),
+    ("redirect into an extensionless script",
+     "echo x > %s/bin/claude-src-write-hint" % REPO, "DENY"),
+    ("literal open(...,'w') on an extensionless script",
+     "python3 -c \"open('%s/bin/claude-src-write-hint','w').write('x')\"" % REPO,
+     "DENY"),
+
     # --- must ALLOW: the false positives that actually happened -----------
     ("2026-09-10: `sed` one line, an unrelated `-i` the next",
      "rg -c 'x' f | sed 's/^/h: /'\nrg -n -i 'pat' %s/README.md" % REPO,
@@ -48,8 +60,21 @@ CASES = [
      "allow"),
     ("reading a source file",
      "cat %s/bin/claude-src-write-guard" % REPO, "allow"),
-    ("an extensionless script is out of scope, by design",
-     "sed -i 's/a/b/' %s/bin/claude-src-write-hint" % REPO, "allow"),
+    # The broad extensionless patterns hand `is_script` every bare redirect
+    # target in the command, so these negatives are what keep the second pass
+    # from becoming a flood. Each fails a different one of its three checks.
+    ("/dev/null is not a regular file",
+     "echo x > /dev/null", "allow"),
+    ("an extensionless file with NO shebang is data, not source",
+     "echo x > %s/README" % REPO, "allow"),
+    ("a target that does not exist yet has no shebang to read",
+     "echo x > %s/bin/brand-new-thing" % REPO, "allow"),
+    ("an extensionless script under a scratch path stays exempt",
+     "sed -i 's/a/b/' /tmp/some-script", "allow"),
+    ("the command that motivated the fix is STILL allowed -- gap 1, the "
+     "variable-held path, is a separate hole and remains open",
+     "python3 -c \"p='%s/bin/claude-src-write-hint'\nopen(p,'w').write('x')\"" % REPO,
+     "allow"),
     ("sed -n is a read, not a write",
      "sed -n '1,10p' %s/README.md" % REPO, "allow"),
     ("a scratch path is exempt", "sed -i 's/a/b/' /tmp/x.py", "allow"),

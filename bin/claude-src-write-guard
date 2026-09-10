@@ -30,6 +30,14 @@ patterns only against the latter, and binds each match to the path in that
 same call. Then the target is resolved (variables expanded, `~` expanded, made
 absolute) before any exemption is consulted.
 
+TWO WAYS A TARGET COUNTS AS SOURCE
+----------------------------------
+1. Its extension is in `SOURCE_EXT`.
+2. It has NO extension, exists, and starts with `#!` -- see `is_script`. Added
+   2026-09-10 because `~/env-config/bin/` is entirely extensionless, so the
+   extension list could never cover the directory holding these hooks; a
+   `python3 - <<EOF` rewrite of `bin/glab-mr-approve` was allowed through.
+
 WHAT IS OUT OF SCOPE, and why
 -----------------------------
 - remote and in-container writes (`ssh …`, `docker exec …`): the file tools
@@ -209,6 +217,58 @@ PY_WRITES = [
 ]
 
 
+# Same shapes again, but for targets with NO file extension. `~/env-config/bin/`
+# is entirely extensionless -- every hook there, including this guard -- so the
+# extension list could never cover the directory that holds the tooling this
+# rule exists to protect. Found 2026-09-10 when a `python3 - <<EOF` with
+# `io.open(p,'w')` rewrote `bin/glab-mr-approve` and this guard allowed it; two
+# independent reasons let it through, a variable-held path (gap 1, still open)
+# and the missing extension, and either alone was enough.
+#
+# The path group is deliberately broad here, so `is_script` does the narrowing.
+# A pattern alone cannot: it would match `> /dev/null`, `tee out`, and every
+# other bare redirect target.
+SHELL_WRITES_NOEXT = [
+    ("shell redirect", re.compile(r"(?P<pre>^|[;&|])(?P<lhs>[^;&|>]*?)(?<!\\)>>?\s*(?P<path>[^\s;|&>]+)")),
+    ("tee", re.compile(r"\btee\s+(?:-a\s+)?(?P<path>[^\s;|&]+)")),
+    ("sed -i", re.compile(r"\bsed\b[^|;\n]*?\s(?:-i\b|--in-place\b)[^|;\n]*?(?P<path>[^\s;|&]+)")),
+    ("perl -i", re.compile(r"\bperl\b[^|;\n]*?\s-\w*i\w*\b[^|;\n]*?(?P<path>[^\s;|&]+)")),
+]
+
+PY_WRITES_NOEXT = [
+    ("Path.write_text", re.compile(r"Path\s*\(\s*['\"](?P<path>[^'\"]+)['\"]\s*\)\s*\.\s*write_text")),
+    ("open(...,'w')", re.compile(r"open\s*\(\s*['\"](?P<path>[^'\"]+)['\"]\s*,\s*['\"][wa][btx+]*['\"]")),
+]
+
+
+def is_script(path: str) -> bool:
+    """True for an EXISTING, extensionless regular file that starts with `#!`.
+
+    The shebang is the discriminator, not the name: it is what makes a file
+    source rather than data, and it is the only reliable signal once there is no
+    extension to consult. Checked in cost order -- string, then stat, then two
+    bytes -- because the broad patterns above hand this every redirect target in
+    the command, and `in_git_tree` (a subprocess) must run only on survivors.
+
+    Requiring the file to EXIST is a real limitation, stated rather than
+    discovered later: creating a NEW extensionless script through a heredoc is
+    not caught, because there is nothing yet to read a shebang from. That is
+    acceptable here -- the rule exists so that editing a file loads the
+    path-scoped rules it is subject to, and a file that does not exist yet has
+    no conventions to load. `Write` remains the right tool for a new one.
+    """
+    base = os.path.basename(path)
+    if "." in base:
+        return False          # the extension patterns already own this case
+    try:
+        if not os.path.isfile(path):
+            return False
+        with open(path, "rb") as fh:
+            return fh.read(2) == b"#!"
+    except OSError:
+        return False
+
+
 def strip_quotes(p: str) -> str:
     return p.strip().strip("'\"")
 
@@ -335,6 +395,32 @@ def find_write(cmd: str):
                 if p is None or EXEMPT_PATH.search(p) or not in_git_tree(p):
                     continue
                 return name, p
+
+    # Second pass: extensionless targets, narrowed by `is_script` rather than by
+    # name. Runs after the extension pass so the common case keeps its exact
+    # behaviour and message, and `is_script` is checked before `in_git_tree`
+    # because the broad patterns feed this every bare redirect target and only
+    # the survivors are worth a subprocess.
+    for name, pat in SHELL_WRITES_NOEXT:
+        for m in pat.finditer(shell_text):
+            if name == "shell redirect" and lhs_is_generator(m.group("lhs")):
+                continue
+            p = resolve(m.group("path"), cmd, base)
+            if p is None or not is_script(p):
+                continue
+            if EXEMPT_PATH.search(p) or not in_git_tree(p):
+                continue
+            return name + " (extensionless script)", p
+
+    for body in programs:
+        for name, pat in PY_WRITES_NOEXT:
+            for m in pat.finditer(body):
+                p = resolve(m.group("path"), cmd, base)
+                if p is None or not is_script(p):
+                    continue
+                if EXEMPT_PATH.search(p) or not in_git_tree(p):
+                    continue
+                return name + " (extensionless script)", p
     return None, None
 
 
