@@ -105,13 +105,26 @@ printf '%s\n' "$reply" | sed -n "/^${SENTINEL}\$/,\$p" >&2
 # trailing newline not counted (command substitution above already stripped
 # it). python3, not `wc -c`/`wc -m`, because this must count characters
 # regardless of locale, and the condition can carry multi-byte text.
-body_chars="$(printf '%s' "$condition" | python3 -c 'import sys; print(len(sys.stdin.read()[6:]))')"
+body_chars="$(printf '%s' "$condition" | python3 -c 'import sys; print(len(sys.stdin.read()[6:]))' 2>/dev/null)"
 over_cap=0
-if [ "$body_chars" -gt "$CHAR_CAP" ]; then
-    over_cap=1
-    printf '%s: condition is %d characters after the /goal prefix, over the %d-character submit cap -- the harness will refuse this outright. Trim it by hand; the draft above is still what was produced.\n' \
-        "$PROG" "$body_chars" "$CHAR_CAP" >&2
-fi
+case "$body_chars" in
+    # A measurement that did not happen must not read as "not over cap". This
+    # script is `set -uo pipefail` without `-e`, so an absent or broken python3
+    # leaves body_chars empty, `[ "" -gt N ]` fails with "integer expected",
+    # and execution simply carries on with over_cap=0 -- a silent pass that
+    # looks exactly like a condition within budget.
+    ''|*[!0-9]*)
+        printf '%s: could not measure the condition length (python3 gave %s), so the %d-character cap was NOT checked -- treat this draft as unverified, not as within budget.\n' \
+            "$PROG" "${body_chars:-no output}" "$CHAR_CAP" >&2
+        ;;
+    *)
+        if [ "$body_chars" -gt "$CHAR_CAP" ]; then
+            over_cap=1
+            printf '%s: condition is %d characters after the /goal prefix, over the %d-character submit cap -- the harness will refuse this outright. Trim it by hand; the draft above is still what was produced.\n' \
+                "$PROG" "$body_chars" "$CHAR_CAP" >&2
+        fi
+        ;;
+esac
 
 # The skill pins the judges to haiku via the Agent tool and reports what they
 # said they were. Verify it rather than trusting it: a run judged by opus is
