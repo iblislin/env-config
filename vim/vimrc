@@ -1538,6 +1538,36 @@ function! s:MkgoalCondition() abort
         echohl WarningMsg | echomsg 'mkgoal: staged condition is empty' | echohl None
         return
     endif
+    " Two properties of the FILE that both fail SILENTLY when wrong, and that
+    " nothing else on this path checks. The guard above only covers the blank
+    " line append() would leave in the buffer; it never looks at what was
+    " staged.
+    "
+    "  - a first line that is not `/goal ` is not parsed as a slash command at
+    "    all, so the condition arrives as prose and arms nothing;
+    "  - past the harness's submit cap the whole submission is REFUSED, not
+    "    truncated, so again nothing is armed. Measured 2026-09-11: a
+    "    4556-character condition came back "Goal condition is limited to 4000
+    "    characters (got 4556)". bin/mkgoal checks the same cap on what it
+    "    produces, but its stderr is filtered out below, so this is the only
+    "    place the number is ever seen. Why drafting aims at 3800 rather than
+    "    4000 lives in the writing-goal-conditions skill (private repo, see
+    "    bin/mkgoal's header).
+    "
+    " Warn and insert anyway: the text is easier to fix in the buffer than to
+    " re-stage from another session.
+    let l:warn = []
+    let l:prefixed = l:lines[0] =~# '^/goal '
+    if !l:prefixed
+        call add(l:warn, printf('first line is not `/goal ` (%s) -- this arms nothing',
+                    \  strcharpart(trim(l:lines[0]), 0, 30)))
+    endif
+    let l:body = strchars(join(l:lines, "\n")) - (l:prefixed ? 6 : 0)
+    if l:body > 4000
+        call add(l:warn, printf('%d chars after the prefix, over the 4000 cap -- cut %d',
+                    \  l:body, l:body - 4000))
+    endif
+
     " Ctrl-G hands over an empty buffer, where append() would leave a blank
     " first line -- and a leading blank line before `/goal ` would stop Claude
     " Code parsing it as a slash command at all.
@@ -1546,8 +1576,15 @@ function! s:MkgoalCondition() abort
     else
         call append(line('.'), l:lines)
     endif
-    echomsg printf('mkgoal: staged condition, %d lines -- %s', len(l:lines),
-                \  strcharpart(trim(l:lines[0]), 0, 58))
+    echomsg printf('mkgoal: staged condition, %d lines, %d chars -- %s', len(l:lines),
+                \  l:body, strcharpart(trim(l:lines[0]), 0, 48))
+    " Emitted last so a warning is what stays on the command line; both are
+    " joined into one message because vim only shows the final echomsg.
+    if !empty(l:warn)
+        echohl WarningMsg
+        echomsg 'mkgoal: ' . join(l:warn, ' | ')
+        echohl None
+    endif
 endfunction
 
 nnoremap <leader>c :call <SID>MkgoalCondition()<CR>
