@@ -15,6 +15,14 @@ set -uo pipefail
 PROG="$(basename "$0")"
 CLAUDE="${MKGOAL_CLAUDE:-claude}"
 SENTINEL='---MKGOAL-VERDICT---'
+# The harness refuses a /goal submission outright past this many characters,
+# measured on the condition text after the `/goal ` prefix (trailing newline
+# not counted) -- measured 2026-09-11, a 4556-character draft was rejected
+# with "Goal condition is limited to 4000 characters (got 4556)". The 3800
+# drafting target that absorbs a later hand-edit lives in the
+# writing-goal-conditions skill as drafting judgment; this is the mechanical
+# check on what actually got produced.
+CHAR_CAP=4000
 # Drafting model/effort are overridable so they can be benchmarked without
 # editing this file. The judges are NOT affected -- the skill pins them to haiku
 # through the Agent tool, deliberately, so the dry run matches the live evaluator.
@@ -38,6 +46,8 @@ Exit: 0  both dry-run samples judged correctly
       1  still failing after 3 rewrites (stdout still carries the last draft),
          or a malformed reply
       2  empty input
+      3  condition exceeds the $CHAR_CAP-character submit cap (stdout still
+         carries the draft, for hand-trimming)
 EOF
 }
 
@@ -87,8 +97,21 @@ if ! printf '%s\n' "$reply" | grep -q '^/goal '; then
     printf '%s: reply contained no /goal line:\n%s\n' "$PROG" "$reply" >&2
     exit 1
 fi
-printf '%s\n' "$reply" | sed -n "/^\/goal /,\$p" | sed "/^${SENTINEL}\$/,\$d"
+condition="$(printf '%s\n' "$reply" | sed -n "/^\/goal /,\$p" | sed "/^${SENTINEL}\$/,\$d")"
+printf '%s\n' "$condition"
 printf '%s\n' "$reply" | sed -n "/^${SENTINEL}\$/,\$p" >&2
+
+# Measure on the same basis the harness enforces: after the `/goal ` prefix,
+# trailing newline not counted (command substitution above already stripped
+# it). python3, not `wc -c`/`wc -m`, because this must count characters
+# regardless of locale, and the condition can carry multi-byte text.
+body_chars="$(printf '%s' "$condition" | python3 -c 'import sys; print(len(sys.stdin.read()[6:]))')"
+over_cap=0
+if [ "$body_chars" -gt "$CHAR_CAP" ]; then
+    over_cap=1
+    printf '%s: condition is %d characters after the /goal prefix, over the %d-character submit cap -- the harness will refuse this outright. Trim it by hand; the draft above is still what was produced.\n' \
+        "$PROG" "$body_chars" "$CHAR_CAP" >&2
+fi
 
 # The skill pins the judges to haiku via the Agent tool and reports what they
 # said they were. Verify it rather than trusting it: a run judged by opus is
@@ -102,5 +125,8 @@ if ! printf '%s\n' "$reply" | grep -qi '^judge_model=.*haiku'; then
     printf '%s:          condition that then stalls. Treat this draft as unproven.\n' "$PROG" >&2
 fi
 
+if [ "$over_cap" -eq 1 ]; then
+    exit 3
+fi
 printf '%s\n' "$reply" | grep -q '^STATUS=pass$' && exit 0
 exit 1
