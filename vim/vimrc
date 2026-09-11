@@ -1312,6 +1312,18 @@ function! s:MkgoalStopTimer() abort
     echo ''
 endfunction
 
+" mkgoal's own stderr diagnostics, emitted AFTER the status line so a warning is
+" what stays on the command line -- vim shows only the final echomsg. Joined
+" into one message for the same reason.
+function! s:MkgoalWarn(diag) abort
+    if empty(a:diag)
+        return
+    endif
+    echohl WarningMsg
+    echomsg join(a:diag, ' | ')
+    echohl None
+endfunction
+
 function! s:MkgoalFinish(status) abort
     let l:secs = localtime() - s:mkgoal_t0
     let s:mkgoal_job = v:null
@@ -1333,9 +1345,21 @@ function! s:MkgoalFinish(status) abort
         return
     endif
 
-    " Surface only the machine-readable verdict lines; the prose reasoning stays
-    " in :messages via the err accumulator.
+    " Two different things arrive on stderr and both have to be shown. The
+    " verdict lines are the status summary. The `mkgoal: ` lines are the
+    " script's own diagnostics -- an over-cap condition, a judge that was not
+    " haiku -- and those carry the reason something is wrong.
+    "
+    " This comment used to say the prose reasoning "stays in :messages via the
+    " err accumulator". It did not: s:mkgoal_err is a script-local list and
+    " nothing echoes it, so until 2026-09-11 every line outside the verdict
+    " filter was accumulated and then silently dropped -- including the
+    " over-cap warning, whose whole purpose is to be read before submitting.
     let l:v = filter(copy(s:mkgoal_err), 'v:val =~# "^\\(STATUS\\|rewrites\\|judge_model\\)="')
+    let l:diag = filter(copy(s:mkgoal_err), 'v:val =~# "^mkgoal: "')
+    if a:status != 0
+        call add(l:diag, printf('mkgoal exited %d', a:status))
+    endif
     let l:edited = getbufvar(s:mkgoal_buf, 'changedtick') != s:mkgoal_tick
     let l:how = 'appended'
 
@@ -1347,6 +1371,7 @@ function! s:MkgoalFinish(status) abort
         echomsg printf('mkgoal: buffer was edited during the run, so APPENDED instead of replacing (%ds). %s',
                     \  l:secs, join(l:v, '  '))
         echohl None
+        call s:MkgoalWarn(l:diag)
         return
     elseif s:mkgoal_replace
         call deletebufline(s:mkgoal_buf, s:mkgoal_lo, s:mkgoal_hi)
@@ -1364,6 +1389,7 @@ function! s:MkgoalFinish(status) abort
 
     echomsg printf('mkgoal: %d lines %s after %ds. %s',
                 \  len(s:mkgoal_out), l:how, l:secs, join(l:v, '  '))
+    call s:MkgoalWarn(l:diag)
 endfunction
 
 function! s:MkgoalAsync(lo, hi, replace) abort
