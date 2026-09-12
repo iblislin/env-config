@@ -30,6 +30,9 @@ path=($HOME/bin $HOME/go/bin $HOME/node/bin /sbin /bin /usr/sbin /usr/bin /usr/g
 
 export ZSH="$HOME/.zsh"
 
+# Unconditional, so it overrides whatever the terminal or ssh negotiated, in
+# non-interactive shells too. See the TERM note in zsh/zshrc's `if [ $TMUX ]`
+# block for why hard-coding TERM breaks tmux capability negotiation.
 export TERM='screen-256color'
 
 export PAGER=less

@@ -317,6 +317,14 @@ fi
 
 if [ $TMUX ]
 then
+	# Lies about the terminal type to everything inside tmux, so `default-terminal`
+	# can never take effect and a nested tmux refuses to parse CSI u extended keys
+	# (Shift+Enter as \x1b[13;2u gets collapsed to a plain Enter). Measured 2026-09-12.
+	# Claude Code's Shift+Enter newline is therefore solved at the terminal instead,
+	# by sending ESC then CR -- two plain bytes needing no negotiation, so they
+	# survive nested tmux: ~/.Xresources has `URxvt.keysym.S-Return: \033\015`, and
+	# Windows Terminal a sendInput action with the same two bytes. Likely redundant
+	# anyway -- ~/.Xresources:9 already sets `URxvt*termName: rxvt-256color`.
 	export TERM='rxvt-256color'
 	export TMUX_SESSION=`tmux display-message -p '#S'`
 
