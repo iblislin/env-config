@@ -39,7 +39,7 @@ _am-token() {
           _arguments \
             {-n,--uses}'[approvals allowed; the bound that matters (default 1)]:count:(1 2 3 5)' \
             '--ttl[expiry, or 0 for none (default 0)]:duration:(0 30m 2h 5h 3d)' \
-            '--scope[project glob it may be spent on]:project:->scope'
+            '*--scope[project glob(s) it may be spent on; repeatable]:project:->scope'
           ;;
         *)
           # status / list / scope / revoke take no arguments.

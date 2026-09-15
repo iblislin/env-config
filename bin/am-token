@@ -227,9 +227,12 @@ def fmt(t):
         return "(none)"
     exp = t.get("expires_at")
     when = time.strftime("%F %T", time.localtime(exp)) if exp else "never"
+    sc = t.get("scope", "*")
+    if isinstance(sc, list):
+        sc = ", ".join(sc)
     return ("%s · %d/%d uses left · expires %s · scope %s · granted %s"
             % (state_of(t), t.get("uses_remaining", 0), t.get("uses_granted", 0),
-               when, t.get("scope", "*"),
+               when, sc,
                time.strftime("%F %T", time.localtime(t.get("granted_at", 0)))))
 
 
@@ -241,11 +244,10 @@ def cmd_grant(args):
     # No tty check and no confirmation prompt: see the module docstring. Both
     # were tried, both fail closed for the HUMAN as well, and neither would
     # stop an agent. The gate is the permissions.deny rule on this command.
-    scope = args.scope
-    if scope is None:
+    if args.scope is None:
         d = scope_dir()
-        scope = origin_project(d)
-        if not scope:
+        one = origin_project(d)
+        if not one:
             die("cannot tell which project to scope this to.\n"
                 "  Looked at this tmux pane's directory: %s\n"
                 "  (deliberately NOT the shell's cwd -- a `!` command inherits\n"
@@ -253,19 +255,27 @@ def cmd_grant(args):
                 "  Pass --scope '<group>/<project>', or start the session in the\n"
                 "  repo you mean. --scope '*' allows any project, which is wider\n"
                 "  than you probably want." % (d or "(not in tmux)"), 64)
+        scopes = [one]
+    else:
+        # --scope is repeatable AND each value may be comma-separated, so
+        # `--scope A --scope B` and `--scope A,B` both yield ["A", "B"]. A use is
+        # spent on whichever scope matches; -n bounds the total across all of them.
+        scopes = [s.strip() for item in args.scope for s in item.split(",") if s.strip()]
+        if not scopes:
+            die("--scope was given but empty.", 64)
 
     ttl = parse_ttl(args.ttl)
     now = int(time.time())
     ensure_dir()
     t = dict(session=SESSION, uses_granted=args.uses, uses_remaining=args.uses,
              granted_at=now, expires_at=(now + ttl) if ttl else 0,
-             scope=scope, granted_from_pane=os.environ.get("TMUX_PANE", ""),
+             scope=scopes, granted_from_pane=os.environ.get("TMUX_PANE", ""),
              granted_from_pane_path=scope_dir() or "")
     path = ticket_path()
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(t, fh, indent=2, sort_keys=True)
     os.chmod(path, 0o600)
-    audit("grant", uses=args.uses, scope=scope, expires_at=t["expires_at"])
+    audit("grant", uses=args.uses, scope=",".join(scopes), expires_at=t["expires_at"])
 
     # This line lands in the agent's context, because `!` output does (observed).
     # STATE ONLY, never an instruction: an imperative here would send a helpful
@@ -276,7 +286,7 @@ def cmd_grant(args):
     # copy that gets reprinted daily.
     print("AMToken issued for this session: %d use(s), %s, scope %s."
           % (args.uses, "no expiry" if not ttl else "expires in " + args.ttl,
-             scope))
+             ", ".join(scopes)))
     print("(state only -- use it when you reach the approve step)")
 
 
@@ -359,12 +369,14 @@ def main():
                    help="approvals allowed; this is the bound that matters (default 1)")
     g.add_argument("--ttl", default="0",
                    help="30m/5h/3d, or 0 for no expiry (default 0 -- see the docstring)")
-    g.add_argument("--scope", default=None,
-                   help="project the ticket may be spent on, as a glob. Default: "
-                        "this directory's `git remote get-url origin` project, "
-                        "since this is typed from inside the repo being worked "
-                        "on. Refuses rather than widening to '*' if that cannot "
-                        "be determined.")
+    g.add_argument("--scope", action="append", default=None, metavar="GLOB",
+                   help="project(s) the ticket may be spent on, as a glob. Repeat "
+                        "or comma-separate for several -- `--scope A --scope B` or "
+                        "`--scope A,B` -- and a use is spent on whichever matches. "
+                        "Default: this directory's `git remote get-url origin` "
+                        "project, since this is typed from inside the repo being "
+                        "worked on. Refuses rather than widening to '*' if that "
+                        "cannot be determined.")
     g.set_defaults(fn=cmd_grant)
 
     for name, fn, helptext in (("status", cmd_status, "this session's ticket"),

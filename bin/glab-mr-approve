@@ -330,10 +330,11 @@ def spend(target, project, iid):
             return False, "ticket exhausted (%d of %d used)" % (
                 t.get("uses_granted", 0), t.get("uses_granted", 0))
         scope = t.get("scope", "*")
-        if scope != "*":
+        scopes = scope if isinstance(scope, list) else [scope]
+        if "*" not in scopes:
             import fnmatch
-            if not fnmatch.fnmatch(project, scope):
-                return False, "ticket scope %r does not cover %s" % (scope, project)
+            if not any(fnmatch.fnmatch(project, s) for s in scopes):
+                return False, "ticket scope %r does not cover %s" % (scopes, project)
 
         ok, why = pipeline_gate_ok(project, iid)
         if not ok:
