@@ -43,13 +43,28 @@ IFS=$'\t' read -r sess win wname cpath ptty <<<"$info"
 # Ring this window's bell so tmux sets window_bell_flag -> the board's
 # "unread" signal, cleared only when you select the window. RUNNING does
 # NOT need your attention, so it never rings the bell.
-if [ "$status" != "running" ]; then
+if [ "$status" != "running" ] && [ "$status" != "end" ]; then
   [ -n "$ptty" ] && [ -w "$ptty" ] && printf '\a' >"$ptty" 2>/dev/null || true
 fi
 sockname="$(basename "$socket")"
 # Sanitize key components (paths/names may contain slashes/spaces).
 safe() { printf '%s' "$1" | tr '/ \t' '___'; }
 key="$(safe "$sockname")__$(safe "$sess")__$(safe "$win")"
+
+# SessionEnd hook -> status "end": the Claude session in this window has closed
+# for good, so drop the window's inbox entry (and its viewed stamp) instead of
+# leaving it as a stale "done"/"waiting" that cleanup_stale keeps while the tmux
+# window itself still exists. Skip the in-place resets: on /clear and /resume
+# the window keeps a live Claude that re-registers on its next prompt.
+if [ "$status" = "end" ]; then
+  reason="$(printf '%s' "$payload" | sed -n 's/.*"reason"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)"
+  case "$reason" in clear|resume) exit 0 ;; esac
+  rm -f "$STATE_DIR/$key" "$STATE_DIR/.viewed/$key" 2>/dev/null || true
+  printf '%s\t%-7s\t%s:%s\t[%s]\treason=%s\n' \
+    "$(date '+%F %T')" "end" "$sess" "$win" "$sockname" "${reason:-?}" \
+    >>"$STATE_DIR/.attn.log" 2>/dev/null || true
+  exit 0
+fi
 
 # Fields: ts  status  sess:win  wname  sockname  cpath  label
 printf '%s\t%s\t%s:%s\t%s\t%s\t%s\t%s\n' \
