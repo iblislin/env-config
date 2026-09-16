@@ -17,30 +17,38 @@ itself (arm B, a literal `.md` path, DENIED -- so the instrument was live):
                                           `.tex` path is denied outright
     io.open  literal + .md -> DENY     <- `io.` prefix is NOT a gap
 
-**Gap 1 was supposed to be what this hook still exists for -- and it is NOT
-implemented. Measured 2026-09-07, immediately after closing gap 2:**
+**Gap 1 IS implemented. The 2026-09-07 note that claimed otherwise, and
+concluded this hook was armed and dead, was wrong.** Re-measured 2026-09-16 by
+feeding the same input to BOTH hooks, with a control on each side:
 
-    p=<abs>/foo.tex; sed -i "s/a/b/" "$p"   -> 0 hits   quoted
-    p=<abs>/foo.tex; sed -i "s/a/b/" $p     -> 0 hits   bare
-    p=<abs>/foo.tex; sed -i "s/a/b/" ${p}   -> 0 hits   braced
-    P=<abs>/foo.tex; sed -i "s/a/b/" "$P"   -> 0 hits   uppercase
-    p="<abs>/foo.tex"; open(p,"w")          -> 0 hits   python
-    sed -i "s/a/b/" <abs>/foo.tex           -> 1 hit    CONTROL, literal
+    python3 -c 'open("<repo>/n.md","w")...'         guard DENY   hint fires
+    python3 -c 'p = "<repo>/n.md"
+                open(p, "w")...'                    guard ALLOW  hint FIRES  <- reachable
+    p=<repo>/n.md; sed -i "s/a/b/" "$p"             guard allow  hint silent <- still a gap
+    sed -i "s/a/b/" <repo>/n.md                     guard DENY   hint fires  <- CONTROL: guard live
+    git status --porcelain                          guard allow  hint silent <- CONTROL: no false pos
 
-`find_writes` does not raise on any of those -- it returns an empty list, so the
-`except Exception` below was not hiding a crash. And the scoping is inherited
-wholesale from the guard: a `.tex` outside a git work tree, or under an exempt
-path, is 0 hits here exactly as it is `allow` there.
+So in production this hook has exactly one reachable case, and it is the one it
+was built for: a path held in a variable inside a `python3 -c` program body,
+which `inline_literal_vars` resolves and the guard's literal-only patterns
+cannot see. Rows 1 and 4 fire here only because the scripts were run directly;
+through the harness the guard denies first and PostToolUse never runs.
 
-**So as of closing gap 2 this hook has no reachable case.** Everything it
-matches, the guard now denies first -- and per the layering note above, a denied
-command never reaches PostToolUse. It is armed and dead.
+**Why the earlier reading was wrong, because the mistake is reusable:** all five
+of its zero-hit shapes were SHELL command lines, and `inline_literal_vars` runs
+only over the program bodies `split_context` extracts from `python3 -c`. A shell
+assignment never reaches it. One row was even labelled `python` --
+`p="<abs>/foo.tex"; open(p,"w")` -- but that is still a single line of shell, not
+a python invocation, so the python path was never exercised at all. The corpus
+was narrower than it looked: the instrument was reading a format the data never
+had, which is the third shape in CLAUDE.md's zero-hit table. The label on that
+one row is what made it invisible, and it is why a zero needs its own control.
 
-That needs a decision, not a patch in passing: either implement the
-variable-held path properly (track assignments in the same command and resolve
-them before matching), or retire the hook and let the guard's extension list be
-the whole mechanism. Leaving it armed and dead is the one option that teaches
-the next reader something false.
+**The half that is still true:** a variable-held path in a SHELL command (row 3)
+is missed by both hooks, and that gap is real and unclosed. Closing it means
+tracking shell assignments and resolving them before matching. It belongs in
+THIS hook rather than in the guard: being wrong here costs one line of text,
+being wrong there costs a refused command plus a guess.
 
 Widening the deny to cover them is the wrong fix. A deny that fires on a
 variable-held path has to guess what the variable holds, and a wrong deny costs
