@@ -1,0 +1,27 @@
+[workspace]
+resolver = "2"
+members = [
+    "src-write-core",
+    "src-write-diff-runner",
+    "src-write-guard",
+]
+
+[workspace.package]
+edition = "2021"
+rust-version = "1.90"
+publish = false
+
+[workspace.dependencies]
+regex = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Optimise for startup, which is the entire reason this exists: these run once
+# per tool call and do a few hundred microseconds of work, so binary size and
+# dynamic-linking cost matter far more than steady-state throughput.
+[profile.release]
+opt-level = 2
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

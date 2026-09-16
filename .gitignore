@@ -15,3 +15,10 @@ zsh/repo/*
 !zsh/repo/.PADDING
 
 *.py[co]
+
+# Cargo build output. Cargo.lock IS tracked on purpose: these are binaries, not
+# a library, so a pinned dependency set is what makes a rebuild reproducible --
+# and a stamp check is worthless if the same revision can build two different
+# binaries.
+rust/target/
+rust/.port-report.md

@@ -1,0 +1,10 @@
+[package]
+name = "src-write-guard"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+src-write-core = { path = "../src-write-core" }
+serde_json.workspace = true

@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# SessionStart: say so, once, when a compiled hook binary predates its sources.
+#
+# WHY THIS EXISTS
+# ---------------
+# Every hook used to be a script, so `git pull` made the new behaviour live.
+# Compiled hooks break that silently: pull, forget to rebuild, and last month's
+# rules keep being enforced with nothing to indicate it. A hook that quietly
+# enforces stale rules is worse than a missing one, because a missing one is at
+# least visible.
+#
+# WHY SessionStart AND NOT PER TOOL CALL
+# --------------------------------------
+# Checking staleness on every Bash call would spend exactly the milliseconds the
+# Rust migration exists to save -- it spawns make, which costs more than the
+# hooks it is checking. Once per session is enough: a rebuild happens between
+# sessions, not between tool calls.
+#
+# WHY THE OUTPUT SHAPE IS SAFE
+# ----------------------------
+# Measured 2026-09-16 in a throwaway CLAUDE_CONFIG_DIR, two arms in one run:
+# SessionStart reaches the model on BOTH channels -- plain stdout AND
+# hookSpecificOutput.additionalContext (the model quoted both tokens back).
+# That differs from PostToolUse, where plain stdout on exit 0 is invisible. So
+# plain stdout is sufficient here and no JSON wrapper is needed.
+#
+# ALWAYS EXITS 0. A staleness notice must never be able to fail a session start
+# -- that would turn a small hygiene aid into an outage for every session,
+# including other people's.
+
+set -u
+
+RUST_DIR="${CLAUDE_HOOK_RUST_DIR:-$HOME/env-config/rust}"
+
+# Nothing built yet, or no checkout: not stale, just absent. Say nothing.
+[ -d "$RUST_DIR" ] || exit 0
+command -v make >/dev/null 2>&1 || exit 0
+
+# Discard stdin; a hook that leaves it unread can make the caller block.
+cat > /dev/null 2>&1
+
+# Capture and test the exit code WITHOUT a pipe. Through `out=$(cmd | grep)`
+# the status belongs to grep, and PIPESTATUS does not survive a command
+# substitution -- so the filtering has to happen at print time, not here, or
+# this branch silently tests the wrong thing.
+out=$(make -C "$RUST_DIR" --no-print-directory check-stamp 2>&1)
+rc=$?
+
+if [ "$rc" -ne 0 ]; then
+    # make's own `*** [target] Error 1` line names the Makefile, not the stale
+    # binary; burying the useful line under it is how a notice becomes one
+    # people skim past.
+    printf '%s\n' \
+      "Compiled hook binaries are STALE -- they were built from a different revision than the working tree, so the rules being enforced are not the rules in the source you would read." \
+      "" \
+      "$(printf '%s\n' "$out" | grep -v '^make:')" \
+      "" \
+      "Fix it with: make -C $RUST_DIR install"
+fi
+
+exit 0
