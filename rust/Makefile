@@ -14,14 +14,25 @@
 # paying for staleness detection on every Bash call would spend exactly the
 # milliseconds this migration exists to save.
 #
-# The stamp is the git HEAD plus a dirty marker. A dirty tree always reports
-# stale, which is the correct answer while iterating: the binary genuinely does
-# not correspond to anything committed.
+# The stamp is the git HEAD plus a CONTENT HASH of this directory's sources.
+#
+# The obvious version -- HEAD plus a `git diff --quiet` dirty marker -- was
+# tried and is broken here, for a reason worth recording: that check covers the
+# WHOLE repository. This repo holds unrelated things (shell rc files, window
+# manager config), so any edit anywhere pins the stamp at `-dirty` permanently,
+# and once it is pinned, editing a `.rs` file no longer changes it. The marker
+# that was supposed to catch a stale binary stops moving exactly when work is
+# happening. A content hash of the sources that actually go into the binary
+# moves when and only when they do.
 
 PREFIX  ?= $(HOME)/bin
 CARGO   ?= cargo
 BINS     = src-write-diff-runner src-write-guard
-STAMP   := $(shell git -C $(CURDIR) rev-parse --short HEAD 2>/dev/null || echo unknown)$(shell git -C $(CURDIR) diff --quiet 2>/dev/null || echo -dirty)
+SRC_HASH := $(shell find $(CURDIR) -name target -prune -o -type f \
+	    \( -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' -o -name 'Makefile' \) \
+	    -print 2>/dev/null | LC_ALL=C sort | xargs cat 2>/dev/null | sha256sum | cut -c1-10)
+HEAD    := $(shell git -C $(CURDIR) rev-parse --short HEAD 2>/dev/null || echo nogit)
+STAMP   := $(HEAD)-$(SRC_HASH)
 
 .PHONY: all build install check check-stamp gate clean
 
