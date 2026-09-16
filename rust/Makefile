@@ -27,18 +27,31 @@
 
 PREFIX  ?= $(HOME)/bin
 CARGO   ?= cargo
-BINS     = src-write-diff-runner src-write-guard
-SRC_HASH := $(shell find $(CURDIR) -name target -prune -o -type f \
+BINS     = src-write-diff-runner src-write-guard warn-sign-guard
+# DEFERRED (`=`, not `:=`) on purpose. With `:=` the hash is computed once when
+# make PARSES this file -- before any recipe runs. `cargo build` then rewrites
+# Cargo.lock whenever it is out of date (adding a workspace member does this),
+# so the hash baked into the binary was computed from the OLD lockfile while the
+# sub-make's `check-stamp` recomputed it from the NEW one. Result: every first
+# build after a structural change reported STALE, and a second identical `make
+# install` "fixed" it. A check whose answer depends on how many times you ran it
+# is not a check. Deferred expansion evaluates each use at its own moment, and
+# `build` settles the lockfile before the hash is ever read.
+SRC_HASH = $(shell find $(CURDIR) -name target -prune -o -type f \
 	    \( -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' -o -name 'Makefile' \) \
 	    -print 2>/dev/null | LC_ALL=C sort | xargs cat 2>/dev/null | sha256sum | cut -c1-10)
-HEAD    := $(shell git -C $(CURDIR) rev-parse --short HEAD 2>/dev/null || echo nogit)
-STAMP   := $(HEAD)-$(SRC_HASH)
+HEAD     = $(shell git -C $(CURDIR) rev-parse --short HEAD 2>/dev/null || echo nogit)
+STAMP    = $(HEAD)-$(SRC_HASH)
 
 .PHONY: all build install check check-stamp gate clean
 
 all: build
 
 build:
+	@# Settle Cargo.lock BEFORE the stamp is read. `cargo metadata` resolves
+	@# and writes the lockfile without compiling, so the hash computed on the
+	@# next line is taken from the same lockfile the build will use.
+	@$(CARGO) metadata --format-version 1 >/dev/null
 	SRC_WRITE_STAMP=$(STAMP) $(CARGO) build --release
 
 install: build

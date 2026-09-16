@@ -22,3 +22,4 @@ zsh/repo/*
 # binaries.
 rust/target/
 rust/.port-report.md
+rust/.warn-sign-port-report.md

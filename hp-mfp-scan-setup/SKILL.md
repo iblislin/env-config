@@ -226,7 +226,7 @@ ip -4 route get <printer-ip> | awk '{print $7; exit}'
 
 Most HP EWSs offer a **Test Access** button — use it; it'll write a small probe file and report success/failure. After it passes, the front-panel **Scan → Network Folder → <profile name>** flow is live.
 
-**HP quirk to ignore:** smbd's per-host log may show `parse_dfs_path_strict: Hostname X.internal-domain.example is not ours` when the printer first probes for a DFS root. Harmless — it falls back to direct SMB. Don't chase it.
+**HP quirk to ignore:** smbd's per-host log may show `parse_dfs_path_strict: Hostname <host>.<your-ad-domain> is not ours` when the printer first probes for a DFS root. Harmless — it falls back to direct SMB. Don't chase it.
 
 ## Optional: auto-rename incoming scans
 
