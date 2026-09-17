@@ -54,13 +54,26 @@ const STAMP: &str = match option_env!("SRC_WRITE_STAMP") {
     None => "unknown",
 };
 
-// The warning sign, U+26A0, and VARIATION SELECTOR-16 (U+FE0F), which selects
-// the emoji-style presentation. Written as escapes -- see the module doc.
-const SIGN: char = '\u{26A0}';
+// The banned glyphs, and VARIATION SELECTOR-16 (U+FE0F) which selects the
+// emoji-style presentation. Written as escapes -- see the module doc.
+//
+// A SET, not one character. The red circle joined on 2026-09-17 for a measured
+// reason: once the warning sign was blocked, the very next attention marker
+// written into the operator's notes was U+1F534, doing the identical job.
+// Banning one glyph does not remove the habit, it renames it -- so the rule has
+// to name the behaviour, and the set is how it does that.
+//
+// Deliberately NOT here: status glyphs that carry content rather than emphasis
+// (check marks, crosses, stars). Those routinely sit in a table cell, and a
+// table cell is the one place with no escape hatch -- backtick spans, fenced
+// blocks and blockquotes all have one, a cell does not. Adding them would make
+// the guard refuse data.
+const SIGNS: [char; 2] = ['\u{26A0}', '\u{1F534}'];
 const VS16: char = '\u{FE0F}';
 
 static WARN: LazyLock<Regex> = LazyLock::new(|| {
-    let pat = format!("{SIGN}{VS16}?");
+    let alts: Vec<String> = SIGNS.iter().map(|c| regex::escape(&c.to_string())).collect();
+    let pat = format!("(?:{}){VS16}?", alts.join("|"));
     Regex::new(&pat).unwrap()
 });
 
