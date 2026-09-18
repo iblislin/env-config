@@ -58,4 +58,11 @@ esac
 
 [ -n "$title" ] || title=$(basename "${files[0]}")
 
-exec glab snippet create --personal --title "$title" --visibility "$visibility" "${files[@]}"
+# The `--` is load-bearing, not decorative: without it, a file whose name
+# happens to look like a flag (e.g. one named `--visibility`, followed by
+# one named `public`) is handed to glab's own cobra/pflag parser unescaped,
+# which re-parses it as a real `--visibility public` and silently overrides
+# the private default this wrapper exists to enforce. `--` forces glab to
+# treat every remaining argument as a positional file path, regardless of
+# its spelling.
+exec glab snippet create --personal --title "$title" --visibility "$visibility" -- "${files[@]}"
