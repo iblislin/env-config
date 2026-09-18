@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Convenience wrapper around `glab snippet create` -- creates a personal
+# snippet from one or more files, defaulting to private visibility.
+#
+# Usage:
+#   glab-snip <file> [file2 ...] [-t TITLE] [-v public|internal|private]
+#
+# Title defaults to the first file's basename. `glab snippet create`'s own
+# --visibility flag already defaults to private, but that default lives in
+# glab's flag parsing rather than anything this repo controls, so it is
+# repeated here explicitly instead of relied on silently.
+
+set -euo pipefail
+
+die() { printf 'glab-snip: %s\n' "$*" >&2; exit 1; }
+
+[ $# -ge 1 ] || die "usage: glab-snip <file> [file2 ...] [-t TITLE] [-v public|internal|private]"
+
+title=""
+visibility="private"
+files=()
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -t|--title)
+            [ $# -ge 2 ] || die "-t needs a TITLE argument"
+            title=$2
+            shift 2
+            ;;
+        -v|--visibility)
+            [ $# -ge 2 ] || die "-v needs public|internal|private"
+            visibility=$2
+            shift 2
+            ;;
+        -h|--help)
+            printf 'usage: glab-snip <file> [file2 ...] [-t TITLE] [-v public|internal|private]\n'
+            exit 0
+            ;;
+        --)
+            shift
+            while [ $# -gt 0 ]; do files+=("$1"); shift; done
+            ;;
+        -*) die "unknown option: $1" ;;
+        *) files+=("$1"); shift ;;
+    esac
+done
+
+[ ${#files[@]} -ge 1 ] || die "no file given"
+
+for f in "${files[@]}"; do
+    [ -f "$f" ] || die "not a file: $f"
+done
+
+case "$visibility" in
+    public|internal|private) : ;;
+    *) die "visibility must be public, internal or private (got: $visibility)" ;;
+esac
+
+[ -n "$title" ] || title=$(basename "${files[0]}")
+
+exec glab snippet create --personal --title "$title" --visibility "$visibility" "${files[@]}"
