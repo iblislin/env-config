@@ -1186,8 +1186,17 @@ if &rtp =~ 'fern'
         " At most one drawer per tab.  Re-running :Fern in a tab that already
         " has one re-edits the buffer, which reloads the tree and loses the
         " expanded state on every single tab switch.
+        "
+        " And none in a tab some plugin built for itself.  diffview -- which is
+        " gitlab.nvim's reviewer -- opens its own tabpage, TabEnter fires, and
+        " without this the drawer lands in the middle of the review layout.  The
+        " test is a window with a non-empty 'buftype' (diffview's file panel is
+        " nofile), not the name diffview: :tab help and :tab terminal are the
+        " same shape and want no drawer either, while a :tabe of an ordinary
+        " file still gets one.
         for l:w in range(1, winnr('$'))
-            if bufname(winbufnr(l:w)) =~# '^fern://drawer'
+            let l:b = winbufnr(l:w)
+            if bufname(l:b) =~# '^fern://drawer' || getbufvar(l:b, '&buftype') !=# ''
                 return
             endif
         endfor
