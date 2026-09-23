@@ -493,6 +493,54 @@ tmap <C-W>c <C-W><C-C>
     " fern supports this explicitly: viewer/auto_duplication.vim opts out of its
     " "only one window per fern buffer" rule for exactly this combination.
     let g:fern#disable_drawer_tabpage_isolation = 1
+
+    " fern's own drawer smart-quit is replaced, not dropped -- the same rule,
+    " run one tick later.  It closes the drawer when it is the last window in
+    " its tab, and it does so with a bare `quit` INSIDE the drawer's BufEnter
+    " autocmd.  With more than one tab that is E1312 "Not allowed to change the
+    " window layout in this autocmd" (a restriction since vim 9.0.0907, and in
+    " nvim): :wq in the second of two tabs wrote the file, raised the error, and
+    " left a tab holding nothing but the drawer.  With a single tab the same
+    " `quit` exits the editor, which is why it only showed up with tabs.
+    "
+    " fern already fixed the identical problem in its -keep branch of the same
+    " function by deferring through timer_start(0) (fern issue #435); upstream
+    " has not touched the `quit` branch since.  So: disable theirs and keep its
+    " shape -- QuitPre only raises a flag, the drawer's BufEnter decides, and
+    " only the `quit` itself moves to a timer.
+    "
+    " The first attempt deferred the whole CHECK from QuitPre instead, and nvim
+    " broke it: QuitPre fires before the window closes, and nvim ran the timer
+    " while :q was still in progress, saw two windows, and did nothing -- a
+    " single-tab :q left nvim alive showing only the drawer.  vim happened to
+    " pass because it finishes the close before servicing timers.  BufEnter on
+    " the drawer is the moment the other window is actually gone.
+    "
+    " A `quit` that is refused (a modified hidden buffer) still refuses exactly
+    " as fern's did, and vim shows that buffer, which is its documented
+    " behaviour.  A :q that closes a split leaves two windows and does nothing.
+    let g:fern#disable_drawer_smart_quit = 1
+    let s:fern_quit_pending = 0
+    function! s:FernSmartQuitDo(...) abort
+        if winnr('$') == 1 && bufname('%') =~# '^fern://drawer'
+            quit
+        endif
+    endfunction
+    function! s:FernSmartQuitCheck() abort
+        if !s:fern_quit_pending
+            return
+        endif
+        let s:fern_quit_pending = 0
+        if winnr('$') == 1 && bufname('%') =~# '^fern://drawer'
+            call timer_start(0, function('s:FernSmartQuitDo'))
+        endif
+    endfunction
+    augroup fern_smart_quit_deferred
+        autocmd!
+        autocmd QuitPre * let s:fern_quit_pending = 1
+        autocmd BufEnter fern://* call s:FernSmartQuitCheck()
+    augroup END
+
     " g:fern#default_exclude is a single pattern matched against the node label
     let s:fern_exclude = ['\~$']  " vim temp files
     let s:fern_exclude += ['\.pyc$', '\.pyo$', '^__pycache__$']  " python
@@ -1142,10 +1190,11 @@ if &rtp =~ 'fern'
     " NERDTreeMirror-on-every-tab autocmd.  `-stay` is the `wincmd p`
     " equivalent: the drawer opens but the cursor stays in the file window.
     "
-    " `-keep` is deliberately NOT passed.  Without it fern's own drawer
-    " smart-quit (see g:fern#disable_drawer_smart_quit) quits vim when the
-    " drawer is the only thing left -- natively, which is exactly what the old
-    " `feedkeys(":quit\<CR>")` autocmd hand-rolled and what made it throw E38.
+    " `-keep` is deliberately NOT passed.  Without it the drawer is closed when
+    " it is the only thing left -- by s:FernSmartQuit next to the other fern
+    " settings, which re-runs fern's own smart-quit rule from a timer because
+    " fern's version raises E1312 with more than one tab open.  The old
+    " `feedkeys(":quit\<CR>")` autocmd hand-rolled the same idea and threw E38.
     " The root an existing drawer is already showing, or '.' if there is none.
     "
     " Passing '.' unconditionally is what made new tabs look "not synced": the
