@@ -12,6 +12,7 @@ lua require('python_lsp')
 lua require('ts_lsp')
 lua require('finder')
 lua require('markdown')
+lua require('gitlab_review')
 
 " gf and <C-w>gf open in a tab, reusing one already showing the file -- the same
 " select_tab_drop rule finder.lua uses.  Global, not on LspAttach: a path under

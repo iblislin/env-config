@@ -1045,6 +1045,14 @@ tmap <C-W>c <C-W><C-C>
         " markdown and markdown_inline PARSERS, and nvim 0.12 ships both in
         " /usr/lib/nvim/parser -- so the plugin is not pulled in here.
         Plug 'MeanderingProgrammer/render-markdown.nvim'
+        " GitLab MR review inside nvim -- diffs, discussions, approvals,
+        " pipelines.  Its backend is a Go server it builds itself on first use
+        " (needs go >= 1.25.1).  nui and diffview-plus are its two required
+        " dependencies per its README; plenary is already above.  Wired up in
+        " nvim/config/lua/gitlab_review.lua.
+        Plug 'MunifTanjim/nui.nvim'
+        Plug 'dlyongemallo/diffview-plus.nvim'
+        Plug 'harrisoncramer/gitlab.nvim'
     else
         Plug 'powerline/powerline', {'rtp': 'powerline/bindings/vim/', 'branch': 'develop'}
         " Arch linux issue
