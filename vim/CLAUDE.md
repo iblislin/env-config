@@ -184,6 +184,25 @@ The `MBE*` hits are MiniBufExplorer, whose plugin is no longer installed.
   `win_execute` does not trigger autocommands, which also keeps a measurement
   from causing the refresh it is trying to observe.
 - fern is plain vimscript and works in nvim unchanged.
+- **Never change the window layout from inside an autocmd; defer it.** fern's own
+  drawer smart-quit runs a bare `quit` in the drawer's `BufEnter`, which vim
+  9.0.0907+ and nvim reject with `E1312: Not allowed to change the window layout
+  in this autocmd`. It only surfaces with two or more tabs -- with one, that
+  `quit` exits the editor. Hence `g:fern#disable_drawer_smart_quit = 1` and the
+  replacement next to it, which moves only the `quit` into `timer_start(0)`.
+- **Decide on the drawer's `BufEnter`, not on `QuitPre`.** `QuitPre` fires before
+  the window closes. Deferring the whole check from it passed in vim and failed in
+  nvim, which ran the timer while `:q` was still in progress, saw two windows, and
+  left a single-tab `:q` with only the drawer on screen. vim finishes the close
+  before servicing timers, so a vim-only test would have called it fixed. Test
+  window-lifecycle changes in **both** editors, and include single-tab `:q` as a
+  case: it is the one that exits, so it is the one a regression hides in.
+- **The per-tab drawer stays out of tabs a plugin built.** Anything whose tab
+  holds a window with a non-empty `'buftype'` gets no drawer -- diffview (and so
+  gitlab.nvim's `glS` reviewer), `:tab help`, `:tab terminal`. Keyed on
+  `'buftype'`, not on plugin names. When changing that test, assert the other
+  direction too: a `:tabe` of an ordinary file must still get a drawer, or the
+  fix passes by removing drawers everywhere.
 
 ## Completion has exactly one owner
 
