@@ -1,4 +1,4 @@
-//! PostToolUse hook (TaskCreate|TaskUpdate): carry the open tasks of this
+//! PostToolUse hook (TaskCreate only): carry the open tasks of this
 //! conversation's previous agent-teams team into its current one. A port of
 //! `~/.claude/tools/claude-task-carry`; behaviour is pinned by the black-box
 //! suite `~/.claude/tests/task-carry/test_task_carry.py`, run against this
@@ -53,15 +53,15 @@ fn read_task(path: &Path) -> Option<Value> {
     serde_json::from_str(&fs::read_to_string(path).ok()?).ok()
 }
 
-/// The team dir holding the task just written: `<tid>.json` (with this subject
-/// when known), newest by mtime.
-fn current_team(tasks_dir: &Path, tid: &str, subject: Option<&str>) -> Option<PathBuf> {
+/// The team dir holding the task just created: `<tid>.json` with this subject,
+/// newest by mtime.
+fn current_team(tasks_dir: &Path, tid: &str, subject: &str) -> Option<PathBuf> {
     let mut best: Option<(std::time::SystemTime, PathBuf)> = None;
     for entry in fs::read_dir(tasks_dir).ok()?.flatten() {
         let dir = entry.path();
         let file = dir.join(format!("{tid}.json"));
         let Some(task) = read_task(&file) else { continue };
-        if subject.is_some_and(|s| task.get("subject").and_then(Value::as_str) != Some(s)) {
+        if task.get("subject").and_then(Value::as_str) != Some(subject) {
             continue;
         }
         let Ok(mtime) = file.metadata().and_then(|m| m.modified()) else { continue };
@@ -112,15 +112,15 @@ fn run() -> Option<()> {
     let state_dir = env_dir("CLAUDE_TASK_CARRY_DIR", ".claude/tmux-status/task-carry");
 
     let key = conversation_key(Path::new(event.get("transcript_path")?.as_str()?))?;
-    let response = event.get("tool_response")?;
-    let team = match event.get("tool_name")?.as_str()? {
-        "TaskCreate" => {
-            let task = response.get("task")?;
-            current_team(&tasks_dir, &id_str(task.get("id")?)?, task.get("subject")?.as_str())?
-        }
-        "TaskUpdate" => current_team(&tasks_dir, &id_str(response.get("taskId")?)?, None)?,
-        _ => return None,
-    };
+    // Only TaskCreate identifies the team: its response carries the subject.
+    // TaskUpdate carries only an id, and the newest <id>.json across all teams
+    // can belong to another live session -- trusting it swapped tasks between
+    // two conversations (incident 2026-09-25).
+    if event.get("tool_name")?.as_str()? != "TaskCreate" {
+        return None;
+    }
+    let task = event.get("tool_response")?.get("task")?;
+    let team = current_team(&tasks_dir, &id_str(task.get("id")?)?, task.get("subject")?.as_str()?)?;
 
     let record = state_dir.join(format!("{key}.team"));
     if let Ok(prev) = fs::read_to_string(&record) {
