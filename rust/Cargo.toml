@@ -6,6 +6,7 @@ members = [
     "src-write-guard",
     "warn-sign-guard",
     "task-carry",
+    "postcompact-hint",
 ]
 
 [workspace.package]
