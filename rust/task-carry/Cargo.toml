@@ -1,5 +1,5 @@
 [package]
-name = "task-mirror"
+name = "task-carry"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
@@ -7,11 +7,3 @@ publish.workspace = true
 
 [dependencies]
 serde_json.workspace = true
-
-[[bin]]
-name = "task-mirror"
-path = "src/bin/task-mirror.rs"
-
-[[bin]]
-name = "task-restore"
-path = "src/bin/task-restore.rs"

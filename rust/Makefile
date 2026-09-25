@@ -27,7 +27,7 @@
 
 PREFIX  ?= $(HOME)/bin
 CARGO   ?= cargo
-BINS     = src-write-diff-runner src-write-guard warn-sign-guard task-mirror task-restore
+BINS     = src-write-diff-runner src-write-guard warn-sign-guard task-carry
 # DEFERRED (`=`, not `:=`) on purpose. With `:=` the hash is computed once when
 # make PARSES this file -- before any recipe runs. `cargo build` then rewrites
 # Cargo.lock whenever it is out of date (adding a workspace member does this),
