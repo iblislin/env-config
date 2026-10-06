@@ -66,9 +66,15 @@ if [ "$status" = "end" ]; then
   exit 0
 fi
 
-# Fields: ts  status  sess:win  wname  sockname  cpath  label
-printf '%s\t%s\t%s:%s\t%s\t%s\t%s\t%s\n' \
-  "$(date +%s)" "$status" "$sess" "$win" "$wname" "$sockname" "$cpath" "$label" \
+# Where this inner window shows up in the OUTER tmux ("sess:win"), for
+# display only; claude-attn-jump re-resolves it live on every jump.
+# Blank when not nested. Appended last so older state files still parse.
+outer="$(timeout 2 "$(dirname "$0")/claude-attn-jump" --where \
+  "$socket" "$sess" "$win" 2>/dev/null | head -1 | tr -d '\t')"
+
+# Fields: ts  status  sess:win  wname  sockname  cpath  label  outer
+printf '%s\t%s\t%s:%s\t%s\t%s\t%s\t%s\t%s\n' \
+  "$(date +%s)" "$status" "$sess" "$win" "$wname" "$sockname" "$cpath" "$label" "$outer" \
   >"$STATE_DIR/$key"
 
 # --- bounded event log (history / debugging) ------------------------

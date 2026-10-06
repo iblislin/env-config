@@ -290,6 +290,41 @@ class MainIOTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("switch-client -c /dev/pts/7 -t $1", out.getvalue())
 
+    def test_18_where_prints_outer_location_and_executes_nothing(self):
+        import io
+
+        class R:
+            def __init__(self, returncode, stdout=""):
+                self.returncode = returncode
+                self.stdout = stdout
+
+        def q(argv):
+            if argv[2] == "/tmp/outer":
+                if "display" in argv and "#{session_name}:#{window_index}" in argv:
+                    return R(0, "main.x:9\n")
+                if "display" in argv:
+                    return R(0, "$1\t9\t1\n")
+                if "list-clients" in argv:
+                    return R(0, "/dev/pts/7\t$1\t100\n")
+            else:
+                if "list-sessions" in argv:
+                    return R(0, "$0\talpha_c\n")
+                if "list-windows" in argv:
+                    return R(0, "2\n")
+                if "list-clients" in argv:
+                    return R(0, "555\t/dev/pts/9\n")
+            raise AssertionError("unexpected query: %r" % (argv,))
+
+        def boom_exec(argv):
+            raise AssertionError("--where must execute nothing")
+
+        out = io.StringIO()
+        code = jump.main(["--where", "/tmp/inner", "alpha_c", "2"],
+                          run_query=q, run_exec=boom_exec, read_env=lambda pid:
+                          b"TMUX=/tmp/outer,1,0\0TMUX_PANE=%3\0", out=out)
+        self.assertEqual(code, 0)
+        self.assertEqual(out.getvalue(), "main.x:9\n")
+
     def test_11_wrong_arg_count_exit_2(self):
         def boom(argv):
             raise AssertionError("no tmux query should run for a usage error")

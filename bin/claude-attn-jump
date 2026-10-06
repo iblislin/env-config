@@ -3,7 +3,7 @@
 ("inner") tmux server, stepping through the "outer" tmux server first
 when the chosen inner client is itself running inside an outer tmux pane.
 
-Usage: claude-attn-jump [--dry-run] <inner-socket> <session> <window>
+Usage: claude-attn-jump [--dry-run|--where] <inner-socket> <session> <window>
 
 Exit codes: 0 ok, 2 usage, 3 inner socket unreachable, 4 target window
 missing, 5 no client to jump to.
@@ -224,15 +224,30 @@ def plan(inner_target, clients, outer_panes):
     return cmds
 
 
-USAGE = "usage: claude-attn-jump [--dry-run] <inner-socket> <session> <window>"
+def outer_location(clients, outer_panes, run_query):
+    """`<outer session name>:<window>` of the client plan() would pick,
+    or None when that client is not inside an outer tmux."""
+    inside = [c for c in clients if c["outer_socket"] and c["outer_pane"]]
+    if not inside:
+        return None
+    c = choose_client(inside, outer_panes)
+    p = run_query(["tmux", "-S", c["outer_socket"], "display", "-p", "-t",
+                   c["outer_pane"], "-F", "#{session_name}:#{window_index}"])
+    if p.returncode != 0:
+        return None
+    return p.stdout.strip() or None
+
+
+USAGE = ("usage: claude-attn-jump [--dry-run|--where] "
+         "<inner-socket> <session> <window>")
 
 
 def main(argv, run_query=None, run_exec=None, read_env=None, out=sys.stdout,
          err=sys.stderr):
     args = list(argv)
-    dry_run = False
-    if args and args[0] == "--dry-run":
-        dry_run = True
+    mode = "jump"
+    if args and args[0] in ("--dry-run", "--where"):
+        mode = args[0][2:]
         args = args[1:]
     if len(args) != 3:
         print(USAGE, file=err)
@@ -275,7 +290,13 @@ def main(argv, run_query=None, run_exec=None, read_env=None, out=sys.stdout,
         print("claude-attn-jump: %s" % e.message, file=err)
         return e.code
 
-    if dry_run:
+    if mode == "where":
+        # Display only: the board shows this, and re-resolves on the jump.
+        loc = outer_location(clients, outer_panes, run_query)
+        if loc:
+            print(loc, file=out)
+        return 0
+    if mode == "dry-run":
         for cmd in cmds:
             print(" ".join(cmd), file=out)
         return 0

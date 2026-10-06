@@ -293,7 +293,7 @@ declare -a GB_ORDER=()
 GB_NOW=0
 
 build_groups() {
-  local W="$1" now key ts st winid wname sockname cpath label age viewed_ts f e
+  local W="$1" now key ts st winid wname sockname cpath label outer age viewed_ts f e
   local name meta namecap metacap dot icon icon_col row
   GB_ROWS=(); GB_UNREAD=(); GB_READ=(); GB_RUN=(); GB_NEWEST=(); GB_ORDER=()
   now="$(date +%s)"; GB_NOW="$now"
@@ -317,7 +317,7 @@ build_groups() {
   metacap=$(( W - namecap - 22 ))
 
   for e in "${entries[@]}"; do
-    IFS=$'\t' read -r key ts st winid wname sockname cpath label <<<"$e"
+    IFS=$'\t' read -r key ts st winid wname sockname cpath label outer <<<"$e"
     [ -n "$ts" ] || continue
     age=$(( now - ts ))
     if [ -z "${GB_NEWEST[$cpath]:-}" ]; then
@@ -329,7 +329,9 @@ build_groups() {
     viewed_ts="$(stat -c%Y "$VIEWED_DIR/$key" 2>/dev/null || echo 0)"
     [ -n "$label" ] && name="$label" || name="$wname"
     name="$(clip "$name" "$namecap")"
-    [ "$metacap" -ge 8 ] && meta="$(clip "[$winid]" "$metacap")" || meta=""
+    # "[inner sess:win ⇐ outer sess:win]" when the hook recorded the outer spot.
+    [ -n "$outer" ] && meta="[$winid ⇐ $outer]" || meta="[$winid]"
+    [ "$metacap" -ge 8 ] && meta="$(clip "$meta" "$metacap")" || meta=""
     case "$st" in
       running) icon='▶ RUN  '; icon_col='\033[36m' ;;   # padded to 7 cols to align with emoji icons
       waiting) icon='⏳ WAIT'; icon_col='\033[1;33m' ;;
