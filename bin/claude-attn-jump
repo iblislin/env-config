@@ -126,6 +126,31 @@ def query_outer_pane(socket, pane, run_query):
         return None
 
 
+def pick_outer_client(socket, session_id, run_query):
+    """The outer client tty to name with switch-client -c.
+
+    Prefer the most recently active client already showing the target
+    session; otherwise the most recently active client on the server
+    (what tmux itself would pick with no -c). None when there is none.
+    """
+    p = run_query(["tmux", "-S", socket, "list-clients",
+                   "-F", "#{client_tty}\t#{session_id}\t#{client_activity}"])
+    if p.returncode != 0:
+        return None
+    rows = []
+    for line in p.stdout.splitlines():
+        parts = line.split("\t")
+        if len(parts) != 3:
+            continue
+        try:
+            rows.append((parts[1] == session_id, int(parts[2]), parts[0]))
+        except ValueError:
+            continue
+    if not rows:
+        return None
+    return max(rows)[2]
+
+
 def list_inner_clients(socket, session_id, run_query):
     p = run_query(["tmux", "-S", socket, "list-clients", "-t", session_id,
                    "-F", "#{client_pid}\t#{client_tty}"])
@@ -184,7 +209,10 @@ def plan(inner_target, clients, outer_panes):
         opane = chosen["outer_pane"]
         info = outer_panes[(osock, opane)]
         osid, owin = info["session_id"], info["window"]
-        cmds.append(["tmux", "-S", osock, "switch-client", "-t", osid])
+        switch = ["tmux", "-S", osock, "switch-client"]
+        if info.get("client_tty"):
+            switch += ["-c", info["client_tty"]]
+        cmds.append(switch + ["-t", osid])
         cmds.append(["tmux", "-S", osock, "select-window", "-t",
                      "%s:%s" % (osid, owin)])
         cmds.append(["tmux", "-S", osock, "select-pane", "-t", opane])
@@ -233,6 +261,8 @@ def main(argv, run_query=None, run_exec=None, read_env=None, out=sys.stdout,
                 info = query_outer_pane(c["outer_socket"], c["outer_pane"],
                                          run_query)
                 if info:
+                    info["client_tty"] = pick_outer_client(
+                        c["outer_socket"], info["session_id"], run_query)
                     outer_panes[(c["outer_socket"], c["outer_pane"])] = info
                 else:
                     # The pane vanished or the outer socket can't answer:

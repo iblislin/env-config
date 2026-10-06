@@ -55,6 +55,18 @@ class PlanTests(unittest.TestCase):
              "-t", "$0"],
         ])
 
+    def test_14_outer_client_tty_known_is_named_with_c(self):
+        # With several outer clients, switch-client without -c moves the
+        # most recently used one, which may be the wrong terminal.
+        clients = [{"tty": "/dev/pts/9", "outer_socket": "/tmp/outer",
+                    "outer_pane": "%3"}]
+        outer_panes = {("/tmp/outer", "%3"):
+                       {"session_id": "$1", "window": "2", "attached": 1,
+                        "client_tty": "/dev/pts/7"}}
+        cmds = jump.plan(("/tmp/inner", "$0", "4"), clients, outer_panes)
+        self.assertEqual(cmds[0], ["tmux", "-S", "/tmp/outer", "switch-client",
+                                   "-c", "/dev/pts/7", "-t", "$1"])
+
     def test_05_client_not_inside_outer_runs_inner_only(self):
         clients = [{"tty": "/dev/pts/2", "outer_socket": None,
                     "outer_pane": None}]
@@ -247,6 +259,37 @@ class MainIOTests(unittest.TestCase):
         self.assertIn("select-pane -t %3", printed)
         self.assertIn("-S /some/socket select-window -t $0:2", printed)
 
+    def test_17_main_names_the_outer_client_with_c(self):
+        import io
+
+        class R:
+            def __init__(self, returncode, stdout=""):
+                self.returncode = returncode
+                self.stdout = stdout
+
+        def q(argv):
+            sock = argv[2]
+            if sock == "/tmp/outer":
+                if "display" in argv:
+                    return R(0, "$1\t2\t1\n")
+                if "list-clients" in argv:
+                    return R(0, "/dev/pts/8\t$4\t900\n/dev/pts/7\t$1\t100\n")
+            else:
+                if "list-sessions" in argv:
+                    return R(0, "$0\talpha_c\n")
+                if "list-windows" in argv:
+                    return R(0, "2\n")
+                if "list-clients" in argv:
+                    return R(0, "555\t/dev/pts/9\n")
+            raise AssertionError("unexpected query: %r" % (argv,))
+
+        out = io.StringIO()
+        code = jump.main(["--dry-run", "/tmp/inner", "alpha_c", "2"],
+                          run_query=q, read_env=lambda pid:
+                          b"TMUX=/tmp/outer,1,0\0TMUX_PANE=%3\0", out=out)
+        self.assertEqual(code, 0)
+        self.assertIn("switch-client -c /dev/pts/7 -t $1", out.getvalue())
+
     def test_11_wrong_arg_count_exit_2(self):
         def boom(argv):
             raise AssertionError("no tmux query should run for a usage error")
@@ -256,6 +299,32 @@ class MainIOTests(unittest.TestCase):
         self.assertEqual(code, 2)
         code = jump.main(["a", "b", "c", "d"], run_query=boom)
         self.assertEqual(code, 2)
+
+
+class OuterClientTests(unittest.TestCase):
+
+    class R:
+        def __init__(self, returncode, stdout=""):
+            self.returncode = returncode
+            self.stdout = stdout
+
+    def test_15_prefers_client_on_target_session_then_most_recent(self):
+        # tty, session_id, activity
+        listing = ("/dev/pts/1\t$5\t300\n"
+                   "/dev/pts/2\t$1\t100\n"
+                   "/dev/pts/3\t$1\t200\n")
+        q = lambda argv: self.R(0, listing)
+        self.assertEqual(jump.pick_outer_client("/tmp/outer", "$1", q),
+                         "/dev/pts/3")
+        # nobody on $9 -> the most recently active client overall
+        self.assertEqual(jump.pick_outer_client("/tmp/outer", "$9", q),
+                         "/dev/pts/1")
+
+    def test_16_no_outer_client_or_query_failure_gives_none(self):
+        self.assertIsNone(jump.pick_outer_client(
+            "/tmp/outer", "$1", lambda a: self.R(0, "")))
+        self.assertIsNone(jump.pick_outer_client(
+            "/tmp/outer", "$1", lambda a: self.R(1, "")))
 
 
 class EnvironExtractionTests(unittest.TestCase):
