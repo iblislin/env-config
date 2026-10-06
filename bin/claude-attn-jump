@@ -1,0 +1,263 @@
+#!/usr/bin/env python3
+"""claude-attn-jump -- jump the real terminal to a window on a nested
+("inner") tmux server, stepping through the "outer" tmux server first
+when the chosen inner client is itself running inside an outer tmux pane.
+
+Usage: claude-attn-jump [--dry-run] <inner-socket> <session> <window>
+
+Exit codes: 0 ok, 2 usage, 3 inner socket unreachable, 4 target window
+missing, 5 no client to jump to.
+"""
+import subprocess
+import sys
+
+
+def extract_tmux_vars(environ_bytes):
+    """Pick ONLY TMUX and TMUX_PANE out of a /proc/<pid>/environ blob.
+
+    /proc/<pid>/environ can hold credentials in any other variable, so
+    nothing else is ever looked at or returned.
+    """
+    tmux = None
+    tmux_pane = None
+    for entry in environ_bytes.split(b"\0"):
+        if entry.startswith(b"TMUX="):
+            tmux = entry[len(b"TMUX="):].decode("utf-8", "replace")
+        elif entry.startswith(b"TMUX_PANE="):
+            tmux_pane = entry[len(b"TMUX_PANE="):].decode("utf-8", "replace")
+    return tmux, tmux_pane
+
+
+class JumpError(Exception):
+    def __init__(self, code, message):
+        super().__init__(message)
+        self.code = code
+        self.message = message
+
+
+def run_query_default(argv):
+    """Run a tmux query command, capturing its output."""
+    return subprocess.run(argv, capture_output=True, text=True)
+
+
+def run_exec_default(argv):
+    """Run a tmux mutating command, inheriting this process's stdio.
+
+    This must NOT capture stdout: tmux's implicit "current client"
+    resolution for a `switch-client`/`select-window` with no explicit
+    -c looks at the ttyname() of the invoking process's own fds, so
+    piping them through `capture_output` would silently break the
+    jump. Measured with a throwaway outer server: with stdout attached
+    to the client's own tty, `switch-client -t <session>` resolves and
+    succeeds; with no attached client at all it fails "no current
+    client" instead.
+    """
+    return subprocess.run(argv)
+
+
+def check_reachable(socket, run_query):
+    p = run_query(["tmux", "-S", socket, "list-sessions", "-F", "#{session_id}"])
+    if p.returncode != 0:
+        raise JumpError(3, "inner socket unreachable: %s" % socket)
+
+
+def resolve_session_id(socket, name, run_query):
+    """Find `name`'s session_id without ever threading the name itself
+    through a tmux -t target string.
+
+    Measured against real tmux (3.7c): a target like `-t '=foo:bar:0'`
+    does NOT reliably escape a ':' or '.' inside the session name --
+    tmux still splits on the first unescaped ':' regardless of the '='
+    exact-match prefix. Matching the name in Python against a plain
+    `list-sessions` listing (which takes no -t at all) sidesteps that
+    parser entirely; every target built afterwards uses the resolved
+    session_id ("$3"), which tmux parses unambiguously.
+    """
+    p = run_query(["tmux", "-S", socket, "list-sessions",
+                   "-F", "#{session_id}\t#{session_name}"])
+    if p.returncode != 0:
+        return None
+    for line in p.stdout.splitlines():
+        sid, _, sname = line.partition("\t")
+        if sname == name:
+            return sid
+    return None
+
+
+def window_exists(socket, session_id, window, run_query):
+    p = run_query(["tmux", "-S", socket, "list-windows", "-t", session_id,
+                   "-F", "#{window_index}"])
+    if p.returncode != 0:
+        return False
+    return str(window) in p.stdout.split()
+
+
+def read_environ_default(pid):
+    with open("/proc/%d/environ" % pid, "rb") as f:
+        return f.read()
+
+
+def resolve_client_outer_info(client, read_env):
+    """Fill in a client dict's outer_socket/outer_pane from its real
+    /proc/<pid>/environ, or leave both None if it cannot be read or
+    carries no TMUX/TMUX_PANE (not inside an outer tmux)."""
+    try:
+        blob = read_env(client["pid"])
+    except OSError:
+        return
+    tmux, pane = extract_tmux_vars(blob)
+    if tmux and pane:
+        client["outer_socket"] = tmux.split(",", 1)[0]
+        client["outer_pane"] = pane
+
+
+def query_outer_pane(socket, pane, run_query):
+    p = run_query(["tmux", "-S", socket, "display", "-p", "-t", pane,
+                   "-F", "#{session_id}\t#{window_index}\t#{session_attached}"])
+    if p.returncode != 0:
+        return None
+    parts = p.stdout.strip("\n").split("\t")
+    if len(parts) != 3:
+        return None
+    sid, win, attached = parts
+    try:
+        return {"session_id": sid, "window": win, "attached": int(attached)}
+    except ValueError:
+        return None
+
+
+def list_inner_clients(socket, session_id, run_query):
+    p = run_query(["tmux", "-S", socket, "list-clients", "-t", session_id,
+                   "-F", "#{client_pid}\t#{client_tty}"])
+    if p.returncode != 0:
+        return []
+    clients = []
+    for line in p.stdout.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        pid_s, _, tty = line.partition("\t")
+        clients.append({"pid": int(pid_s), "tty": tty,
+                         "outer_socket": None, "outer_pane": None})
+    return clients
+
+
+def choose_client(pool, outer_panes):
+    """Among candidate clients, prefer the one whose outer session has
+    the most attached clients (tie -> first listed)."""
+    best = None
+    best_attached = -1
+    for c in pool:
+        attached = 0
+        if c["outer_socket"] and c["outer_pane"]:
+            info = outer_panes.get((c["outer_socket"], c["outer_pane"]))
+            attached = info["attached"] if info else 0
+        if attached > best_attached:
+            best = c
+            best_attached = attached
+    return best
+
+
+def plan(inner_target, clients, outer_panes):
+    """Pure core: every tmux command to run, in order.
+
+    inner_target: (inner_socket, inner_session_id, window)
+    clients: ordered list of dicts as `list_inner_clients` built them,
+        each carrying "tty", and "outer_socket"/"outer_pane" (both None
+        when that client is not inside an outer tmux).
+    outer_panes: {(outer_socket, outer_pane): {"session_id", "window",
+        "attached"}} for every client that IS inside an outer tmux.
+
+    Returns tmux argv lists, outer step first (if any), inner step
+    always last. Raises JumpError(5) when there is no client at all.
+    """
+    if not clients:
+        raise JumpError(5, "no client attached to the inner session")
+
+    inner_socket, inner_session_id, window = inner_target
+    inside = [c for c in clients if c["outer_socket"] and c["outer_pane"]]
+    chosen = choose_client(inside or clients, outer_panes)
+
+    cmds = []
+    if chosen["outer_socket"] and chosen["outer_pane"]:
+        osock = chosen["outer_socket"]
+        opane = chosen["outer_pane"]
+        info = outer_panes[(osock, opane)]
+        osid, owin = info["session_id"], info["window"]
+        cmds.append(["tmux", "-S", osock, "switch-client", "-t", osid])
+        cmds.append(["tmux", "-S", osock, "select-window", "-t",
+                     "%s:%s" % (osid, owin)])
+        cmds.append(["tmux", "-S", osock, "select-pane", "-t", opane])
+
+    cmds.append(["tmux", "-S", inner_socket, "select-window", "-t",
+                 "%s:%s" % (inner_session_id, window)])
+    cmds.append(["tmux", "-S", inner_socket, "switch-client", "-c",
+                 chosen["tty"], "-t", inner_session_id])
+    return cmds
+
+
+USAGE = "usage: claude-attn-jump [--dry-run] <inner-socket> <session> <window>"
+
+
+def main(argv, run_query=None, run_exec=None, read_env=None, out=sys.stdout,
+         err=sys.stderr):
+    args = list(argv)
+    dry_run = False
+    if args and args[0] == "--dry-run":
+        dry_run = True
+        args = args[1:]
+    if len(args) != 3:
+        print(USAGE, file=err)
+        return 2
+    inner_socket, session, window = args
+    run_query = run_query_default if run_query is None else run_query
+    run_exec = run_exec_default if run_exec is None else run_exec
+    read_env = read_environ_default if read_env is None else read_env
+
+    try:
+        check_reachable(inner_socket, run_query)
+        session_id = resolve_session_id(inner_socket, session, run_query)
+        if session_id is None:
+            raise JumpError(4, "session %r not found on %s" % (session, inner_socket))
+        if not window_exists(inner_socket, session_id, window, run_query):
+            raise JumpError(4, "window %r not found in session %r"
+                             % (window, session))
+        clients = list_inner_clients(inner_socket, session_id, run_query)
+        if not clients:
+            raise JumpError(5, "no client attached to the inner session")
+
+        outer_panes = {}
+        for c in clients:
+            resolve_client_outer_info(c, read_env)
+            if c["outer_socket"] and c["outer_pane"]:
+                info = query_outer_pane(c["outer_socket"], c["outer_pane"],
+                                         run_query)
+                if info:
+                    outer_panes[(c["outer_socket"], c["outer_pane"])] = info
+                else:
+                    # The pane vanished or the outer socket can't answer:
+                    # fall back to treating this client as not-inside-outer.
+                    c["outer_socket"] = None
+                    c["outer_pane"] = None
+
+        cmds = plan((inner_socket, session_id, window), clients, outer_panes)
+    except JumpError as e:
+        print("claude-attn-jump: %s" % e.message, file=err)
+        return e.code
+
+    if dry_run:
+        for cmd in cmds:
+            print(" ".join(cmd), file=out)
+        return 0
+
+    for cmd in cmds:
+        p = run_exec(cmd)
+        if getattr(p, "returncode", 0) != 0:
+            print("claude-attn-jump: command failed: %s" % " ".join(cmd),
+                  file=err)
+            return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
