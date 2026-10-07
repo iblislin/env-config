@@ -650,12 +650,13 @@ def find_jump_executable(board_path, which_fn=None):
 
 
 def run_jump(executable, socket, session, window, run_fn=None):
-    """Run claude-attn-jump with inherited stdio (never captured -- see
-    claude-attn-jump's run_exec_default docstring: tmux's own "current
-    client" resolution for switch-client/select-window needs the
-    invoking process's real tty on its fds, which capture_output would
-    break). Returns the process return code; never raises."""
-    run_fn = run_fn or (lambda argv: subprocess.run(argv))
+    """Run claude-attn-jump with its output captured, so nothing it
+    prints lands on top of the curses screen. Capturing is safe because
+    every switch-client it issues names its client with -c, so tmux never
+    falls back to the caller's own tty. Returns the process return code;
+    never raises."""
+    run_fn = run_fn or (lambda argv: subprocess.run(
+        argv, stdin=subprocess.DEVNULL, capture_output=True))
     try:
         p = run_fn([executable, socket, session, window])
         return getattr(p, "returncode", 1)
@@ -1380,11 +1381,11 @@ def main(argv):
                             status_msg = "jump failed: claude-attn-jump not found"
                             status_expire = time.monotonic() + 4
                         else:
-                            curses.def_prog_mode()
-                            curses.endwin()
+                            # Curses stays up: endwin() here left the pane
+                            # on the shell's primary screen, which looked
+                            # frozen until a later full repaint.
                             rc = run_jump(executable, *target)
-                            stdscr.refresh()
-                            curses.reset_prog_mode()
+                            stdscr.clearok(True)
                             if rc != 0:
                                 status_msg = "jump failed (exit %d)" % rc
                                 status_expire = time.monotonic() + 4
