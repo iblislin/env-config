@@ -1419,9 +1419,8 @@ def main(argv):
 
             # Drain the whole burst of already-queued input before the
             # next redraw, so a fast j-j-j-j or a paste costs ONE redraw
-            # instead of one per key. "jump" suspends curses for a real
-            # subprocess and "quit" exits, so both end the burst instead
-            # of being silently batched with view-only toggles.
+            # instead of one per key. Only cursor moves are batched; see
+            # the break condition below.
             quit_now = False
             stdscr.nodelay(True)
             try:
@@ -1454,7 +1453,11 @@ def main(argv):
                     if apply_action(action, frame):
                         quit_now = True
                         break
-                    if action is not None and action["type"] == "jump":
+                    # Only pure cursor moves are batched. Anything that
+                    # changes the row list or the scroll offset (fold,
+                    # show-all, wheel) ends the burst, or the next queued
+                    # key/click would be resolved against this stale frame.
+                    if action is not None or ch == curses.KEY_MOUSE:
                         break
                     ch = stdscr.getch()
             finally:
