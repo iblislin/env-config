@@ -379,6 +379,8 @@ class RunJumpTests(unittest.TestCase):
 # 13. cleanup_stale
 # ---------------------------------------------------------------------
 class CleanupStaleTests(unittest.TestCase):
+    ANSWERED = {"inner"}  # make_line()'s default sockname
+
     def setUp(self):
         self.tmp = tempfile.mkdtemp(prefix="attn-board-test-")
         self.state_dir = os.path.join(self.tmp, "tmux-status")
@@ -389,20 +391,20 @@ class CleanupStaleTests(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)
 
-    def write(self, name, ts, text_extra=""):
+    def write(self, name, ts, text_extra="", sockname="inner"):
         with open(os.path.join(self.state_dir, name), "w") as f:
-            f.write(make_line(ts) if not text_extra else text_extra)
+            f.write(text_extra or make_line(ts, sockname=sockname))
 
     def test_skips_subdirectories(self):
-        board.cleanup_stale(self.state_dir, self.viewed_dir, set(), 1000, 0,
-                             40)
+        board.cleanup_stale(self.state_dir, self.viewed_dir, set(),
+                             self.ANSWERED, 1000, 0, 40)
         self.assertTrue(os.path.isdir(os.path.join(self.state_dir, "ctx")))
 
     def test_removes_entry_for_gone_window(self):
         self.write("k-alive", 100)
         self.write("k-dead", 100)
         board.cleanup_stale(self.state_dir, self.viewed_dir, {"k-alive"},
-                             1000, 0, 40)
+                             self.ANSWERED, 1000, 0, 40)
         self.assertTrue(os.path.exists(os.path.join(self.state_dir,
                                                        "k-alive")))
         self.assertFalse(os.path.exists(os.path.join(self.state_dir,
@@ -412,7 +414,7 @@ class CleanupStaleTests(unittest.TestCase):
         self.write("k-old", 100)
         self.write("k-new", 990)
         board.cleanup_stale(self.state_dir, self.viewed_dir,
-                             {"k-old", "k-new"}, 1000, 500, 40)
+                             {"k-old", "k-new"}, self.ANSWERED, 1000, 500, 40)
         self.assertFalse(os.path.exists(os.path.join(self.state_dir,
                                                         "k-old")))
         self.assertTrue(os.path.exists(os.path.join(self.state_dir,
@@ -424,7 +426,8 @@ class CleanupStaleTests(unittest.TestCase):
             name = "k-%d" % i
             self.write(name, 100 + i)
             keys.add(name)
-        board.cleanup_stale(self.state_dir, self.viewed_dir, keys, 1000, 0, 3)
+        board.cleanup_stale(self.state_dir, self.viewed_dir, keys,
+                             self.ANSWERED, 1000, 0, 3)
         remaining = sorted(os.listdir(self.state_dir))
         remaining = [r for r in remaining if not r.startswith(".") and
                      r != "ctx"]
@@ -435,11 +438,153 @@ class CleanupStaleTests(unittest.TestCase):
         open(os.path.join(self.viewed_dir, "k-alive"), "w").close()
         open(os.path.join(self.viewed_dir, "k-orphan"), "w").close()
         board.cleanup_stale(self.state_dir, self.viewed_dir, {"k-alive"},
-                             1000, 0, 40)
+                             self.ANSWERED, 1000, 0, 40)
         self.assertTrue(os.path.exists(os.path.join(self.viewed_dir,
                                                        "k-alive")))
         self.assertFalse(os.path.exists(os.path.join(self.viewed_dir,
                                                         "k-orphan")))
+
+    # ---- item 4: a failed/unreachable socket must never look like "all
+    # its windows are gone" -- only a socket that actually answered can
+    # cause cleanup_stale to evict a window as gone. ----------------------
+
+    def test_failed_query_socket_keeps_its_entries(self):
+        self.write("k-unreachable", 100, sockname="flaky")
+        # "flaky" is NOT in answered_sockets (its query failed) and is
+        # also not in window_exists_keys (nothing could be listed) --
+        # the entry must survive anyway.
+        board.cleanup_stale(self.state_dir, self.viewed_dir, set(),
+                             {"inner"}, 1000, 0, 40)
+        self.assertTrue(os.path.exists(
+            os.path.join(self.state_dir, "k-unreachable")))
+
+    def test_successful_query_without_window_removes_entry(self):
+        self.write("k-gone", 100, sockname="inner")
+        board.cleanup_stale(self.state_dir, self.viewed_dir, set(),
+                             {"inner"}, 1000, 0, 40)
+        self.assertFalse(os.path.exists(
+            os.path.join(self.state_dir, "k-gone")))
+
+    def test_dotfiles_and_viewed_survive(self):
+        """Regression: .ratelimit's first tab-field happens to look like
+        a valid unix timestamp, and before list_state_files() explicitly
+        skipped dotfiles, cleanup_stale would treat it as an ordinary
+        inbox entry for a window that (obviously) never exists, and
+        delete it on every cleanup cycle."""
+        ratelimit_path = os.path.join(self.state_dir, ".ratelimit")
+        with open(ratelimit_path, "w") as f:
+            f.write("1000\t50\t\t20\t\n")
+        attn_log_path = os.path.join(self.state_dir, ".attn.log")
+        with open(attn_log_path, "w") as f:
+            f.write("2026-01-01 00:00:00\tdone\ta:0\t[inner]\tlbl\n")
+        focus_dir = os.path.join(self.state_dir, ".focus")
+        os.makedirs(focus_dir)
+        with open(os.path.join(focus_dir, "client1"), "w") as f:
+            f.write("/dev/pts/9")
+        self.write("k-alive", 100)
+        board.cleanup_stale(self.state_dir, self.viewed_dir, {"k-alive"},
+                             self.ANSWERED, 1000, 0, 40)
+        self.assertTrue(os.path.exists(ratelimit_path))
+        self.assertTrue(os.path.exists(attn_log_path))
+        self.assertTrue(os.path.exists(os.path.join(focus_dir, "client1")))
+        self.assertTrue(os.path.isdir(self.viewed_dir))
+
+
+class ListWindowKeysAnsweredTests(unittest.TestCase):
+    def test_reports_which_sockets_answered(self):
+        def fake_run_query(argv):
+            class R:
+                pass
+            r = R()
+            if "/tmp/bad" in argv:
+                r.returncode = 1
+                r.stdout = ""
+            else:
+                r.returncode = 0
+                r.stdout = "alpha_c\t0\n"
+            return r
+
+        keys, answered = board.list_window_keys(
+            ["/tmp/good", "/tmp/bad"], fake_run_query)
+        self.assertEqual(answered, {"good"})
+        self.assertIn(board.make_key("good", "alpha_c", "0"), keys)
+
+
+# ---------------------------------------------------------------------
+# refresh_viewed() -- the ported bash refresh_viewed(): for each
+# .focus/ file (written by claude-attn-focus), find which window the
+# focused client's tty is CURRENTLY displaying, and touch .viewed/<key>
+# for it; prune .focus/ files whose tty or socket is gone.
+# ---------------------------------------------------------------------
+class RefreshViewedTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="attn-board-rv-test-")
+        self.focus_dir = os.path.join(self.tmp, ".focus")
+        self.viewed_dir = os.path.join(self.tmp, ".viewed")
+        os.makedirs(self.focus_dir)
+        os.makedirs(self.viewed_dir)
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def write_focus(self, name, tty):
+        with open(os.path.join(self.focus_dir, name), "w") as f:
+            f.write(tty)
+
+    class R:
+        def __init__(self, returncode=0, stdout=""):
+            self.returncode = returncode
+            self.stdout = stdout
+
+    def test_touches_viewed_stamp_for_focused_window(self):
+        self.write_focus("client1", "/dev/pts/9")
+
+        def fake_run_query(argv):
+            if "list-clients" in argv:
+                return self.R(0, "/dev/pts/9\n")
+            if "display-message" in argv:
+                return self.R(0, "inner__alpha_c__0\n")
+            raise AssertionError("unexpected query: %r" % (argv,))
+
+        touched = board.refresh_viewed(self.focus_dir, self.viewed_dir,
+                                        ["/tmp/tmux-1000-inner"],
+                                        fake_run_query)
+        self.assertEqual(touched, {"inner__alpha_c__0"})
+        self.assertTrue(os.path.exists(
+            os.path.join(self.viewed_dir, "inner__alpha_c__0")))
+
+    def test_dead_client_focus_file_is_removed(self):
+        self.write_focus("client-dead", "/dev/pts/99")  # no such client
+
+        def fake_run_query(argv):
+            if "list-clients" in argv:
+                return self.R(0, "/dev/pts/1\n")  # /dev/pts/99 absent
+            raise AssertionError("should not query display-message")
+
+        board.refresh_viewed(self.focus_dir, self.viewed_dir,
+                              ["/tmp/tmux-1000-inner"], fake_run_query)
+        self.assertFalse(os.path.exists(
+            os.path.join(self.focus_dir, "client-dead")))
+
+    def test_entry_viewed_after_its_ts_classifies_as_read(self):
+        # End-to-end-ish: refresh_viewed() stamps .viewed/<key>, then
+        # classify_entry() must see that window as "read".
+        self.write_focus("client1", "/dev/pts/9")
+
+        def fake_run_query(argv):
+            if "list-clients" in argv:
+                return self.R(0, "/dev/pts/9\n")
+            if "display-message" in argv:
+                return self.R(0, "inner__alpha_c__0\n")
+            raise AssertionError("unexpected query: %r" % (argv,))
+
+        board.refresh_viewed(self.focus_dir, self.viewed_dir,
+                              ["/tmp/tmux-1000-inner"], fake_run_query)
+        viewed_ts = board.read_viewed_ts(self.viewed_dir, "inner__alpha_c__0")
+        e = board.Entry("inner__alpha_c__0", viewed_ts - 10, "waiting",
+                         "alpha_c:0", "w", "inner", "/a", "", "")
+        cls = board.classify_entry(e, viewed_ts + 5, viewed_ts, 300)
+        self.assertEqual(cls["kind"], "read")
 
 
 # ---------------------------------------------------------------------
@@ -489,6 +634,114 @@ class ScrollTests(unittest.TestCase):
         scroll = board.follow_cursor(0, 0, avail, total)
         view, scroll = board.windowed_rows(rows, scroll, avail)
         self.assertEqual(view[-1]["kind"], "marker")
+
+
+def mk_folded_groups(n):
+    """n groups, each fully folded (no unread/running), zero entries --
+    build_rows() then emits exactly n rows (one header each), which is
+    all these layout-budget tests need."""
+    return [{"cpath": "/proj/%d" % i, "newest": 1000 - i, "entries": [],
+             "unread": 0, "read": 0, "run": 0} for i in range(n)]
+
+
+# ---------------------------------------------------------------------
+# build_frame layout budget: claude_avail must be the Claude section's
+# OWN height (never inflated by the Bell section's lines -- item 2), and
+# a tight terminal must truncate the Bell section with a "+N more"
+# marker rather than overflow the screen (item 3).
+# ---------------------------------------------------------------------
+class BuildFrameLayoutTests(unittest.TestCase):
+    def test_claude_avail_excludes_bell_section(self):
+        groups = mk_folded_groups(20)
+        bell_rows = [("inner", "a", str(i), "w") for i in range(5)]
+        frame = board.build_frame(groups, 1000, False, {}, None, 0, 0,
+                                   100, 30, 3, None, bell_rows, None)
+        # Claude section got windowed to claude_avail rows; the frame's
+        # lines also include the Bell section after it, so claude_avail
+        # must be smaller than "everything after claude_start".
+        self.assertIn("claude_avail", frame)
+        lines_after_claude_start = len(frame["lines"]) - frame["claude_start"]
+        self.assertLess(frame["claude_avail"], lines_after_claude_start)
+        # and it must exactly equal the number of Claude-section lines
+        # actually rendered (lines_after_claude_start minus the Bell
+        # section's own lines: heading + 5 rows).
+        self.assertEqual(frame["claude_avail"],
+                          lines_after_claude_start - (len(bell_rows) + 1))
+
+    def test_tight_height_truncates_bell_section_with_marker(self):
+        # head_h=3 (title/rule/heading, no usage/status), bell_total=7
+        # (heading + 6 rows), 20 Claude rows: H=14 forces
+        # avail = H-1-head_h-bell_total = 14-1-3-7 = 3 < 4, which must
+        # trigger the same bell-truncation the bash original did,
+        # keeping the WHOLE frame within the terminal height.
+        groups = mk_folded_groups(20)
+        bell_rows = [("inner", "a", str(i), "w") for i in range(6)]
+        height = 14
+        frame = board.build_frame(groups, 1000, False, {}, None, 0, 0,
+                                   100, height, 3, None, bell_rows, None)
+        self.assertLessEqual(len(frame["lines"]), height)
+        joined = [board.plain_text(segs) for segs in frame["lines"]]
+        self.assertTrue(any("more" in t for t in joined),
+                         "expected a '+N more' truncation marker in the "
+                         "Bell section: %r" % joined)
+
+
+# ---------------------------------------------------------------------
+# apply_wheel(): the pure core of a mouse-wheel event. Must use the
+# Claude section's OWN avail (claude_avail), not a figure that also
+# counts the Bell section -- otherwise the wheel is silently capped
+# short of the real last row (item 2).
+# ---------------------------------------------------------------------
+class ApplyWheelTests(unittest.TestCase):
+    def test_wheel_reaches_the_true_last_row_with_bells_present(self):
+        groups = mk_folded_groups(20)
+        bell_rows = [("inner", "a", str(i), "w") for i in range(5)]
+        # height chosen so the Claude section does NOT already fit
+        # everything (otherwise there is nothing to scroll to).
+        frame = board.build_frame(groups, 1000, False, {}, None, 0, 0,
+                                   100, 20, 3, None, bell_rows, None)
+        self.assertLess(frame["claude_avail"], len(frame["rows"]))
+        total = len(frame["rows"])
+        avail = frame["claude_avail"]
+        scroll = frame["scroll"]
+        # scroll all the way down with repeated wheel notches
+        for _ in range(20):
+            scroll, cursor, idx = board.apply_wheel(
+                dict(frame, scroll=scroll), 3)
+        self.assertEqual(scroll, max(0, total - avail))
+
+    def test_one_wheel_up_notch_moves_scroll_by_exactly_3(self):
+        groups = mk_folded_groups(20)
+        # height=15 (not 30): with 20 rows this must actually need
+        # scrolling (avail < total), otherwise there is nothing to test.
+        frame = board.build_frame(groups, 1000, False, {}, None, 0, 0,
+                                   100, 15, 3, None, [], None)
+        self.assertLess(frame["claude_avail"], len(frame["rows"]))
+        # start scrolled down a bit
+        scrolled = dict(frame, scroll=6)
+        new_scroll, _cursor, _idx = board.apply_wheel(scrolled, -3)
+        self.assertEqual(new_scroll, 3)
+
+
+# ---------------------------------------------------------------------
+# interval formatting + a minimum clamp so `claude-attn-board 0` cannot
+# busy-loop (item 9).
+# ---------------------------------------------------------------------
+class IntervalTests(unittest.TestCase):
+    def test_whole_number_formats_without_decimal(self):
+        self.assertEqual(board.fmt_interval(3.0), "3")
+        self.assertEqual(board.fmt_interval(3), "3")
+
+    def test_fractional_keeps_one_decimal(self):
+        self.assertEqual(board.fmt_interval(1.5), "1.5")
+
+    def test_clamp_enforces_minimum(self):
+        self.assertEqual(board.clamp_interval(0), 0.5)
+        self.assertEqual(board.clamp_interval("0"), 0.5)
+        self.assertEqual(board.clamp_interval(5), 5)
+
+    def test_clamp_falls_back_on_garbage(self):
+        self.assertEqual(board.clamp_interval("nonsense"), 3.0)
 
 
 # ---------------------------------------------------------------------

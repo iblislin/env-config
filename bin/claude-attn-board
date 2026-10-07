@@ -197,14 +197,13 @@ def fmt_countdown(target, now):
     return "%dm" % m
 
 
-_WIDE_EMOJI = ("✅", "⏳", "\U0001f514")  # ✅ ⏳ 🔔
-
-
 def char_width(ch):
-    """Display columns for one character: 2 for CJK/fullwidth (and the
-    emoji icons this board uses), 1 otherwise."""
-    if ch in _WIDE_EMOJI:
-        return 2
+    """Display columns for one character: 2 for CJK/fullwidth, 1
+    otherwise. The board's emoji icons (✅⏳🔔) already report 'W' from
+    unicodedata.east_asian_width in this Python's Unicode Character
+    Database (verified directly), so no separate emoji special-case is
+    needed -- one fewer thing that can silently drift out of sync with a
+    future UCD revision."""
     eaw = unicodedata.east_asian_width(ch)
     return 2 if eaw in ("W", "F") else 1
 
@@ -348,13 +347,26 @@ def row_id(row):
     return ("entry", row["key"])
 
 
-def locate_cursor(rows, last):
+def cursor_id_for_row(row):
+    """The cursor identity to persist for `row` across a refresh: what
+    `locate_cursor()` expects as `last` next time. A header's identity is
+    just its cpath; an entry's also carries its group's cpath, so a
+    vanished entry can still fall back to that group's header."""
+    if row["kind"] == "header":
+        return row_id(row)
+    return row_id(row) + (row["cpath"],)
+
+
+def locate_cursor(rows, last, prev_idx=0):
     """Find the row index the cursor belongs on after a refresh.
 
     `last` is the previous cursor's identity: None, ("header", cpath) or
     ("entry", key, cpath) (the cpath is kept so an entry that has since
-    vanished can still fall back to ITS group's header). Falls back to
-    clamping into range when nothing matches."""
+    vanished can still fall back to ITS group's header). When nothing
+    matches at all (the entry AND its group are both gone, or the cursor
+    was never set), falls back to `prev_idx` clamped into the new valid
+    range -- NOT 0, so a row vanishing from the middle of a long list
+    does not fling the cursor back to the top."""
     if not rows:
         return 0
     if last is not None:
@@ -372,7 +384,7 @@ def locate_cursor(rows, last):
                 for i, r in enumerate(rows):
                     if row_id(r) == ("header", cpath):
                         return i
-    return max(0, min(len(rows) - 1, 0))
+    return max(0, min(prev_idx, len(rows) - 1))
 
 
 def follow_cursor(idx, scroll, avail, total):
@@ -410,11 +422,21 @@ def clamp_cursor_to_view(idx, scroll, avail, total):
     return idx
 
 
-def windowed_rows(rows, scroll, avail):
+def _default_marker(text):
+    return {"kind": "marker", "text": text}
+
+
+def windowed_rows(rows, scroll, avail, make_marker=None):
     """Slice `rows` to the visible window, replacing the first/last slot
-    with a "+N more" marker row when there is more above/below (same
+    with a "+N more" marker item when there is more above/below (same
     trade-off as the bash original: that slot's own row is not shown
-    alongside the marker)."""
+    alongside the marker). `make_marker(text)` builds the replacement
+    item; the default produces a {"kind": "marker", "text": ...} row dict
+    for the row-cursor tests, but build_frame passes one that builds a
+    (segs, action) pair instead, so the SAME windowing logic serves both
+    the pure row model and the rendered-line layout (single
+    implementation, per the house review)."""
+    make_marker = make_marker or _default_marker
     total = len(rows)
     if total <= avail or avail <= 0:
         return list(rows), 0
@@ -422,9 +444,9 @@ def windowed_rows(rows, scroll, avail):
     hidden_below = total - scroll - avail
     view = list(rows[scroll:scroll + avail])
     if hidden_above > 0 and view:
-        view[0] = {"kind": "marker", "text": "↑ %d more" % hidden_above}
+        view[0] = make_marker("↑ %d more" % hidden_above)
     if hidden_below > 0 and view:
-        view[-1] = {"kind": "marker", "text": "↓ %d more" % hidden_below}
+        view[-1] = make_marker("↓ %d more" % hidden_below)
     return view, scroll
 
 
@@ -677,30 +699,38 @@ def read_viewed_ts(viewed_dir, key):
         return 0
 
 
-def cleanup_stale(state_dir, viewed_dir, window_exists_keys, now, max_age,
-                   cap):
-    """Inbox upkeep, 3 passes (mirrors the bash original):
-      1. drop entries for windows that no longer exist, or past MAX_AGE,
-         or with an unparsable ts
+def cleanup_stale(state_dir, viewed_dir, window_exists_keys,
+                   answered_sockets, now, max_age, cap):
+    """Inbox upkeep, 3 passes (mirrors the bash original, plus the
+    answered_sockets guard the bash original lacked):
+      1. drop entries for windows that no longer exist (ONLY when their
+         socket actually answered the query -- see list_window_keys), or
+         past MAX_AGE, or with an unparsable ts
       2. evict the oldest entries beyond the history cap
       3. prune orphan .viewed/ stamps (no matching inbox entry left)
+
+    `answered_sockets` is the set of socknames whose list-windows query
+    succeeded this refresh (from list_window_keys). An entry whose
+    sockname is NOT in it is kept regardless of `window_exists_keys` --
+    a socket that failed to answer must never look like "all its windows
+    are gone", or a single flaky tmux server would mass-delete entries
+    that are still perfectly live.
     """
     cap = max(cap, 1)
     survivors = []
     for name, raw in list_state_files(state_dir):
-        ts_s = raw.split("\n", 1)[0].split("\t", 1)[0]
         path = os.path.join(state_dir, name)
-        if not _TS_RE.fullmatch(ts_s):
+        entry = parse_state_entry(name, raw)
+        if entry is None:
             _try_remove(path)
             continue
-        ts = int(ts_s)
-        if max_age > 0 and (now - ts) >= max_age:
+        if max_age > 0 and (now - entry.ts) >= max_age:
             _try_remove(path)
             continue
-        if name not in window_exists_keys:
+        if entry.sockname in answered_sockets and name not in window_exists_keys:
             _try_remove(path)
             continue
-        survivors.append((ts, name, path))
+        survivors.append((entry.ts, name, path))
     survivors.sort(key=lambda t: -t[0])
     for ts, name, path in survivors[cap:]:
         _try_remove(path)
@@ -755,22 +785,110 @@ def list_bell_windows(sockets, run_query):
 
 
 def list_window_keys(sockets, run_query):
-    """The set of keys for every window that currently exists, across
-    `sockets` -- used by cleanup_stale to evict dead-window entries."""
+    """(keys, answered_sockets): `keys` is the set of keys for every
+    window that currently exists, across `sockets`; `answered_sockets`
+    is the set of socknames whose query actually SUCCEEDED. The split
+    matters: a socket whose query failed (tmux server not responding, a
+    transient hiccup) must never be treated as "every window on it is
+    gone" -- that is cleanup_stale's job, and it needs this distinction
+    to avoid mass-deleting entries just because one tmux server had a
+    bad moment."""
     keys = set()
+    answered = set()
     for s in sockets:
         sockname = os.path.basename(s)
         p = run_query(["tmux", "-S", s, "list-windows", "-a", "-F",
                         "#{session_name}\t#{window_index}"])
         if getattr(p, "returncode", 1) != 0:
             continue
+        answered.add(sockname)
         for line in p.stdout.splitlines():
             parts = line.split("\t")
             if len(parts) != 2:
                 continue
             sess, win = parts
             keys.add(make_key(sockname, sess, win))
-    return keys
+    return keys, answered
+
+
+def list_client_ttys(sockets, run_query):
+    """{client_tty: socket_path} for every attached client across
+    `sockets` -- the tty-to-socket map refresh_viewed() needs to resolve
+    a .focus/ file's tty back to the server it belongs to."""
+    tty_sock = {}
+    for s in sockets:
+        p = run_query(["tmux", "-S", s, "list-clients", "-F",
+                        "#{client_tty}"])
+        if getattr(p, "returncode", 1) != 0:
+            continue
+        for line in p.stdout.splitlines():
+            tty = line.strip()
+            if tty:
+                tty_sock[tty] = s
+    return tty_sock
+
+
+def read_focus_files(focus_dir):
+    """[(filename, tty_content), ...] for each file directly under
+    focus_dir (written by claude-attn-focus; the content is a tty
+    path)."""
+    try:
+        names = os.listdir(focus_dir)
+    except OSError:
+        return []
+    out = []
+    for name in sorted(names):
+        path = os.path.join(focus_dir, name)
+        try:
+            with open(path) as f:
+                tty = f.read().strip()
+        except OSError:
+            continue
+        out.append((name, tty))
+    return out
+
+
+def _touch(path):
+    try:
+        with open(path, "a"):
+            pass
+        os.utime(path, None)
+    except OSError:
+        pass
+
+
+def refresh_viewed(focus_dir, viewed_dir, sockets, run_query):
+    """Port of the bash original's refresh_viewed(): the window you are
+    ACTUALLY looking at is the current window of every tmux client that
+    has WM focus right now (tracked via claude-attn-focus's .focus/
+    files, since the pollable client_flags 'focused' token gets stuck).
+    For each .focus/ file: read the tty it names; if that tty (or its
+    socket) no longer exists, the focused client is gone -- prune the
+    stale .focus file. Otherwise, ask that client's tty what window it
+    is CURRENTLY displaying, and touch .viewed/<key> for it, which is
+    what later marks that window's Claude entry "read".
+
+    Returns the set of keys touched (mostly useful to tests)."""
+    tty_sock = list_client_ttys(sockets, run_query)
+    touched = set()
+    for name, tty in read_focus_files(focus_dir):
+        path = os.path.join(focus_dir, name)
+        sock = tty_sock.get(tty)
+        if not tty or not sock:
+            _try_remove(path)  # focused client gone -> prune
+            continue
+        sockname = os.path.basename(sock)
+        p = run_query(["tmux", "-S", sock, "display-message", "-p", "-c",
+                        tty, "-F",
+                        "%s__#{session_name}__#{window_index}" % sockname])
+        if getattr(p, "returncode", 1) != 0:
+            continue
+        key = p.stdout.strip()
+        if key:
+            touched.add(key)
+    for key in touched:
+        _touch(os.path.join(viewed_dir, key))
+    return touched
 
 
 # ---- usage gauge (mirrors the /statusline build_mini style) -------------
@@ -882,27 +1000,65 @@ def state_dir():
     return os.path.join(os.path.expanduser("~"), *STATE_SUBDIR.split(os.sep))
 
 
-def build_frame(state_dir_path, viewed_dir, now, age_alert, show_all,
-                 fold_ovr, cursor, scroll, width, height, interval,
-                 usage_cache, bell_rows, status_msg, read_query=None):
-    """Assemble one full frame. Returns a dict with everything the shell
-    needs: `lines` (list of seg-lists), `row_actions` (aligned to the
-    Claude-section slice of `lines`, None elsewhere), `claude_start` (the
-    line index the Claude section's rows begin at, for mapping a click y
-    into row_actions), new `cursor` id, new `scroll`, and `groups` (for
-    the next quick refresh)."""
-    entries = []
-    for key, raw in list_state_files(state_dir_path):
-        e = parse_state_entry(key, raw)
-        if e is not None:
-            entries.append(e)
-    viewed_ts_map = {e.key: read_viewed_ts(viewed_dir, e.key) for e in entries}
-    groups = build_groups(entries, now, viewed_ts_map, age_alert)
+def fmt_interval(value):
+    """Display text for a refresh interval: "3" for a whole number,
+    "1.5" when it has a fraction -- never bash-float noise like "3.0"."""
+    v = float(value)
+    if v == int(v):
+        return "%d" % int(v)
+    return ("%g" % v)
 
+
+def clamp_interval(value, minimum=0.5, default=3.0):
+    """Parse `value` as a refresh interval, clamped to at least
+    `minimum` seconds so `claude-attn-board 0` (or a negative/garbage
+    argument) cannot busy-loop. Unparsable input falls back to
+    `default`, matching the bash original's `${1:-3}` behavior for a
+    missing argument."""
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        v = default
+    return max(minimum, v)
+
+
+def build_bell_section(bell_rows, width):
+    """The Bell section's full, UNTRUNCATED set of rendered lines
+    (heading first), used both to decide the layout budget and, when it
+    doesn't fit, to be truncated by build_frame."""
+    lines = [[(" Bell (other windows)", "magenta_bold")]]
+    if not bell_rows:
+        lines.append([("   ", None), ("(none)", "dim")])
+    else:
+        for sockname, sess, win, wname in bell_rows:
+            text = clip("%s:%s %s  [%s]" % (sess, win, wname, sockname),
+                         max(1, width - 6))
+            lines.append([("   ", None), ("\U0001f514", "red_bold"),
+                           ("  ", None), (text, None)])
+    return lines
+
+
+def build_frame(groups, now, show_all, fold_ovr, cursor, prev_idx, scroll,
+                 width, height, interval, usage_cache, bell_rows,
+                 status_msg):
+    """Assemble one full frame from already-gathered data (see
+    gather_refresh() for the I/O that produces `groups`/`bell_rows`/
+    `usage_cache`) -- this function itself does no I/O, so a key or
+    mouse event between full refreshes can call it directly against the
+    cached data instead of re-reading state files.
+
+    Returns a dict: `lines` (list of seg-lists), `row_actions` (aligned
+    1:1 with `lines`; None outside the Claude section's clickable rows),
+    `claude_start` (the line index the Claude section begins at),
+    `claude_avail` (how many of those lines are the Claude section's OWN
+    rows -- NOT counting the Bell section that follows; wheel scrolling
+    must use this, never "everything after claude_start"), new `cursor`
+    id, new `scroll`, `groups`, `rows` (the full, unwindowed row list)
+    and `idx` (the cursor's index into `rows`)."""
     namecap, metacap = row_geometry(width)
     hdrcap = header_geometry(width)
     rows = build_rows(groups, show_all, fold_ovr)
-    idx = locate_cursor(rows, cursor)
+    idx = locate_cursor(rows, cursor, prev_idx)
     if rows:
         idx = max(0, min(idx, len(rows) - 1))
 
@@ -910,10 +1066,11 @@ def build_frame(state_dir_path, viewed_dir, now, age_alert, show_all,
     row_actions_head = []
 
     ts = time.strftime("%H:%M:%S")
-    hint = "(every %ss · j/k move · Enter jump/fold · click · a all · q quit)" % interval
+    hint = ("(every %ss · j/k move · Enter jump/fold · "
+            "click · a all · q quit)") % fmt_interval(interval)
     title_text = " tmux attention board "
     if disp_width(title_text) + disp_width(ts) + 2 + disp_width(hint) > width:
-        hint = "(every %ss)" % interval
+        hint = "(every %ss)" % fmt_interval(interval)
     lines.append([(title_text, "bold"), (ts, None), ("  ", None),
                    (hint, "dim")])
     row_actions_head.append(None)
@@ -934,68 +1091,73 @@ def build_frame(state_dir_path, viewed_dir, now, age_alert, show_all,
     row_actions_head.append(None)
 
     claude_start = len(lines)
+    head_h = claude_start
+    bell_full = build_bell_section(bell_rows, width)
+
     if not rows:
-        lines.append([("   ", None), ("(inbox empty)", "dim")])
-        row_actions_head.append(None)
+        claude_lines = [[("   ", None), ("(inbox empty)", "dim")]]
+        claude_actions = [None]
         new_scroll = 0
+        avail = 1
     else:
-        head_h = claude_start
-        bell_lines_preview = max(1, len(bell_rows)) + 1
-        avail = height - 1 - head_h - bell_lines_preview
+        avail = height - 1 - head_h - len(bell_full)
         if avail < 4:
             avail = min(4, len(rows))
+            bl_avail = height - 1 - head_h - avail
+            if bl_avail < len(bell_full):
+                bl_avail = max(bl_avail, 2)
+                hidden = len(bell_full) - (bl_avail - 1)
+                bell_full = bell_full[:bl_avail - 1] + [
+                    [("   ", None), ("… +%d more (enlarge window)"
+                                      % hidden, "dim")]]
+        avail = max(avail, 1)
+        row_segs, row_actions = render_rows(rows, idx, namecap, metacap,
+                                              hdrcap, now)
+        pairs = list(zip(row_segs, row_actions))
         new_scroll = follow_cursor(idx, scroll, avail, len(rows))
-        view, new_scroll = windowed_rows(rows, new_scroll, avail)
-        for r in view:
-            if r["kind"] == "marker":
-                lines.append(render_marker_segs(r["text"]))
-                row_actions_head.append(None)
-            else:
-                here = (r["kind"] == "header" and
-                        rows[idx]["kind"] == "header" and
-                        rows[idx]["cpath"] == r["cpath"]) or \
-                       (r["kind"] == "entry" and rows[idx]["kind"] == "entry"
-                        and rows[idx]["key"] == r["key"])
-                if r["kind"] == "header":
-                    lines.append(render_header_segs(r["group"], here,
-                                                      r["folded"], hdrcap,
-                                                      now))
-                    row_actions_head.append(("header", r["cpath"], None))
-                else:
-                    lines.append(render_entry_segs(r["entry"], r["cls"],
-                                                      here, namecap, metacap,
-                                                      ))
-                    row_actions_head.append(("entry", r["cpath"], r["key"]))
+        view, new_scroll = windowed_rows(
+            pairs, new_scroll, avail,
+            make_marker=lambda t: (render_marker_segs(t), None))
+        claude_lines = [p[0] for p in view]
+        claude_actions = [p[1] for p in view]
 
-    lines.append([(" Bell (other windows)", "magenta_bold")])
-    row_actions_head.append(None)
-    if not bell_rows:
-        lines.append([("   ", None), ("(none)", "dim")])
-        row_actions_head.append(None)
-    else:
-        for sockname, sess, win, wname in bell_rows:
-            text = clip("%s:%s %s  [%s]" % (sess, win, wname, sockname),
-                         max(1, width - 6))
-            lines.append([("   ", None), ("\U0001f514", "red_bold"),
-                           ("  ", None), (text, None)])
-            row_actions_head.append(None)
+    lines.extend(claude_lines)
+    row_actions_head.extend(claude_actions)
+    claude_avail = len(claude_lines)
 
-    new_cursor = None
-    if rows:
-        r = rows[idx]
-        new_cursor = row_id(r) + ((r["cpath"],) if r["kind"] == "entry"
-                                   else ())
+    lines.extend(bell_full)
+    row_actions_head.extend([None] * len(bell_full))
+
+    new_cursor = cursor_id_for_row(rows[idx]) if rows else None
 
     return {
         "lines": lines,
         "row_actions": row_actions_head,
         "claude_start": claude_start,
+        "claude_avail": claude_avail,
         "cursor": new_cursor,
         "scroll": new_scroll,
         "groups": groups,
         "rows": rows,
         "idx": idx,
     }
+
+
+def apply_wheel(frame, delta):
+    """Pure core of a mouse-wheel event: move the Claude section's
+    scroll offset by `delta` rows (independent of the cursor), then
+    nudge the cursor the minimum distance needed to stay inside the new
+    (marker-aware) view. Uses `frame["claude_avail"]` -- the Claude
+    section's OWN height -- never a figure that also counts the Bell
+    section below it, which would silently cap how far the wheel can
+    scroll short of the real last row."""
+    rows = frame["rows"]
+    total = len(rows)
+    avail = frame["claude_avail"]
+    new_scroll = scroll_wheel(frame["scroll"], delta, total, avail)
+    new_idx = clamp_cursor_to_view(frame["idx"], new_scroll, avail, total)
+    new_cursor = cursor_id_for_row(rows[new_idx]) if rows else None
+    return new_scroll, new_cursor, new_idx
 
 
 # ---- curses color pairs --------------------------------------------------
@@ -1071,32 +1233,64 @@ def draw_frame(win, frame, attrs):
 
 # ---- main loop ------------------------------------------------------------
 
+def read_entries(state_dir_path):
+    entries = []
+    for key, raw in list_state_files(state_dir_path):
+        e = parse_state_entry(key, raw)
+        if e is not None:
+            entries.append(e)
+    return entries
+
+
+def read_viewed_ts_map(viewed_dir, entries):
+    return {e.key: read_viewed_ts(viewed_dir, e.key) for e in entries}
+
+
+def gather_refresh(sdir, focus_dir, viewed_dir, age_alert, now, run_query,
+                    max_age=0, keep_cap=None, evict=False):
+    """All the I/O one full refresh needs, gathered ONCE: tmux queries,
+    cleanup_stale eviction (only when `evict` -- ATTN_ONCE never evicts),
+    refresh_viewed() (always -- even ATTN_ONCE's one-shot render touches
+    .viewed/, matching the bash original, which called refresh_viewed()
+    on that path too), then building groups/bells/usage from the
+    (post-cleanup) state files. Everything build_frame() needs after
+    this is pure data -- no further I/O until the next full refresh."""
+    sockets = list_sockets()
+    if evict:
+        win_keys, answered = list_window_keys(sockets, run_query)
+        cleanup_stale(sdir, viewed_dir, win_keys, answered, now, max_age,
+                      keep_cap if keep_cap is not None else 10 ** 9)
+    refresh_viewed(focus_dir, viewed_dir, sockets, run_query)
+    entries = read_entries(sdir)
+    viewed_ts_map = read_viewed_ts_map(viewed_dir, entries)
+    groups = build_groups(entries, now, viewed_ts_map, age_alert)
+    existing_keys = {e.key for e in entries}
+    bell_rows = dedupe_bells(list_bell_windows(sockets, run_query),
+                              existing_keys)
+    usage_cache = read_ratelimit_cache(os.path.join(sdir, ".ratelimit"))
+    return groups, bell_rows, usage_cache
+
+
 def run_once_plain(out=sys.stdout):
     """ATTN_ONCE=1: render a single frame as plain (ANSI, no curses)
-    text and exit. Deliberately does NOT call cleanup_stale -- a small
-    test terminal must not delete live entries."""
+    text and exit. Deliberately does NOT evict (evict=False) -- a small
+    test terminal must not delete live entries -- but DOES call
+    refresh_viewed() via gather_refresh(), same as the bash original."""
     now = int(time.time())
     sdir = state_dir()
+    focus_dir = os.path.join(sdir, ".focus")
     viewed_dir = os.path.join(sdir, ".viewed")
     age_alert = int(os.environ.get("ATTN_AGE_ALERT", "300"))
-    interval = sys.argv[1] if len(sys.argv) > 1 else "3"
+    interval = clamp_interval(sys.argv[1] if len(sys.argv) > 1 else 3.0)
     width = int(os.environ.get("COLUMNS") or shutil.get_terminal_size().columns)
     height = int(os.environ.get("LINES") or shutil.get_terminal_size().lines)
 
-    sockets = list_sockets()
-    bell_rows = []
-    if sockets:
-        existing_keys = {k for k, _ in list_state_files(sdir)}
-        bell_rows = dedupe_bells(
-            list_bell_windows(sockets, lambda a: subprocess.run(
-                a, capture_output=True, text=True)),
-            existing_keys)
+    groups, bell_rows, usage_cache = gather_refresh(
+        sdir, focus_dir, viewed_dir, age_alert, now, run_query_default,
+        evict=False)
 
-    usage_cache = read_ratelimit_cache(os.path.join(sdir, ".ratelimit"))
-
-    frame = build_frame(sdir, viewed_dir, now, age_alert, False, {}, None, 0,
-                         width, height, interval, usage_cache, bell_rows,
-                         None)
+    frame = build_frame(groups, now, False, {}, None, 0, 0, width, height,
+                         interval, usage_cache, bell_rows, None)
     for segs in frame["lines"]:
         print(render_ansi(segs), file=out)
     return 0
@@ -1106,26 +1300,30 @@ def main(argv):
     if os.environ.get("ATTN_ONCE") == "1":
         return run_once_plain()
 
-    interval = float(argv[1]) if len(argv) > 1 else 3.0
+    interval = clamp_interval(argv[1] if len(argv) > 1 else 3.0)
     max_age = int(os.environ.get("ATTN_MAX_AGE", "0"))
     age_alert = int(os.environ.get("ATTN_AGE_ALERT", "300"))
     keep_env = int(os.environ.get("ATTN_KEEP", "0"))
     os.environ.get("ATTN_GRACE", "5")  # accepted, unused (see module docstring)
 
     sdir = state_dir()
+    focus_dir = os.path.join(sdir, ".focus")
     viewed_dir = os.path.join(sdir, ".viewed")
     os.makedirs(sdir, exist_ok=True)
+    os.makedirs(focus_dir, exist_ok=True)
     os.makedirs(viewed_dir, exist_ok=True)
 
     show_all = False
     fold_ovr = {}
     cursor = None
+    idx = 0
     scroll = 0
     status_msg = None
     status_expire = 0.0
 
     def stdscr_main(stdscr):
-        nonlocal show_all, fold_ovr, cursor, scroll, status_msg, status_expire
+        nonlocal show_all, fold_ovr, cursor, idx, scroll, status_msg, \
+            status_expire
         curses.curs_set(0)
         stdscr.nodelay(False)
         try:
@@ -1135,75 +1333,30 @@ def main(argv):
         except curses.error:
             pass
         attrs = init_colors()
+        groups = []
         bell_rows = []
         usage_cache = None
         last_full = 0.0
 
-        while True:
-            now = int(time.time())
-            if status_msg and time.monotonic() >= status_expire:
-                status_msg = None
-            # Full refresh (tmux queries + eviction) once per `interval`;
-            # a keypress between ticks only re-lays out the already-read
-            # state-file data in build_frame, which stays cheap because
-            # it never touches tmux.
-            if time.monotonic() - last_full >= interval:
-                sockets = list_sockets()
-                win_keys = list_window_keys(sockets, run_query_default)
-                keep_cap = keep_env if keep_env > 0 else stdscr.getmaxyx()[0] * 4
-                cleanup_stale(sdir, viewed_dir, win_keys, now, max_age,
-                               keep_cap)
-                existing_keys = {k for k, _ in list_state_files(sdir)}
-                bell_rows = dedupe_bells(
-                    list_bell_windows(sockets, run_query_default),
-                    existing_keys)
-                usage_cache = read_ratelimit_cache(
-                    os.path.join(sdir, ".ratelimit"))
-                last_full = time.monotonic()
+        def do_full_refresh(now):
+            nonlocal groups, bell_rows, usage_cache, last_full
+            keep_cap = keep_env if keep_env > 0 else stdscr.getmaxyx()[0] * 4
+            groups, bell_rows, usage_cache = gather_refresh(
+                sdir, focus_dir, viewed_dir, age_alert, now,
+                run_query_default, max_age=max_age, keep_cap=keep_cap,
+                evict=True)
+            last_full = time.monotonic()
 
-            height, width = stdscr.getmaxyx()
-            frame = build_frame(sdir, viewed_dir, now, age_alert, show_all,
-                                 fold_ovr, cursor, scroll, width, height,
-                                 interval, usage_cache, bell_rows,
-                                 status_msg)
-            cursor = frame["cursor"]
-            scroll = frame["scroll"]
-            draw_frame(stdscr, frame, attrs)
-
-            stdscr.timeout(int(interval * 1000))
-            ch = stdscr.getch()
-            if ch == -1:
-                last_full = 0.0  # force a full refresh next loop
-                continue
-            action = None
-            if ch == curses.KEY_MOUSE:
-                try:
-                    _id, mx, my, _mz, bstate = curses.getmouse()
-                except curses.error:
-                    bstate = 0
-                    my = -1
-                if bstate & (curses.BUTTON1_CLICKED | curses.BUTTON1_PRESSED):
-                    rel = my - frame["claude_start"]
-                    ra = frame["row_actions"][frame["claude_start"]:]
-                    action = handle_click(rel, ra)
-                elif bstate & curses.BUTTON4_PRESSED:
-                    scroll, cursor, rows_idx = _wheel(frame, -3)
-                elif bstate & getattr(curses, "BUTTON5_PRESSED", 0):
-                    scroll, cursor, rows_idx = _wheel(frame, 3)
-            else:
-                key = _decode_key(ch, stdscr)
-                rows = frame["rows"]
-                idx = frame["idx"]
-                new_idx, action = handle_key(key, rows, idx)
-                if rows:
-                    r = rows[new_idx]
-                    cursor = row_id(r) + ((r["cpath"],) if r["kind"] == "entry"
-                                           else ())
-
+        def apply_action(action, frame):
+            """Apply one action in place. Returns True when the caller
+            should quit. `show_all`/`status_msg`/`status_expire` are the
+            outer nonlocals; fold_ovr is mutated directly (it's a dict,
+            no nonlocal needed)."""
+            nonlocal show_all, status_msg, status_expire
             if action is None:
-                continue
+                return False
             if action["type"] == "quit":
-                return
+                return True
             if action["type"] == "show_all":
                 show_all = not show_all
                 fold_ovr.clear()
@@ -1235,19 +1388,79 @@ def main(argv):
                             if rc != 0:
                                 status_msg = "jump failed (exit %d)" % rc
                                 status_expire = time.monotonic() + 4
+            return False
 
-    def _wheel(frame, delta):
-        total = len(frame["rows"])
-        avail = max(1, len(frame["lines"]) - frame["claude_start"])
-        new_scroll = scroll_wheel(frame["scroll"], delta, total, avail)
-        new_idx = clamp_cursor_to_view(frame["idx"], new_scroll, avail, total)
-        rows = frame["rows"]
-        new_cursor = None
-        if rows:
-            r = rows[new_idx]
-            new_cursor = row_id(r) + ((r["cpath"],) if r["kind"] == "entry"
-                                       else ())
-        return new_scroll, new_cursor, new_idx
+        while True:
+            now = int(time.time())
+            if status_msg and time.monotonic() >= status_expire:
+                status_msg = None
+            # Full refresh (tmux queries + refresh_viewed + eviction)
+            # once per `interval`; a keypress between ticks only re-lays
+            # out the already-gathered groups/bells/usage in build_frame,
+            # which does NO I/O at all -- it never re-reads a state file
+            # or stats .viewed/ on a keypress.
+            if time.monotonic() - last_full >= interval:
+                do_full_refresh(now)
+
+            height, width = stdscr.getmaxyx()
+            frame = build_frame(groups, now, show_all, fold_ovr, cursor,
+                                 idx, scroll, width, height, interval,
+                                 usage_cache, bell_rows, status_msg)
+            cursor = frame["cursor"]
+            idx = frame["idx"]
+            scroll = frame["scroll"]
+            draw_frame(stdscr, frame, attrs)
+
+            stdscr.timeout(int(interval * 1000))
+            ch = stdscr.getch()
+            if ch == -1:
+                last_full = 0.0  # force a full refresh next loop
+                continue
+
+            # Drain the whole burst of already-queued input before the
+            # next redraw, so a fast j-j-j-j or a paste costs ONE redraw
+            # instead of one per key. "jump" suspends curses for a real
+            # subprocess and "quit" exits, so both end the burst instead
+            # of being silently batched with view-only toggles.
+            quit_now = False
+            stdscr.nodelay(True)
+            try:
+                while ch != -1:
+                    action = None
+                    if ch == curses.KEY_MOUSE:
+                        try:
+                            _id, mx, my, _mz, bstate = curses.getmouse()
+                        except curses.error:
+                            bstate = 0
+                            my = -1
+                        if bstate & (curses.BUTTON1_CLICKED |
+                                     curses.BUTTON1_PRESSED):
+                            rel = my - frame["claude_start"]
+                            ra = frame["row_actions"][frame["claude_start"]:]
+                            action = handle_click(rel, ra)
+                        elif bstate & curses.BUTTON4_PRESSED:
+                            scroll, cursor, idx = apply_wheel(
+                                dict(frame, scroll=scroll, idx=idx), -3)
+                        elif bstate & getattr(curses, "BUTTON5_PRESSED", 0):
+                            scroll, cursor, idx = apply_wheel(
+                                dict(frame, scroll=scroll, idx=idx), 3)
+                    else:
+                        key = _decode_key(ch, stdscr)
+                        rows = frame["rows"]
+                        idx, action = handle_key(key, rows, idx)
+                        if rows:
+                            cursor = cursor_id_for_row(rows[idx])
+
+                    if apply_action(action, frame):
+                        quit_now = True
+                        break
+                    if action is not None and action["type"] == "jump":
+                        break
+                    ch = stdscr.getch()
+            finally:
+                stdscr.nodelay(False)
+            if quit_now:
+                return
 
     def _entry_for_key(groups, key):
         for g in groups:
