@@ -1,575 +1,1282 @@
-#!/usr/bin/env bash
-# claude-attn-board [interval]
-#
-# Single-pane dashboard that collects, across ALL local tmux
-# sockets/servers (/tmp/tmux-1000-inner*), two kinds of "attention"
-# signals and refreshes them in place, flicker-free and size-aware:
-#
-#   1. Claude - from ~/.claude/tmux-status/ (written by claude-attn-hook):
-#               which window's Claude finished (DONE) or is waiting (WAIT),
-#               labeled by the session's /rename title (else ai-title).
-#               The hook rings that window's bell; an entry clears only
-#               after the bell went 1 -> 0, i.e. you actually SELECTED the
-#               window. Entries never expire by time (unless ATTN_MAX_AGE).
-#   2. Bell   - any OTHER tmux window whose bell flag is set (the '!' in the
-#               title) -- covers every program. Windows already shown in the
-#               Claude section are not repeated here.
-#
-# Rendering: uses the alternate screen buffer and redraws in place with
-# per-line erase-to-EOL, so nothing blinks. Every row is clipped to the
-# current terminal width; the list is capped to its height with a
-# "+N more" footer. Both are re-measured each frame (resize-aware).
-#
-# Usage: claude-attn-board [refresh_seconds]   (default 3)
-#
-# Env:
-#   ATTN_GRACE      grace after the event before a bell-cleared entry may
-#                   be dropped (covers the write race), seconds  (default 5)
-#   ATTN_MAX_AGE    hard time expiry, seconds; 0 = never expire  (default 0)
-#   ATTN_AGE_ALERT  unread entries older than this get an urgent (red)
-#                   dot instead of the normal one, seconds       (default 300)
-#   ATTN_KEEP       max Claude entries to retain as history; 0 = 4x the
-#                   terminal height                              (default 0)
-#   ATTN_ONCE=1     render one frame to stdout and exit (testing; no eviction)
-#
-# Inbox model: entries persist as read/unread history, like a mail inbox.
-#   * unread  = you have not had WM focus on that window since the event
-#               (claude-attn-focus hooks): shown bold with a bright dot.
-#   * read    = you looked at it after the event: kept, shown dimmed.
-# Newest event floats to the top; a status change re-stamps the entry so its
-# window jumps back to the top. History is capped to ATTN_KEEP; the oldest
-# entries beyond the cap are evicted.
-#
-# Threads: entries are GROUPED BY PROJECT (the pane's cwd), like mail
-# threads -- one header row per project, its windows indented beneath.
-# Groups order by their newest event. A group with nothing unread and
-# nothing running is folded to its header (▸); others are open (▾).
-# Keys:  j/k or arrows  move the cursor (>) between groups
-#        Enter / space  toggle the fold of the cursor group (sticks until a
-#                       newer event lands in that group, then auto-reopens)
-#        a              show all entries (ignore auto-fold), toggle
-#        g / G          first / last group        q  quit
-# ---- Why this is still bash, and when to stop (verdict of 2026-09-02) ----
-# Checked before adding the fold tree + keys: no fzf/gum on this box, dialog
-# cannot do a live list, textual/rich only exist as an old pip copy. Python's
-# stdlib curses is the right target -- getch+timeout replaces read -rsn1,
-# KEY_RESIZE/KEY_UP replace hand-parsed escapes, it diffs the redraw itself,
-# and clipping can use unicodedata.east_asian_width instead of the hand-
-# budgeted "W - namecap - 22" below. claude-attn-title is already Python, so
-# the tool would become one language. The two slowest bugs this round were
-# bash-specific (a subshell losing the group arrays; GROUPS being a builtin).
-#
-# Not ported yet because it works and is tested. PORT AT THE NEXT FEATURE that
-# needs a per-ROW cursor (Enter -> jump to that tmux window, search/filter,
-# mouse): the key/scroll logic would double again in bash. What the port
-# throws away: the ~250 lines of terminal layer here (clip, draw, read_key,
-# scroll, measure). What it keeps: every state file, the hook, the focus
-# tracker, the title cache -- the data model does not change.
-#
-# Dependencies for that port: the user is fine with any Python package in a
-# venv. Put one under ~/venv/ (they are cheap) and point the shebang at its
-# interpreter, e.g. #!/home/iblis/venv/attn/bin/python3 -- do NOT depend on
-# ~/venv/py3, which is a working venv for other projects. Prefer stdlib curses
-# unless a package removes real code.
-set -u
+#!/usr/bin/env python3
+"""claude-attn-board [interval]
 
-INTERVAL="${1:-3}"
-MAX_AGE="${ATTN_MAX_AGE:-0}"
-AGE_ALERT="${ATTN_AGE_ALERT:-300}"
-KEEP="${ATTN_KEEP:-0}"
-STATE_DIR="$HOME/.claude/tmux-status"
-mkdir -p "$STATE_DIR"
+Single-pane dashboard that collects, across ALL local tmux
+sockets/servers (/tmp/tmux-1000-inner*), two kinds of "attention"
+signals and refreshes them in place, flicker-free and size-aware:
 
-sockets() { printf '%s\n' /tmp/tmux-1000-inner /tmp/tmux-1000-inner-*; }
-safe() { printf '%s' "$1" | tr '/ \t' '___'; }
+  1. Claude - from ~/.claude/tmux-status/ (written by claude-attn-hook):
+              which window's Claude finished (DONE) or is waiting (WAIT),
+              labeled by the session's /rename title (else ai-title).
+              The hook rings that window's bell; an entry clears only
+              after the bell went 1 -> 0, i.e. you actually SELECTED the
+              window. Entries never expire by time (unless ATTN_MAX_AGE).
+  2. Bell   - any OTHER tmux window whose bell flag is set (the '!' in the
+              title) -- covers every program. Windows already shown in the
+              Claude section are not repeated here.
 
-# Shorten $HOME prefix to ~ for display.
-tilde() {
-  case "$1" in
-    "$HOME"/*) printf '~%s' "${1#"$HOME"}" ;;
-    "$HOME")   printf '~' ;;
-    *)         printf '%s' "$1" ;;
-  esac
+Rendering: curses alternate screen, redrawn in place every refresh tick
+or keypress. Every row is clipped to the current terminal width (by
+DISPLAY width, see disp_width()); the list is capped to its height with
+a "+N more" footer. Both are re-measured each frame (resize-aware).
+
+Usage: claude-attn-board [refresh_seconds]   (default 3)
+
+Env:
+  ATTN_GRACE      accepted for compatibility; unused here, same as in
+                  the bash original this replaces (see "Port note" below)
+  ATTN_MAX_AGE    hard time expiry, seconds; 0 = never expire  (default 0)
+  ATTN_AGE_ALERT  unread entries older than this get an urgent (red)
+                  dot instead of the normal one, seconds       (default 300)
+  ATTN_KEEP       max Claude entries to retain as history; 0 = 4x the
+                  terminal height                              (default 0)
+  ATTN_ONCE=1     render one frame to stdout and exit (testing; no eviction)
+  ATTN_SOCKETS    test-only override: a os.pathsep-separated list of
+                  socket paths to use instead of the real
+                  /tmp/tmux-1000-inner* set (empty string = none at all).
+                  Never set this when running for real.
+
+Inbox model: entries persist as read/unread history, like a mail inbox.
+  * unread  = you have not had WM focus on that window since the event
+              (claude-attn-focus hooks): shown bold with a bright dot.
+  * read    = you looked at it after the event: kept, shown dimmed.
+Newest event floats to the top; a status change re-stamps the entry so its
+window jumps back to the top. History is capped to ATTN_KEEP; the oldest
+entries beyond the cap are evicted.
+
+Threads: entries are GROUPED BY PROJECT (the pane's cwd), like mail
+threads -- one header row per project, its windows indented beneath.
+Groups order by their newest event. A group with nothing unread and
+nothing running is folded to its header (▸); others are open (▾).
+
+Keys:  j/k or arrows    move the cursor between ALL rows (group headers
+                        AND entries)
+       Enter (header)   toggle that group's fold
+       Enter (entry)    jump the real terminal to that tmux window
+       space / o        toggle the fold of the cursor row's group
+       mouse click      entry row -> jump; header row -> toggle fold
+       mouse wheel      scroll the Claude section 3 lines per notch
+       a                show all entries (ignore auto-fold), toggle
+       g / G            first / last row         q    quit
+
+---- Port note (2026-10, port from the bash original) -------------------
+This replaces a 575-line bash version. It was ported once the dashboard
+needed a per-ROW cursor with Enter-to-jump and mouse support -- the key
+handling, scrolling and width-clipping logic would have doubled again in
+bash, and stdlib curses already gives getch+timeout, KEY_RESIZE/KEY_UP,
+mouse events and its own diffed redraw for free. The data model is
+unchanged: the same state files under ~/.claude/tmux-status/, the same
+.viewed/ mtimes and .focus/ files, the same .ratelimit usage cache, the
+same cleanup_stale eviction passes. Everything below is split into a
+pure CORE section (parsing, grouping, folding, row/cursor/scroll math,
+click mapping -- unit-tested without a terminal) and a thin SHELL section
+(curses drawing, tmux subprocess calls, the main loop).
+"""
+import curses
+import glob
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+import unicodedata
+from collections import namedtuple
+
+# =============================================================================
+# CORE -- pure functions (plus simple, injectable file/subprocess I/O so
+# tests can exercise this section against temp directories or fake
+# callables, never the real ~/.claude/tmux-status or a real tmux server).
+# =============================================================================
+
+Entry = namedtuple(
+    "Entry", "key ts status sess_win wname sockname cpath label outer"
+)
+
+_TS_RE = re.compile(r"\d+")
+
+
+def parse_state_entry(key, raw_text):
+    """Parse one claude-attn-hook state-file line into an Entry, or None
+    when the line is unusable (empty/garbage timestamp).
+
+    Fields (tab-separated): ts status sess:win wname sockname cpath label
+    outer -- 8 fields on current hook output; older files only have 7
+    (no trailing outer field), which this treats as outer="".
+    """
+    line = raw_text.split("\n", 1)[0]
+    fields = line.split("\t")
+    if len(fields) == 7:
+        fields = fields + [""]
+    if len(fields) != 8:
+        return None
+    ts_s, status, sess_win, wname, sockname, cpath, label, outer = fields
+    if not _TS_RE.fullmatch(ts_s):
+        return None
+    return Entry(key, int(ts_s), status, sess_win, wname, sockname, cpath,
+                 label, outer)
+
+
+def split_session_window(sess_win):
+    """'a.b:c:3' -> ('a.b:c', '3'); split on the LAST ':' since a tmux
+    session name may itself contain ':'. None when there is no ':'."""
+    if ":" not in sess_win:
+        return None
+    session, window = sess_win.rsplit(":", 1)
+    return session, window
+
+
+def safe_component(s):
+    return re.sub(r"[/ \t]", "_", s)
+
+
+def make_key(sockname, sess, win):
+    return "%s__%s__%s" % (safe_component(sockname), safe_component(sess),
+                            safe_component(win))
+
+
+def is_socket(path):
+    try:
+        import stat
+        return stat.S_ISSOCK(os.stat(path).st_mode)
+    except OSError:
+        return False
+
+
+def list_sockets():
+    """The sockets to scan. ATTN_SOCKETS (os.pathsep-separated; may be an
+    empty string for "none") overrides the real /tmp/tmux-1000-inner* set
+    -- tests set it so the board never opens a real tmux server."""
+    override = os.environ.get("ATTN_SOCKETS")
+    if override is not None:
+        candidates = [p for p in override.split(os.pathsep) if p]
+    else:
+        base = "/tmp/tmux-1000-inner"
+        candidates = [base] + sorted(glob.glob(base + "-*"))
+    return [p for p in candidates if is_socket(p)]
+
+
+def resolve_socket(sockname, sockets):
+    """The socket path among `sockets` whose basename equals `sockname`."""
+    for s in sockets:
+        if os.path.basename(s) == sockname:
+            return s
+    return None
+
+
+def fmt_age(age):
+    """Human age: 42s / 5m / 3h / 2d."""
+    a = int(age)
+    if a < 60:
+        return "%ds" % a
+    if a < 3600:
+        return "%dm" % (a // 60)
+    if a < 86400:
+        return "%dh" % (a // 3600)
+    return "%dd" % (a // 86400)
+
+
+def fmt_countdown(target, now):
+    """Countdown to a future unix ts: 2h14m / 45m / 3d4h ('' if past/invalid)."""
+    try:
+        target_i = int(float(target))
+    except (TypeError, ValueError):
+        return ""
+    diff = target_i - now
+    if diff <= 0:
+        return ""
+    d, rem = divmod(diff, 86400)
+    h, rem = divmod(rem, 3600)
+    m = rem // 60
+    if d > 0:
+        return "%dd%dh" % (d, h)
+    if h > 0:
+        return "%dh%02dm" % (h, m)
+    if m < 1:
+        m = 1
+    return "%dm" % m
+
+
+_WIDE_EMOJI = ("✅", "⏳", "\U0001f514")  # ✅ ⏳ 🔔
+
+
+def char_width(ch):
+    """Display columns for one character: 2 for CJK/fullwidth (and the
+    emoji icons this board uses), 1 otherwise."""
+    if ch in _WIDE_EMOJI:
+        return 2
+    eaw = unicodedata.east_asian_width(ch)
+    return 2 if eaw in ("W", "F") else 1
+
+
+def disp_width(s):
+    return sum(char_width(c) for c in s)
+
+
+def clip(s, n):
+    """Clip `s` to at most `n` display columns, adding an ellipsis when
+    truncated. n < 1 -> ''. Never splits a wide character in half."""
+    if n < 1:
+        return ""
+    if disp_width(s) <= n:
+        return s
+    out = []
+    total = 0
+    for ch in s:
+        w = char_width(ch)
+        if total + w > n:
+            break
+        out.append(ch)
+        total += w
+    while out and total + 1 > n:
+        total -= char_width(out.pop())
+    out.append("…")
+    return "".join(out)
+
+
+def pad(s, n):
+    """Right-pad `s` with spaces to exactly `n` display columns (assumes
+    disp_width(s) <= n already)."""
+    w = disp_width(s)
+    if w < n:
+        return s + " " * (n - w)
+    return s
+
+
+def clip_pad(s, n):
+    """clip() then pad(): exactly n display columns, every time -- this is
+    what keeps the age column aligned across rows with CJK/mixed names."""
+    return pad(clip(s, n), n)
+
+
+def tilde(path, home=None):
+    home = home if home is not None else os.path.expanduser("~")
+    if path == home:
+        return "~"
+    if path.startswith(home + "/"):
+        return "~" + path[len(home):]
+    return path
+
+
+def classify_entry(entry, now, viewed_ts, age_alert):
+    """running / unread / read, plus age and (for unread) whether it has
+    aged past ATTN_AGE_ALERT."""
+    age = now - entry.ts
+    if entry.status == "running":
+        return {"kind": "running", "age": age}
+    if viewed_ts < entry.ts:
+        return {"kind": "unread", "age": age, "alert": age >= age_alert}
+    return {"kind": "read", "age": age}
+
+
+def build_groups(entries, now, viewed_ts_map, age_alert):
+    """Group entries by cpath ("project thread"), groups ordered by their
+    newest event, entries within a group ordered ts-desc. Returns a list
+    of dicts: cpath, newest, entries (list of (Entry, classification)),
+    unread/read/run counts."""
+    ordered = sorted(entries, key=lambda e: -e.ts)
+    order = []
+    newest = {}
+    bucket = {}
+    counts = {}
+    for e in ordered:
+        cls = classify_entry(e, now, viewed_ts_map.get(e.key, 0), age_alert)
+        if e.cpath not in newest:
+            order.append(e.cpath)
+            newest[e.cpath] = e.ts
+            bucket[e.cpath] = []
+            counts[e.cpath] = {"unread": 0, "read": 0, "run": 0}
+        bucket[e.cpath].append((e, cls))
+        bucket_key = {"running": "run", "unread": "unread",
+                      "read": "read"}[cls["kind"]]
+        counts[e.cpath][bucket_key] += 1
+    groups = []
+    for cp in order:
+        c = counts[cp]
+        groups.append({"cpath": cp, "newest": newest[cp],
+                        "entries": bucket[cp], "unread": c["unread"],
+                        "read": c["read"], "run": c["run"]})
+    return groups
+
+
+def auto_fold(group):
+    """A group with nothing unread and nothing running folds by default."""
+    return not (group["unread"] > 0 or group["run"] > 0)
+
+
+def resolve_fold(group, show_all, fold_ovr):
+    """Effective fold state for `group`. A manual override in fold_ovr
+    (cpath -> (ts_at_toggle, folded_bool)) sticks until a NEWER event
+    lands in that group, at which point it is expired (removed from
+    fold_ovr) and the auto rule applies again."""
+    folded = False if show_all else auto_fold(group)
+    ovr = fold_ovr.get(group["cpath"])
+    if ovr is not None:
+        ts_at_toggle, folded_ovr = ovr
+        if ts_at_toggle >= group["newest"]:
+            folded = folded_ovr
+        else:
+            del fold_ovr[group["cpath"]]
+    return folded
+
+
+def toggle_group_fold(group, folded_now, fold_ovr):
+    """Record a manual fold toggle for `group`, stamped with its current
+    newest-event ts so resolve_fold() can tell a later, newer event apart
+    from this same toggle."""
+    fold_ovr[group["cpath"]] = (group["newest"], not folded_now)
+
+
+def build_rows(groups, show_all, fold_ovr):
+    """The flat, visible row list for the Claude section: one header row
+    per group, followed by its entries unless the group is folded."""
+    rows = []
+    for g in groups:
+        folded = resolve_fold(g, show_all, fold_ovr)
+        rows.append({"kind": "header", "cpath": g["cpath"], "key": None,
+                      "group": g, "folded": folded})
+        if not folded:
+            for e, cls in g["entries"]:
+                rows.append({"kind": "entry", "cpath": g["cpath"],
+                              "key": e.key, "entry": e, "cls": cls})
+    return rows
+
+
+def row_id(row):
+    if row["kind"] == "header":
+        return ("header", row["cpath"])
+    return ("entry", row["key"])
+
+
+def locate_cursor(rows, last):
+    """Find the row index the cursor belongs on after a refresh.
+
+    `last` is the previous cursor's identity: None, ("header", cpath) or
+    ("entry", key, cpath) (the cpath is kept so an entry that has since
+    vanished can still fall back to ITS group's header). Falls back to
+    clamping into range when nothing matches."""
+    if not rows:
+        return 0
+    if last is not None:
+        if last[0] == "header":
+            for i, r in enumerate(rows):
+                if row_id(r) == ("header", last[1]):
+                    return i
+        elif last[0] == "entry":
+            for i, r in enumerate(rows):
+                if row_id(r) == ("entry", last[1]):
+                    return i
+            # the entry is gone -- fall back to its group's header
+            cpath = last[2] if len(last) > 2 else None
+            if cpath is not None:
+                for i, r in enumerate(rows):
+                    if row_id(r) == ("header", cpath):
+                        return i
+    return max(0, min(len(rows) - 1, 0))
+
+
+def follow_cursor(idx, scroll, avail, total):
+    """Scroll just enough to keep row `idx` visible (cursor-driven;
+    mirrors the bash original's follow-the-cursor formula)."""
+    if total <= avail:
+        return 0
+    if idx < scroll + 1:
+        scroll = idx - 1
+    if idx > scroll + avail - 2:
+        scroll = idx - avail + 2
+    scroll = min(scroll, total - avail)
+    return max(0, scroll)
+
+
+def scroll_wheel(scroll, delta, total, avail):
+    """Move the scroll offset by a wheel notch (delta in rows, negative =
+    up), clamped to [0, total-avail]."""
+    max_scroll = max(0, total - avail)
+    return max(0, min(scroll + delta, max_scroll))
+
+
+def clamp_cursor_to_view(idx, scroll, avail, total):
+    """After a wheel scroll, move the cursor the minimum amount needed to
+    stay inside the (marker-aware) visible window."""
+    if total <= avail:
+        return idx
+    hidden_below = total - scroll - avail
+    lo = scroll + 1 if scroll > 0 else scroll
+    hi = scroll + avail - 1 - (1 if hidden_below > 0 else 0)
+    if idx < lo:
+        idx = lo
+    if idx > hi:
+        idx = hi
+    return idx
+
+
+def windowed_rows(rows, scroll, avail):
+    """Slice `rows` to the visible window, replacing the first/last slot
+    with a "+N more" marker row when there is more above/below (same
+    trade-off as the bash original: that slot's own row is not shown
+    alongside the marker)."""
+    total = len(rows)
+    if total <= avail or avail <= 0:
+        return list(rows), 0
+    hidden_above = scroll
+    hidden_below = total - scroll - avail
+    view = list(rows[scroll:scroll + avail])
+    if hidden_above > 0 and view:
+        view[0] = {"kind": "marker", "text": "↑ %d more" % hidden_above}
+    if hidden_below > 0 and view:
+        view[-1] = {"kind": "marker", "text": "↓ %d more" % hidden_below}
+    return view, scroll
+
+
+# ---- row rendering: segments are (text, style_name_or_None) -------------
+
+ICON = {
+    "running": ("▶ RUN  ", "cyan"),
+    "waiting": ("⏳ WAIT", "yellow_bold"),
+    "done": ("✅ DONE", "green_bold"),
 }
 
-# Clip a string to N display columns (approx; counts code points), adding
-# an ellipsis when truncated.
-clip() {
-  local s="$1" n="$2"
-  [ "$n" -lt 1 ] && { printf ''; return; }
-  if [ "${#s}" -le "$n" ]; then printf '%s' "$s"
-  else printf '%s…' "${s:0:n-1}"; fi
+
+def entry_meta_text(entry):
+    if entry.outer:
+        return "[%s ⇐ %s]" % (entry.sess_win, entry.outer)
+    return "[%s]" % entry.sess_win
+
+
+def render_entry_segs(entry, cls, cursor_here, namecap, metacap):
+    name_raw = entry.label or entry.wname
+    name = clip_pad(name_raw, namecap)
+    meta = clip(entry_meta_text(entry), metacap) if metacap >= 8 else ""
+    icon_text, icon_style = ICON.get(entry.status, (entry.status, None))
+    age = fmt_age(cls["age"])
+    kind = cls["kind"]
+
+    if kind == "running":
+        dot_seg = ("▸ ", "cyan")
+        name_style = None
+    elif kind == "unread":
+        dot_style = "red_bold" if cls.get("alert") else "cyan_bold"
+        dot_seg = ("● ", dot_style)
+        name_style = "bold"
+    else:
+        dot_seg = ("○ ", "dim")
+        icon_text, icon_style = icon_text, "dim"
+        name_style = "dim"
+
+    indent = ("> ", "cursor") if cursor_here else ("  ", None)
+    return [indent, dot_seg, (icon_text, icon_style), ("  ", None),
+            (name, name_style), (" %5s  " % age, None), (meta, "dim")]
+
+
+def render_header_segs(group, cursor_here, folded, hdrcap, now):
+    cur = (">", "cursor") if cursor_here else (" ", None)
+    fold_glyph = "▸" if folded else "▾"
+    name = clip_pad(tilde(group["cpath"]), hdrcap)
+    cnt = []
+    if group["unread"] > 0:
+        cnt.append(("●%-2d " % group["unread"], "cyan_bold"))
+    else:
+        cnt.append(("    ", None))
+    if group["run"] > 0:
+        cnt.append(("▶%-2d " % group["run"], "cyan"))
+    else:
+        cnt.append(("    ", None))
+    cnt.append(("○%-2d" % group["read"], "dim"))
+    age = fmt_age(now - group["newest"])
+    return [cur, (fold_glyph, None), (" ", None), (name, "bold"),
+            ("  ", None)] + cnt + [("  %5s" % age, None)]
+
+
+def render_marker_segs(text):
+    return [("   ", None), (text, "dim")]
+
+
+def plain_text(segs):
+    return "".join(t for t, _ in segs)
+
+
+_ANSI = {
+    None: "", "reset": "\033[0m", "bold": "\033[1m", "dim": "\033[2m",
+    "cyan": "\033[36m", "cyan_bold": "\033[1;36m",
+    "yellow_bold": "\033[1;33m", "green_bold": "\033[1;32m",
+    "red_bold": "\033[1;31m", "magenta_bold": "\033[1;35m",
+    "cursor": "\033[1;33m",
 }
 
-FOCUS_DIR="$STATE_DIR/.focus"     # focused client ttys (set by claude-attn-focus hook)
-VIEWED_DIR="$STATE_DIR/.viewed"   # per-window last-actually-viewed time (file mtime)
-mkdir -p "$FOCUS_DIR" "$VIEWED_DIR" 2>/dev/null
 
-# All existing window keys (reliable), for detecting closed windows.
-declare -A WIN_EXISTS=()
-refresh_windows() {
-  WIN_EXISTS=()
-  local s sn key
-  for s in $(sockets); do
-    [ -S "$s" ] || continue
-    sn="$(basename "$s")"
-    while IFS= read -r key; do
-      [ -n "$key" ] && WIN_EXISTS["$key"]=1
-    done < <(tmux -S "$s" list-windows -a -F "${sn}__#{session_name}__#{window_index}" 2>/dev/null)
-  done
-}
+def render_ansi(segs):
+    out = []
+    for text, style in segs:
+        if not text:
+            continue
+        if style:
+            out.append(_ANSI.get(style, "") + text + _ANSI["reset"])
+        else:
+            out.append(text)
+    return "".join(out)
 
-# The window you're ACTUALLY looking at = the current window of every tmux
-# client that has WM focus right now. Focus comes from the client-focus-in/out
-# hooks (accurate; the pollable client_flags 'focused' token gets stuck), and
-# which window that client is on is queried live. Stamps each viewed window's
-# last-viewed time (VIEWED_DIR mtime) -> that's what marks an entry "read".
-declare -A VIEWED=()
-refresh_viewed() {
-  VIEWED=()
-  local s sn tty f key
-  declare -A TTY_SOCK=()
-  for s in $(sockets); do
-    [ -S "$s" ] || continue
-    while IFS= read -r tty; do
-      [ -n "$tty" ] && TTY_SOCK["$tty"]="$s"
-    done < <(tmux -S "$s" list-clients -F '#{client_tty}' 2>/dev/null)
-  done
-  shopt -s nullglob
-  for f in "$FOCUS_DIR"/*; do
-    tty="$(cat "$f" 2>/dev/null)"
-    s="${TTY_SOCK[$tty]:-}"
-    [ -n "$tty" ] && [ -n "$s" ] || { rm -f "$f"; continue; }   # focused client gone -> prune
-    sn="$(basename "$s")"
-    key="$(tmux -S "$s" display-message -p -c "$tty" -F "${sn}__#{session_name}__#{window_index}" 2>/dev/null)"
-    [ -n "$key" ] && VIEWED["$key"]=1
-  done
-  for key in "${!VIEWED[@]}"; do touch "$VIEWED_DIR/$key" 2>/dev/null; done
-}
 
-# Inbox upkeep. Entries are NOT dropped on read -- they persist as history.
-# We only evict: (a) entries whose tmux window no longer exists, (b) entries
-# past MAX_AGE when configured, and (c) the oldest entries beyond the history
-# cap (ATTN_KEEP, or the terminal height passed in as $1).
-cleanup_stale() {
-  local cap="${1:-40}"
-  refresh_windows
-  refresh_viewed
-  local now f base ts
-  now="$(date +%s)"
-  shopt -s nullglob
-  # Pass 1: drop dead windows / expired entries.
-  # Inbox entries are plain files. STATE_DIR is shared with other tools that
-  # keep subdirectories here (ctx/, tasks/, task-carry/), and `rm -f` on a
-  # directory fails with "Is a directory" on every refresh -- skip non-files.
-  for f in "$STATE_DIR"/*; do
-    [ -f "$f" ] || continue
-    base="$(basename "$f")"
-    ts="$(cut -f1 "$f" 2>/dev/null)"
-    [ -n "$ts" ] || { rm -f "$f"; continue; }
-    if [ "$MAX_AGE" -gt 0 ] && [ $(( now - ts )) -ge "$MAX_AGE" ]; then
-      rm -f "$f"; continue
-    fi
-    [ -z "${WIN_EXISTS[$base]:-}" ] && rm -f "$f"       # window gone
-  done
-  # Pass 2: evict the oldest entries beyond the history cap.
-  [ "$cap" -lt 1 ] && cap=1
-  local rank=0
-  for f in "$STATE_DIR"/*; do
-    [ -f "$f" ] || continue
-    printf '%s\t%s\n' "$(cut -f1 "$f" 2>/dev/null)" "$f"
-  done | sort -rn | while IFS=$'\t' read -r _ts f; do
-    rank=$(( rank + 1 ))
-    [ "$rank" -gt "$cap" ] && rm -f "$f"
-  done
-  # Pass 3: prune orphan last-viewed stamps (no matching inbox entry).
-  for f in "$VIEWED_DIR"/*; do
-    [ -e "$STATE_DIR/$(basename "$f")" ] || rm -f "$f"
-  done
-}
+def row_geometry(width):
+    namecap = min(30, max(8, width // 3))
+    metacap = width - namecap - 22
+    return namecap, metacap
 
-# Human-readable age: 42s / 5m / 3h / 2d
-fmt_age() {
-  local a="$1"
-  if   [ "$a" -lt 60 ]    ; then printf '%ds' "$a"
-  elif [ "$a" -lt 3600 ]  ; then printf '%dm' $(( a / 60 ))
-  elif [ "$a" -lt 86400 ] ; then printf '%dh' $(( a / 3600 ))
-  else                           printf '%dd' $(( a / 86400 )); fi
-}
 
-# ---- usage gauge (mirrors the /statusline build_mini style) ----------
-# 256-color palette, identical to statusline-command.sh.
-U_RESET=$'\033[0m'; U_DIM=$'\033[2m'
-U_LOW=$'\033[38;5;114m'; U_MID=$'\033[38;5;221m'; U_HIGH=$'\033[38;5;203m'
-U_EMPTY=$'\033[38;5;238m'; U_QLABEL=$'\033[38;5;245m'
+def header_geometry(width):
+    return max(8, width - 26)
 
-# Countdown to a future unix ts: 2h14m / 45m / 3d4h (empty if past/invalid).
-fmt_countdown() {
-  local target="${1%.*}" now diff d h m
-  case "$target" in ''|*[!0-9]*) return ;; esac
-  now="$(date +%s)"; diff=$(( target - now )); [ "$diff" -le 0 ] && return
-  d=$(( diff / 86400 )); h=$(( (diff % 86400) / 3600 )); m=$(( (diff % 3600) / 60 ))
-  if   [ "$d" -gt 0 ]; then printf '%dd%dh' "$d" "$h"
-  elif [ "$h" -gt 0 ]; then printf '%dh%02dm' "$h" "$m"
-  else [ "$m" -lt 1 ] && m=1; printf '%dm' "$m"; fi
-}
 
-# Build one 10-cell quota gauge -> sets M_PLAIN (length math) + M_COLORED.
-mini() {
-  local label="$1" pct="$2" reset="$3" filled empty c fstr="" estr="" i=0 cd rp="" rc=""
-  filled=$(( pct / 10 )); [ "$filled" -gt 10 ] && filled=10; [ "$filled" -lt 0 ] && filled=0
-  empty=$(( 10 - filled ))
-  if   [ "$pct" -lt 50 ]; then c=$U_LOW
-  elif [ "$pct" -lt 80 ]; then c=$U_MID
-  else c=$U_HIGH; fi
-  while [ "$i" -lt "$filled" ]; do fstr="${fstr}█"; i=$(( i + 1 )); done
-  i=0; while [ "$i" -lt "$empty" ]; do estr="${estr}░"; i=$(( i + 1 )); done
-  cd="$(fmt_countdown "$reset")"
-  [ -n "$cd" ] && { rp=" ↻$cd"; rc=" ${c}↻${cd}${U_RESET}"; }
-  M_PLAIN="$(printf '%s: [%s%s] %d%%%s' "$label" "$fstr" "$estr" "$pct" "$rp")"
-  M_COLORED="${U_QLABEL}${label}:${U_RESET} ${U_DIM}[${U_RESET}${c}${fstr}${U_EMPTY}${estr}${U_RESET}${U_DIM}]${U_RESET} ${c}${pct}%${U_RESET}${rc}"
-}
+def render_rows(rows, cursor_idx, namecap, metacap, hdrcap, now):
+    """rows (as built by build_rows) -> (segs_per_row, row_actions), both
+    aligned 1:1 with `rows`. row_actions[i] is ("header", cpath, None) or
+    ("entry", cpath, key)."""
+    out_segs = []
+    out_actions = []
+    for i, r in enumerate(rows):
+        here = (i == cursor_idx)
+        if r["kind"] == "header":
+            out_segs.append(render_header_segs(r["group"], here,
+                                                 r["folded"], hdrcap, now))
+            out_actions.append(("header", r["cpath"], None))
+        else:
+            out_segs.append(render_entry_segs(r["entry"], r["cls"], here,
+                                                namecap, metacap))
+            out_actions.append(("entry", r["cpath"], r["key"]))
+    return out_segs, out_actions
 
-# Emit the usage line from the statusline-written cache (nothing if absent).
-render_usage() {
-  local W="$1" cache="$STATE_DIR/.ratelimit" upd fp fr wp wr now age
-  [ -f "$cache" ] || return
-  IFS=$'\t' read -r upd fp fr wp wr < "$cache" 2>/dev/null
-  fp="${fp%.*}"; wp="${wp%.*}"
-  case "$fp" in ''|*[!0-9]*) fp="" ;; esac
-  case "$wp" in ''|*[!0-9]*) wp="" ;; esac
-  [ -n "$fp$wp" ] || return
-  now="$(date +%s)"; age=$(( now - ${upd:-now} ))
-  local plain="" colored=""
-  if [ -n "$fp" ]; then mini "5h" "$fp" "$fr"; plain="$M_PLAIN"; colored="$M_COLORED"; fi
-  if [ -n "$wp" ]; then
-    mini "7d" "$wp" "$wr"
-    [ -n "$plain" ] && { plain="$plain  $M_PLAIN"; colored="$colored  $M_COLORED"; } \
-                    || { plain="$M_PLAIN"; colored="$M_COLORED"; }
-  fi
-  local stale=""
-  [ "$age" -ge 120 ] && stale="  ${U_DIM}⟳$(fmt_age "$age") ago${U_RESET}"
-  local stale_plain=""; [ -n "$stale" ] && stale_plain="  ⟳$(fmt_age "$age") ago"
-  # Fit to width: full gauge if it fits, else a compact "5h 63% 7d 28%".
-  if [ "$(( ${#plain} + ${#stale_plain} ))" -le "$W" ]; then
-    printf ' %s%s\n' "$colored" "$stale"
-  else
-    local comp="" compp=""
-    [ -n "$fp" ] && { comp="${U_QLABEL}5h${U_RESET} ${fp}%"; compp="5h ${fp}%"; }
-    [ -n "$wp" ] && { comp="$comp  ${U_QLABEL}7d${U_RESET} ${wp}%"; compp="$compp  7d ${wp}%"; }
-    if [ "${#compp}" -le "$W" ]; then printf ' %s\n' "$comp"
-    else printf ' %s\n' "$(clip "$compp" "$W")"; fi
-  fi
-}
 
-# ---- Claude section: inbox grouped by project (pane cwd), like mail threads.
-# Each project is a "thread" (header row), each window an entry under it.
-# Groups are ordered by their newest event; entries inside by ts desc.
-# A group is FOLDED (header only) by default when it holds no unread and no
-# running entry -- all-read history stays reachable but out of the way.
-# Enter/space on the cursor group toggles the fold; the manual state is
-# remembered until a NEWER event lands in that group (then it auto-reopens,
-# consistent with "a status change re-floats the window").
-#
-# Output goes to globals (not stdout) because the main loop needs the
-# group list back and a pipeline/subshell would lose it:
-#   CL[]        rendered lines of the section
-#   G_PATHS[]    cpath per group, in display order (cursor indexes this)
-#   G_NEWEST[]  newest event ts per group (for the fold-override expiry)
-#   G_FOLDED[]  effective fold state per group (1 folded / 0 open)
-#   HDR_LINE[]  index into CL of each group's header row (for scrolling)
-# (Not named GROUPS: that is a bash builtin -- the user's gid list -- and
-# assignments to it are silently ignored, so the cursor indexed gids.)
-declare -a CL=() G_PATHS=() G_NEWEST=() G_FOLDED=() HDR_LINE=()
-declare -A FOLD_OVR=()   # cpath -> "<newest_ts_at_toggle>:<0|1>"
-CUR=0                    # cursor = index into G_PATHS
-SHOW_ALL=0               # 1 = ignore auto-fold (show every entry)
+# ---- key / click handling ------------------------------------------------
 
-# Two phases so a keypress does not pay for tmux: build_groups (heavy: state
-# files, viewed stamps, one row string per entry) runs on the refresh tick;
-# layout_claude (cheap: headers, fold state, cursor) runs on every key too.
-declare -A GB_ROWS=() GB_UNREAD=() GB_READ=() GB_RUN=() GB_NEWEST=()
-declare -a GB_ORDER=()
-GB_NOW=0
+def handle_key(key, rows, idx):
+    """Pure core of a keypress: returns (new_idx, action). `action` is
+    None, or one of:
+      {"type": "toggle", "cpath": ...}
+      {"type": "jump", "cpath": ..., "key": ...}
+      {"type": "show_all"}
+      {"type": "quit"}
+    """
+    n = len(rows)
+    if key in ("j", "DOWN"):
+        return (min(idx + 1, n - 1) if n else 0), None
+    if key in ("k", "UP"):
+        return (max(idx - 1, 0) if n else 0), None
+    if key == "g":
+        return 0, None
+    if key == "G":
+        return (n - 1 if n else 0), None
+    if n == 0:
+        if key == "a":
+            return 0, {"type": "show_all"}
+        if key == "q":
+            return 0, {"type": "quit"}
+        return 0, None
+    row = rows[idx]
+    if key == "ENTER":
+        if row["kind"] == "header":
+            return idx, {"type": "toggle", "cpath": row["cpath"]}
+        return idx, {"type": "jump", "cpath": row["cpath"], "key": row["key"]}
+    if key in (" ", "o"):
+        return idx, {"type": "toggle", "cpath": row["cpath"]}
+    if key == "a":
+        return idx, {"type": "show_all"}
+    if key == "q":
+        return idx, {"type": "quit"}
+    return idx, None
 
-build_groups() {
-  local W="$1" now key ts st winid wname sockname cpath label outer age viewed_ts f e
-  local name meta namecap metacap dot icon icon_col row
-  GB_ROWS=(); GB_UNREAD=(); GB_READ=(); GB_RUN=(); GB_NEWEST=(); GB_ORDER=()
-  now="$(date +%s)"; GB_NOW="$now"
-  shopt -s nullglob
-  local files=("$STATE_DIR"/*)
-  [ ${#files[@]} -eq 0 ] && return
-  # key<TAB>state-line per entry, sorted by ts desc (field 2).
-  local -a entries=()
-  for f in "${files[@]}"; do
-    [ -f "$f" ] || continue   # subdirectories of other tools, see cleanup_stale
-    entries+=("$(basename "$f")	$(cat "$f")")
-  done
-  [ ${#entries[@]} -eq 0 ] && return
-  mapfile -t entries < <(printf '%s\n' "${entries[@]}" | sort -t$'\t' -k2,2rn)
 
-  # Row geometry. Rows are indented 2 under their header, so the non-name
-  # overhead is 22: indent (2), dot+sp (2), icon (7 -- ✅/⏳ are 2 cols
-  # wide), 2 spaces, name, space, age (5), 2 spaces, +1 slack.
-  namecap=30; [ "$namecap" -gt $(( W / 3 )) ] && namecap=$(( W / 3 ))
-  [ "$namecap" -lt 8 ] && namecap=8
-  metacap=$(( W - namecap - 22 ))
+def handle_click(y, row_actions):
+    """y: absolute line index into the rendered Claude-section lines
+    (already mapped through the current scroll offset by whoever built
+    row_actions). Returns an action dict (see handle_key) or None."""
+    if y < 0 or y >= len(row_actions):
+        return None
+    ra = row_actions[y]
+    if ra is None:
+        return None
+    kind, cpath, key = ra
+    if kind == "header":
+        return {"type": "toggle", "cpath": cpath}
+    if kind == "entry":
+        return {"type": "jump", "cpath": cpath, "key": key}
+    return None
 
-  for e in "${entries[@]}"; do
-    IFS=$'\t' read -r key ts st winid wname sockname cpath label outer <<<"$e"
-    [ -n "$ts" ] || continue
-    age=$(( now - ts ))
-    if [ -z "${GB_NEWEST[$cpath]:-}" ]; then
-      GB_ORDER+=("$cpath"); GB_NEWEST[$cpath]="$ts"
-      GB_UNREAD[$cpath]=0; GB_READ[$cpath]=0; GB_RUN[$cpath]=0; GB_ROWS[$cpath]=""
-    fi
-    # read = you actually looked at this window (had WM focus on it) AFTER the
-    # event; unread otherwise. Focus-based, independent of the tmux bell.
-    viewed_ts="$(stat -c%Y "$VIEWED_DIR/$key" 2>/dev/null || echo 0)"
-    [ -n "$label" ] && name="$label" || name="$wname"
-    name="$(clip "$name" "$namecap")"
-    # "[inner sess:win ⇐ outer sess:win]" when the hook recorded the outer spot.
-    [ -n "$outer" ] && meta="[$winid ⇐ $outer]" || meta="[$winid]"
-    [ "$metacap" -ge 8 ] && meta="$(clip "$meta" "$metacap")" || meta=""
-    case "$st" in
-      running) icon='▶ RUN  '; icon_col='\033[36m' ;;   # padded to 7 cols to align with emoji icons
-      waiting) icon='⏳ WAIT'; icon_col='\033[1;33m' ;;
-      done)    icon='✅ DONE'; icon_col='\033[1;32m' ;;
-      *)       icon="$st";     icon_col='' ;;
-    esac
-    if [ "$st" = "running" ]; then
-      # ACTIVE: Claude is working -- neutral cyan, no read/unread dimming.
-      row="$(printf '\033[36m▸\033[0m %b%s\033[0m  %-*s %5s  \033[2m%s\033[0m' \
-        "$icon_col" "$icon" "$namecap" "$name" "$(fmt_age "$age")" "$meta")"
-      GB_RUN[$cpath]=$(( GB_RUN[$cpath] + 1 ))
-    elif [ "$viewed_ts" -lt "$ts" ]; then
-      # UNREAD: not viewed since the event. Bold, bright dot (red if long).
-      [ "$age" -ge "$AGE_ALERT" ] && dot='\033[1;31m●\033[0m' || dot='\033[1;36m●\033[0m'
-      row="$(printf '%b %b%b\033[0m  \033[1m%-*s\033[0m %5s  \033[2m%s\033[0m' \
-        "$dot" "$icon_col" "$icon" "$namecap" "$name" "$(fmt_age "$age")" "$meta")"
-      GB_UNREAD[$cpath]=$(( GB_UNREAD[$cpath] + 1 ))
-    else
-      # READ: fully dimmed history, hollow dot.
-      row="$(printf '\033[2m○ %s  %-*s %5s  %s\033[0m' \
-        "$icon" "$namecap" "$name" "$(fmt_age "$age")" "$meta")"
-      GB_READ[$cpath]=$(( GB_READ[$cpath] + 1 ))
-    fi
-    GB_ROWS[$cpath]+="  ${row}"$'\n'
-  done
-}
 
-# Layout from the cached groups. Header: "<cursor><fold> <~cpath>  ●N ▶N ○N  age".
-layout_claude() {
-  local W="$1" now="$GB_NOW" cp folded ovr hdr hdrcap cur fold_glyph cnt row
-  local n=${#GB_ORDER[@]} i=0
-  CL=(); G_PATHS=(); G_NEWEST=(); G_FOLDED=(); HDR_LINE=()
-  if [ "$n" -eq 0 ]; then
-    CL+=("$(printf '   \033[2m(inbox empty)\033[0m')"); return
-  fi
-  [ "$CUR" -ge "$n" ] && CUR=$(( n - 1 )); [ "$CUR" -lt 0 ] && CUR=0
-  # Header overhead: cursor+fold+sp (3), 2 sp, counts (~14), 2 sp, age (5).
-  hdrcap=$(( W - 26 )); [ "$hdrcap" -lt 8 ] && hdrcap=8
-  for cp in "${GB_ORDER[@]}"; do
-    folded=1
-    { [ "${GB_UNREAD[$cp]}" -gt 0 ] || [ "${GB_RUN[$cp]}" -gt 0 ]; } && folded=0
-    [ "$SHOW_ALL" = 1 ] && folded=0
-    ovr="${FOLD_OVR[$cp]:-}"
-    if [ -n "$ovr" ]; then
-      # Manual toggle sticks until a newer event lands in the group.
-      if [ "${ovr%%:*}" -ge "${GB_NEWEST[$cp]}" ]; then folded="${ovr##*:}"
-      else unset "FOLD_OVR[$cp]"; fi
-    fi
-    G_PATHS+=("$cp"); G_NEWEST+=("${GB_NEWEST[$cp]}"); G_FOLDED+=("$folded")
-    [ "$i" -eq "$CUR" ] && cur=$'\033[1;33m>\033[0m' || cur=' '
-    [ "$folded" = 1 ] && fold_glyph='▸' || fold_glyph='▾'
-    cnt=""
-    [ "${GB_UNREAD[$cp]}" -gt 0 ] && cnt+="$(printf '\033[1;36m●%-2d\033[0m ' "${GB_UNREAD[$cp]}")" || cnt+="    "
-    [ "${GB_RUN[$cp]}"    -gt 0 ] && cnt+="$(printf '\033[36m▶%-2d\033[0m '   "${GB_RUN[$cp]}")"    || cnt+="    "
-    cnt+="$(printf '\033[2m○%-2d\033[0m' "${GB_READ[$cp]}")"
-    hdr="$(printf '%s%s \033[1m%-*s\033[0m  %s  %5s' \
-      "$cur" "$fold_glyph" "$hdrcap" "$(clip "$(tilde "$cp")" "$hdrcap")" \
-      "$cnt" "$(fmt_age $(( now - GB_NEWEST[$cp] )))")"
-    HDR_LINE+=("${#CL[@]}"); CL+=("$hdr")
-    if [ "$folded" != 1 ]; then
-      while IFS= read -r row; do [ -n "$row" ] && CL+=("$row"); done <<<"${GB_ROWS[$cp]}"
-    fi
-    i=$(( i + 1 ))
-  done
-}
+# ---- jump --------------------------------------------------------------
 
-# Emit Bell rows (already clipped to $W), skipping windows already in the
-# Claude section (dedupe).
-render_bells() {
-  local W="$1" s sn sess win wname key any=0 line
-  shopt -s nullglob
-  for s in $(sockets); do
-    [ -S "$s" ] || continue
-    sn="$(basename "$s")"
-    while IFS=$'\t' read -r sess win wname; do
-      key="$(safe "$sn")__$(safe "$sess")__$(safe "$win")"
-      [ -e "$STATE_DIR/$key" ] && continue
-      any=1
-      line="$(clip "$sess:$win $wname  [$sn]" $(( W - 6 )))"
-      printf '   \033[1;31m🔔\033[0m  %s\n' "$line"
-    done < <(tmux -S "$s" list-windows -a -f '#{window_bell_flag}' \
-               -F '#{session_name}	#{window_index}	#{window_name}' 2>/dev/null)
-  done
-  [ "$any" -eq 0 ] && printf '   \033[2m(none)\033[0m\n'
-}
+def jump_target_for_entry(entry, sockets):
+    """(socket_path, session, window) for `entry`, or None when the
+    socket/format cannot be resolved."""
+    socket = resolve_socket(entry.sockname, sockets)
+    if socket is None:
+        return None
+    sw = split_session_window(entry.sess_win)
+    if sw is None:
+        return None
+    session, window = sw
+    return socket, session, window
 
-# Build the whole frame into OUT[] (globals; see layout_claude for why).
-# Layout: head (title, usage, rule, "Claude" heading) / Claude section, which
-# scrolls so the cursor group stays visible / Bell section at the bottom.
-declare -a OUT=() USAGE_CACHE=() BELL_CACHE=()
-SCROLL=0
-# render_frame <W> <H> [full|quick]. "full" (the refresh tick) re-reads the
-# usage cache, the state files and the tmux bell flags; "quick" (a keypress)
-# reuses all of that and only re-lays out the tree -- ~10x cheaper, which is
-# what makes j/k feel immediate.
-render_frame() {
-  local W="$1" H="$2" mode="${3:-full}" tmp
-  OUT=()
-  # Title: drop the key hint when it does not fit (clip cannot see ESC bytes).
-  local hint="(every ${INTERVAL}s · j/k move · Enter fold · a all · q quit)" ts
-  ts="$(date '+%H:%M:%S')"
-  [ $(( 23 + ${#ts} + 2 + ${#hint} )) -gt "$W" ] && hint="(every ${INTERVAL}s)"
-  OUT+=("$(printf '\033[1m tmux attention board \033[0m%s  \033[2m%s\033[0m' "$ts" "$hint")")
-  if [ "$mode" = full ]; then
-    mapfile -t USAGE_CACHE < <(render_usage "$W")
-    build_groups "$W"
-    mapfile -t BELL_CACHE < <(render_bells "$W")
-  fi
-  OUT+=("${USAGE_CACHE[@]}")
-  OUT+=("$(clip ' ─────────────────────────────────────────────────────────────────────' "$W")")
-  OUT+=("$(printf '\033[1;36m Claude\033[0m  \033[2m(grouped by project cwd)\033[0m')")
-  layout_claude "$W"
-  local -a BL=("$(printf '\033[1;35m Bell (other windows)\033[0m')" "${BELL_CACHE[@]}")
 
-  # Height budget: bells keep their lines unless that would starve the
-  # Claude section below 4 lines; then bells get "+N more" instead.
-  local avail total cur_line hidden_below
-  avail=$(( H - 1 - ${#OUT[@]} - ${#BL[@]} ))
-  if [ "$avail" -lt 4 ]; then
-    avail=4; [ "$avail" -gt "${#CL[@]}" ] && avail="${#CL[@]}"
-    local bl_avail=$(( H - 1 - ${#OUT[@]} - avail ))
-    if [ "$bl_avail" -lt "${#BL[@]}" ]; then
-      [ "$bl_avail" -lt 2 ] && bl_avail=2
-      hidden_below=$(( ${#BL[@]} - (bl_avail - 1) ))
-      BL=( "${BL[@]:0:bl_avail-1}" "$(printf '\033[2m   … +%d more (enlarge window)\033[0m' "$hidden_below")" )
-    fi
-  fi
-  # Scroll the Claude section so the cursor's header row is visible, keeping
-  # the first/last visible line free for the ↑/↓ "more" markers when needed.
-  total="${#CL[@]}"
-  if [ "$total" -le "$avail" ]; then
-    SCROLL=0
-    OUT+=("${CL[@]}")
-  else
-    cur_line="${HDR_LINE[$CUR]:-0}"
-    [ "$cur_line" -lt $(( SCROLL + 1 )) ] && SCROLL=$(( cur_line - 1 ))
-    [ "$cur_line" -gt $(( SCROLL + avail - 2 )) ] && SCROLL=$(( cur_line - avail + 2 ))
-    [ "$SCROLL" -gt $(( total - avail )) ] && SCROLL=$(( total - avail ))
-    [ "$SCROLL" -lt 0 ] && SCROLL=0
-    local -a view=("${CL[@]:SCROLL:avail}")
-    hidden_below=$(( total - SCROLL - avail ))
-    [ "$SCROLL" -gt 0 ] && view[0]="$(printf '\033[2m   ↑ %d more\033[0m' "$SCROLL")"
-    [ "$hidden_below" -gt 0 ] && view[avail-1]="$(printf '\033[2m   ↓ %d more\033[0m' "$hidden_below")"
-    OUT+=("${view[@]}")
-  fi
-  OUT+=("${BL[@]}")
-}
+def find_jump_executable(board_path, which_fn=None):
+    """claude-attn-jump next to this script's REAL path, falling back to
+    PATH. None if neither has it."""
+    which_fn = which_fn or shutil.which
+    real_dir = os.path.dirname(os.path.realpath(board_path))
+    candidate = os.path.join(real_dir, "claude-attn-jump")
+    if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+        return candidate
+    return which_fn("claude-attn-jump")
 
-draw() {
-  printf '\033[H'
-  local ln; for ln in "${OUT[@]}"; do printf '%s\033[K\n' "$ln"; done
-  printf '\033[J'
-}
 
-# One keypress (or the refresh interval elapsing). Sets KEY to one of:
-# TIMEOUT, ENTER, UP, DOWN, or the literal character.
-read_key() {
-  local k k2 k3 rc
-  IFS= read -rsn1 -t "${1:-$INTERVAL}" k; rc=$?
-  if [ "$rc" -gt 128 ]; then KEY=TIMEOUT; return; fi
-  [ "$rc" -ne 0 ] && { KEY=TIMEOUT; return; }
-  case "$k" in
-    ''|$'\r'|$'\n')  KEY=ENTER ;;   # '' = newline consumed as delimiter; raw ttys send \r
-    $'\033')
-      KEY=ESC
-      if IFS= read -rsn1 -t 0.05 k2 && IFS= read -rsn1 -t 0.05 k3; then
-        case "$k2$k3" in '[A') KEY=UP ;; '[B') KEY=DOWN ;; esac
-      fi ;;
-    *)   KEY="$k" ;;
-  esac
-}
+def run_jump(executable, socket, session, window, run_fn=None):
+    """Run claude-attn-jump with inherited stdio (never captured -- see
+    claude-attn-jump's run_exec_default docstring: tmux's own "current
+    client" resolution for switch-client/select-window needs the
+    invoking process's real tty on its fds, which capture_output would
+    break). Returns the process return code; never raises."""
+    run_fn = run_fn or (lambda argv: subprocess.run(argv))
+    try:
+        p = run_fn([executable, socket, session, window])
+        return getattr(p, "returncode", 1)
+    except OSError:
+        return 1
 
-toggle_fold() {
-  local cp="${G_PATHS[$CUR]:-}" cur
-  [ -n "$cp" ] || return
-  # Current state = a pending override from this same key burst if any (the
-  # frame has not been redrawn yet), else what the last frame showed.
-  cur="${G_FOLDED[$CUR]}"
-  [ -n "${FOLD_OVR[$cp]:-}" ] && cur="${FOLD_OVR[$cp]##*:}"
-  FOLD_OVR[$cp]="${G_NEWEST[$CUR]}:$(( 1 - cur ))"
-}
 
-measure() {
-  W="${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}"
-  H="${LINES:-$(tput lines 2>/dev/null || echo 24)}"
-  # History cap: ATTN_KEEP if set (>0), else 4x the terminal height. (Was 1x
-  # when every entry cost a line; folded groups now hide most read history,
-  # so the screen holds far more entries than it has lines.)
-  keep_cap="$KEEP"; [ "$keep_cap" -lt 1 ] 2>/dev/null && keep_cap=$(( H * 4 ))
-}
+# ---- state-dir I/O (real files, but the path is always a parameter --
+# tests point it at a temp dir, never at ~/.claude/tmux-status) ----------
 
-# ATTN_ONCE=1: render a single frame to stdout and exit (testing / piping).
-# Deliberately does NOT evict history -- a small test terminal must not
-# delete live entries.
-if [ "${ATTN_ONCE:-0}" = 1 ]; then
-  measure; refresh_windows; refresh_viewed; render_frame "$W" "$H"
-  printf '%s\n' "${OUT[@]}"; exit 0
-fi
+def list_state_files(state_dir):
+    """[(key, raw_text), ...] for each regular, non-dotfile entry
+    directly under state_dir. Mirrors the bash original's plain `*`
+    glob (no dotglob, so .focus/.viewed/.ratelimit/.attn.log are already
+    excluded) plus its `[ -f ]` filter, which is what skips the
+    subdirectories other tools keep here (ctx/, tasks/, task-carry/)."""
+    try:
+        names = os.listdir(state_dir)
+    except OSError:
+        return []
+    out = []
+    for name in sorted(names):
+        if name.startswith("."):
+            continue
+        path = os.path.join(state_dir, name)
+        if not os.path.isfile(path):
+            continue
+        try:
+            with open(path, "r", errors="replace") as f:
+                raw = f.read()
+        except OSError:
+            continue
+        out.append((name, raw))
+    return out
 
-cleanup() { printf '\033[?25h\033[?1049l'; exit 0; }
-trap cleanup INT TERM
-printf '\033[?1049h\033[?25l'   # alt screen + hide cursor
 
-INTERACTIVE=0; [ -t 0 ] && INTERACTIVE=1
-handle_key() {
-  case "$KEY" in
-    j|DOWN) CUR=$(( CUR + 1 )) ;;
-    k|UP)   CUR=$(( CUR - 1 )) ;;
-    g)      CUR=0 ;;
-    G)      CUR=$(( ${#G_PATHS[@]} - 1 )) ;;
-    ENTER|' '|o) toggle_fold ;;
-    a)      SHOW_ALL=$(( 1 - SHOW_ALL )); FOLD_OVR=() ;;
-    q)      cleanup ;;
-  esac
-  [ "$CUR" -lt 0 ] && CUR=0
-  [ "$CUR" -ge "${#G_PATHS[@]}" ] && CUR=$(( ${#G_PATHS[@]} - 1 ))
-  [ "$CUR" -lt 0 ] && CUR=0
-}
+def read_viewed_ts(viewed_dir, key):
+    try:
+        return int(os.stat(os.path.join(viewed_dir, key)).st_mtime)
+    except OSError:
+        return 0
 
-# Loop: one FULL frame (tmux + state files) per interval; in between, keys
-# get a QUICK re-layout from the cached data and the interval clock keeps
-# running, so cursor moves never wait on tmux.
-deadline=0
-while :; do
-  measure
-  cleanup_stale "$keep_cap"
-  render_frame "$W" "$H" full
-  draw
-  [ "$INTERACTIVE" = 1 ] || { sleep "$INTERVAL"; continue; }
-  deadline=$(( ${EPOCHSECONDS} + INTERVAL ))
-  while :; do
-    left=$(( deadline - EPOCHSECONDS )); [ "$left" -lt 1 ] && break
-    read_key "$left"
-    [ "$KEY" = TIMEOUT ] && break
-    # Drain queued keys so a burst costs one redraw.
-    while [ "$KEY" != TIMEOUT ]; do handle_key; read_key 0.02; done
-    measure
-    render_frame "$W" "$H" quick
-    draw
-  done
-done
+
+def cleanup_stale(state_dir, viewed_dir, window_exists_keys, now, max_age,
+                   cap):
+    """Inbox upkeep, 3 passes (mirrors the bash original):
+      1. drop entries for windows that no longer exist, or past MAX_AGE,
+         or with an unparsable ts
+      2. evict the oldest entries beyond the history cap
+      3. prune orphan .viewed/ stamps (no matching inbox entry left)
+    """
+    cap = max(cap, 1)
+    survivors = []
+    for name, raw in list_state_files(state_dir):
+        ts_s = raw.split("\n", 1)[0].split("\t", 1)[0]
+        path = os.path.join(state_dir, name)
+        if not _TS_RE.fullmatch(ts_s):
+            _try_remove(path)
+            continue
+        ts = int(ts_s)
+        if max_age > 0 and (now - ts) >= max_age:
+            _try_remove(path)
+            continue
+        if name not in window_exists_keys:
+            _try_remove(path)
+            continue
+        survivors.append((ts, name, path))
+    survivors.sort(key=lambda t: -t[0])
+    for ts, name, path in survivors[cap:]:
+        _try_remove(path)
+    kept = {name for _, name, _ in survivors[:cap]}
+    try:
+        viewed_names = os.listdir(viewed_dir)
+    except OSError:
+        viewed_names = []
+    for name in viewed_names:
+        if name not in kept:
+            _try_remove(os.path.join(viewed_dir, name))
+
+
+def _try_remove(path):
+    try:
+        os.remove(path)
+    except OSError:
+        pass
+
+
+def dedupe_bells(bell_rows, existing_keys):
+    """bell_rows: [(sockname, sess, win, wname), ...] -- drop any row
+    whose computed key is already shown in the Claude section."""
+    out = []
+    for sockname, sess, win, wname in bell_rows:
+        key = make_key(sockname, sess, win)
+        if key in existing_keys:
+            continue
+        out.append((sockname, sess, win, wname))
+    return out
+
+
+def list_bell_windows(sockets, run_query):
+    """[(sockname, sess, win, wname), ...] for every window with its tmux
+    bell flag set, across `sockets`. `run_query` is injectable so tests
+    never touch a real tmux server."""
+    rows = []
+    for s in sockets:
+        sockname = os.path.basename(s)
+        p = run_query(["tmux", "-S", s, "list-windows", "-a", "-f",
+                        "#{window_bell_flag}", "-F",
+                        "#{session_name}\t#{window_index}\t#{window_name}"])
+        if getattr(p, "returncode", 1) != 0:
+            continue
+        for line in p.stdout.splitlines():
+            parts = line.split("\t")
+            if len(parts) != 3:
+                continue
+            sess, win, wname = parts
+            rows.append((sockname, sess, win, wname))
+    return rows
+
+
+def list_window_keys(sockets, run_query):
+    """The set of keys for every window that currently exists, across
+    `sockets` -- used by cleanup_stale to evict dead-window entries."""
+    keys = set()
+    for s in sockets:
+        sockname = os.path.basename(s)
+        p = run_query(["tmux", "-S", s, "list-windows", "-a", "-F",
+                        "#{session_name}\t#{window_index}"])
+        if getattr(p, "returncode", 1) != 0:
+            continue
+        for line in p.stdout.splitlines():
+            parts = line.split("\t")
+            if len(parts) != 2:
+                continue
+            sess, win = parts
+            keys.add(make_key(sockname, sess, win))
+    return keys
+
+
+# ---- usage gauge (mirrors the /statusline build_mini style) -------------
+
+def compute_gauge(pct):
+    filled = max(0, min(10, pct // 10))
+    empty = 10 - filled
+    if pct < 50:
+        style = "low"
+    elif pct < 80:
+        style = "mid"
+    else:
+        style = "high"
+    return filled, empty, style
+
+
+def read_ratelimit_cache(path):
+    try:
+        with open(path) as f:
+            line = f.readline()
+    except OSError:
+        return None
+    parts = line.rstrip("\n").split("\t")
+    if len(parts) < 5:
+        return None
+    upd, fp, fr, wp, wr = parts[:5]
+
+    def to_pct(s):
+        s = s.split(".")[0]
+        return int(s) if re.fullmatch(r"\d+", s) else None
+
+    fp_i, wp_i = to_pct(fp), to_pct(wp)
+    if fp_i is None and wp_i is None:
+        return None
+    try:
+        upd_i = int(float(upd))
+    except (TypeError, ValueError):
+        upd_i = None
+    return {"upd": upd_i, "fp": fp_i, "fr": fr, "wp": wp_i, "wr": wr}
+
+
+def _mini_segs(label, pct, reset_ts, now):
+    filled, empty, style = compute_gauge(pct)
+    color = {"low": "low", "mid": "mid", "high": "high"}[style]
+    bar = "█" * filled + "░" * empty
+    cd = fmt_countdown(reset_ts, now) if reset_ts not in (None, "") else ""
+    plain = "%s: [%s] %d%%" % (label, bar, pct)
+    segs = [("%s:" % label, "qlabel"), (" [", "dim"), (bar[:filled], color),
+            (bar[filled:], "empty"), ("]", "dim"), (" %d%%" % pct, color)]
+    if cd:
+        plain += " ↻%s" % cd
+        segs.append((" ↻%s" % cd, color))
+    return plain, segs
+
+
+def render_usage_segments(cache, width, now):
+    """(plain, segs) for the usage line, or None when the cache is
+    absent/unusable. Falls back to a compact "5h NN% 7d NN%" form when
+    the full gauge would not fit `width`."""
+    if cache is None:
+        return None
+    plain_parts = []
+    segs_parts = []
+    if cache["fp"] is not None:
+        p, s = _mini_segs("5h", cache["fp"], cache.get("fr"), now)
+        plain_parts.append(p)
+        segs_parts.append(s)
+    if cache["wp"] is not None:
+        p, s = _mini_segs("7d", cache["wp"], cache.get("wr"), now)
+        plain_parts.append(p)
+        segs_parts.append(s)
+    if not plain_parts:
+        return None
+    stale = ""
+    if cache.get("upd") is not None:
+        age = now - cache["upd"]
+        if age >= 120:
+            stale = "  ⟳%s ago" % fmt_age(age)
+    plain_full = "  ".join(plain_parts) + stale
+    if disp_width(plain_full) <= width:
+        segs = []
+        for i, s in enumerate(segs_parts):
+            if i:
+                segs.append(("  ", None))
+            segs.extend(s)
+        if stale:
+            segs.append((stale, "dim"))
+        return plain_full, segs
+    compact_plain = "  ".join(
+        "%s %d%%" % (("5h" if cache["fp"] is not None and i == 0 else "7d"),
+                      (cache["fp"] if cache["fp"] is not None and i == 0
+                       else cache["wp"]))
+        for i in range(len(plain_parts)))
+    if disp_width(compact_plain) <= width:
+        return compact_plain, [(compact_plain, None)]
+    clipped = clip(compact_plain, width)
+    return clipped, [(clipped, None)]
+
+
+# =============================================================================
+# SHELL -- curses drawing, tmux subprocess calls, the main loop. Thin: it
+# delegates every decision above to the CORE functions.
+# =============================================================================
+
+STATE_SUBDIR = os.path.join(".claude", "tmux-status")
+
+
+def state_dir():
+    return os.path.join(os.path.expanduser("~"), *STATE_SUBDIR.split(os.sep))
+
+
+def build_frame(state_dir_path, viewed_dir, now, age_alert, show_all,
+                 fold_ovr, cursor, scroll, width, height, interval,
+                 usage_cache, bell_rows, status_msg, read_query=None):
+    """Assemble one full frame. Returns a dict with everything the shell
+    needs: `lines` (list of seg-lists), `row_actions` (aligned to the
+    Claude-section slice of `lines`, None elsewhere), `claude_start` (the
+    line index the Claude section's rows begin at, for mapping a click y
+    into row_actions), new `cursor` id, new `scroll`, and `groups` (for
+    the next quick refresh)."""
+    entries = []
+    for key, raw in list_state_files(state_dir_path):
+        e = parse_state_entry(key, raw)
+        if e is not None:
+            entries.append(e)
+    viewed_ts_map = {e.key: read_viewed_ts(viewed_dir, e.key) for e in entries}
+    groups = build_groups(entries, now, viewed_ts_map, age_alert)
+
+    namecap, metacap = row_geometry(width)
+    hdrcap = header_geometry(width)
+    rows = build_rows(groups, show_all, fold_ovr)
+    idx = locate_cursor(rows, cursor)
+    if rows:
+        idx = max(0, min(idx, len(rows) - 1))
+
+    lines = []
+    row_actions_head = []
+
+    ts = time.strftime("%H:%M:%S")
+    hint = "(every %ss · j/k move · Enter jump/fold · click · a all · q quit)" % interval
+    title_text = " tmux attention board "
+    if disp_width(title_text) + disp_width(ts) + 2 + disp_width(hint) > width:
+        hint = "(every %ss)" % interval
+    lines.append([(title_text, "bold"), (ts, None), ("  ", None),
+                   (hint, "dim")])
+    row_actions_head.append(None)
+
+    if status_msg:
+        lines.append([(status_msg, "red_bold")])
+        row_actions_head.append(None)
+
+    usage = render_usage_segments(usage_cache, width, now)
+    if usage is not None:
+        lines.append([(" ", None)] + usage[1])
+        row_actions_head.append(None)
+
+    lines.append([(clip(" " + "─" * 73, width), "dim")])
+    row_actions_head.append(None)
+    lines.append([(" Claude", "cyan_bold"), ("  (grouped by project cwd)",
+                                               "dim")])
+    row_actions_head.append(None)
+
+    claude_start = len(lines)
+    if not rows:
+        lines.append([("   ", None), ("(inbox empty)", "dim")])
+        row_actions_head.append(None)
+        new_scroll = 0
+    else:
+        head_h = claude_start
+        bell_lines_preview = max(1, len(bell_rows)) + 1
+        avail = height - 1 - head_h - bell_lines_preview
+        if avail < 4:
+            avail = min(4, len(rows))
+        new_scroll = follow_cursor(idx, scroll, avail, len(rows))
+        view, new_scroll = windowed_rows(rows, new_scroll, avail)
+        for r in view:
+            if r["kind"] == "marker":
+                lines.append(render_marker_segs(r["text"]))
+                row_actions_head.append(None)
+            else:
+                here = (r["kind"] == "header" and
+                        rows[idx]["kind"] == "header" and
+                        rows[idx]["cpath"] == r["cpath"]) or \
+                       (r["kind"] == "entry" and rows[idx]["kind"] == "entry"
+                        and rows[idx]["key"] == r["key"])
+                if r["kind"] == "header":
+                    lines.append(render_header_segs(r["group"], here,
+                                                      r["folded"], hdrcap,
+                                                      now))
+                    row_actions_head.append(("header", r["cpath"], None))
+                else:
+                    lines.append(render_entry_segs(r["entry"], r["cls"],
+                                                      here, namecap, metacap,
+                                                      ))
+                    row_actions_head.append(("entry", r["cpath"], r["key"]))
+
+    lines.append([(" Bell (other windows)", "magenta_bold")])
+    row_actions_head.append(None)
+    if not bell_rows:
+        lines.append([("   ", None), ("(none)", "dim")])
+        row_actions_head.append(None)
+    else:
+        for sockname, sess, win, wname in bell_rows:
+            text = clip("%s:%s %s  [%s]" % (sess, win, wname, sockname),
+                         max(1, width - 6))
+            lines.append([("   ", None), ("\U0001f514", "red_bold"),
+                           ("  ", None), (text, None)])
+            row_actions_head.append(None)
+
+    new_cursor = None
+    if rows:
+        r = rows[idx]
+        new_cursor = row_id(r) + ((r["cpath"],) if r["kind"] == "entry"
+                                   else ())
+
+    return {
+        "lines": lines,
+        "row_actions": row_actions_head,
+        "claude_start": claude_start,
+        "cursor": new_cursor,
+        "scroll": new_scroll,
+        "groups": groups,
+        "rows": rows,
+        "idx": idx,
+    }
+
+
+# ---- curses color pairs --------------------------------------------------
+
+_COLOR_PAIR_SPEC = [
+    ("cyan", curses.COLOR_CYAN, False),
+    ("cyan_bold", curses.COLOR_CYAN, True),
+    ("yellow_bold", curses.COLOR_YELLOW, True),
+    ("green_bold", curses.COLOR_GREEN, True),
+    ("red_bold", curses.COLOR_RED, True),
+    ("magenta_bold", curses.COLOR_MAGENTA, True),
+    ("cursor", curses.COLOR_YELLOW, True),
+]
+
+
+def init_colors():
+    """Returns {style_name: curses_attr}. Degrades to bold/normal-only
+    when the terminal has no color support."""
+    attrs = {None: curses.A_NORMAL, "bold": curses.A_BOLD,
+             "dim": curses.A_DIM, "qlabel": curses.A_DIM, "empty": curses.A_DIM,
+             "low": curses.A_NORMAL, "mid": curses.A_NORMAL,
+             "high": curses.A_NORMAL}
+    has_color = False
+    try:
+        has_color = curses.has_colors()
+    except curses.error:
+        has_color = False
+    if has_color:
+        try:
+            curses.start_color()
+            curses.use_default_colors()
+        except curses.error:
+            has_color = False
+    if has_color:
+        for i, (name, color, bold) in enumerate(_COLOR_PAIR_SPEC, start=1):
+            try:
+                curses.init_pair(i, color, -1)
+                a = curses.color_pair(i)
+                if bold:
+                    a |= curses.A_BOLD
+                attrs[name] = a
+            except curses.error:
+                attrs[name] = curses.A_BOLD if bold else curses.A_NORMAL
+        attrs["low"] = attrs.get("cyan", curses.A_NORMAL)
+        attrs["mid"] = attrs.get("yellow_bold", curses.A_BOLD)
+        attrs["high"] = attrs.get("red_bold", curses.A_BOLD)
+    else:
+        for name, _color, bold in _COLOR_PAIR_SPEC:
+            attrs[name] = curses.A_BOLD if bold else curses.A_NORMAL
+    return attrs
+
+
+def draw_frame(win, frame, attrs):
+    win.erase()
+    h, w = win.getmaxyx()
+    for y, segs in enumerate(frame["lines"]):
+        if y >= h:
+            break
+        x = 0
+        for text, style in segs:
+            if not text or x >= w:
+                continue
+            avail = w - x
+            if disp_width(text) > avail:
+                text = clip(text, avail)
+            try:
+                win.addstr(y, x, text, attrs.get(style, curses.A_NORMAL))
+            except curses.error:
+                pass
+            x += disp_width(text)
+    win.refresh()
+
+
+# ---- main loop ------------------------------------------------------------
+
+def run_once_plain(out=sys.stdout):
+    """ATTN_ONCE=1: render a single frame as plain (ANSI, no curses)
+    text and exit. Deliberately does NOT call cleanup_stale -- a small
+    test terminal must not delete live entries."""
+    now = int(time.time())
+    sdir = state_dir()
+    viewed_dir = os.path.join(sdir, ".viewed")
+    age_alert = int(os.environ.get("ATTN_AGE_ALERT", "300"))
+    interval = sys.argv[1] if len(sys.argv) > 1 else "3"
+    width = int(os.environ.get("COLUMNS") or shutil.get_terminal_size().columns)
+    height = int(os.environ.get("LINES") or shutil.get_terminal_size().lines)
+
+    sockets = list_sockets()
+    bell_rows = []
+    if sockets:
+        existing_keys = {k for k, _ in list_state_files(sdir)}
+        bell_rows = dedupe_bells(
+            list_bell_windows(sockets, lambda a: subprocess.run(
+                a, capture_output=True, text=True)),
+            existing_keys)
+
+    usage_cache = read_ratelimit_cache(os.path.join(sdir, ".ratelimit"))
+
+    frame = build_frame(sdir, viewed_dir, now, age_alert, False, {}, None, 0,
+                         width, height, interval, usage_cache, bell_rows,
+                         None)
+    for segs in frame["lines"]:
+        print(render_ansi(segs), file=out)
+    return 0
+
+
+def main(argv):
+    if os.environ.get("ATTN_ONCE") == "1":
+        return run_once_plain()
+
+    interval = float(argv[1]) if len(argv) > 1 else 3.0
+    max_age = int(os.environ.get("ATTN_MAX_AGE", "0"))
+    age_alert = int(os.environ.get("ATTN_AGE_ALERT", "300"))
+    keep_env = int(os.environ.get("ATTN_KEEP", "0"))
+    os.environ.get("ATTN_GRACE", "5")  # accepted, unused (see module docstring)
+
+    sdir = state_dir()
+    viewed_dir = os.path.join(sdir, ".viewed")
+    os.makedirs(sdir, exist_ok=True)
+    os.makedirs(viewed_dir, exist_ok=True)
+
+    show_all = False
+    fold_ovr = {}
+    cursor = None
+    scroll = 0
+    status_msg = None
+    status_expire = 0.0
+
+    def stdscr_main(stdscr):
+        nonlocal show_all, fold_ovr, cursor, scroll, status_msg, status_expire
+        curses.curs_set(0)
+        stdscr.nodelay(False)
+        try:
+            curses.mousemask(curses.BUTTON1_CLICKED | curses.BUTTON1_PRESSED
+                              | curses.BUTTON4_PRESSED
+                              | getattr(curses, "BUTTON5_PRESSED", 0))
+        except curses.error:
+            pass
+        attrs = init_colors()
+        bell_rows = []
+        usage_cache = None
+        last_full = 0.0
+
+        while True:
+            now = int(time.time())
+            if status_msg and time.monotonic() >= status_expire:
+                status_msg = None
+            # Full refresh (tmux queries + eviction) once per `interval`;
+            # a keypress between ticks only re-lays out the already-read
+            # state-file data in build_frame, which stays cheap because
+            # it never touches tmux.
+            if time.monotonic() - last_full >= interval:
+                sockets = list_sockets()
+                win_keys = list_window_keys(sockets, run_query_default)
+                keep_cap = keep_env if keep_env > 0 else stdscr.getmaxyx()[0] * 4
+                cleanup_stale(sdir, viewed_dir, win_keys, now, max_age,
+                               keep_cap)
+                existing_keys = {k for k, _ in list_state_files(sdir)}
+                bell_rows = dedupe_bells(
+                    list_bell_windows(sockets, run_query_default),
+                    existing_keys)
+                usage_cache = read_ratelimit_cache(
+                    os.path.join(sdir, ".ratelimit"))
+                last_full = time.monotonic()
+
+            height, width = stdscr.getmaxyx()
+            frame = build_frame(sdir, viewed_dir, now, age_alert, show_all,
+                                 fold_ovr, cursor, scroll, width, height,
+                                 interval, usage_cache, bell_rows,
+                                 status_msg)
+            cursor = frame["cursor"]
+            scroll = frame["scroll"]
+            draw_frame(stdscr, frame, attrs)
+
+            stdscr.timeout(int(interval * 1000))
+            ch = stdscr.getch()
+            if ch == -1:
+                last_full = 0.0  # force a full refresh next loop
+                continue
+            action = None
+            if ch == curses.KEY_MOUSE:
+                try:
+                    _id, mx, my, _mz, bstate = curses.getmouse()
+                except curses.error:
+                    bstate = 0
+                    my = -1
+                if bstate & (curses.BUTTON1_CLICKED | curses.BUTTON1_PRESSED):
+                    rel = my - frame["claude_start"]
+                    ra = frame["row_actions"][frame["claude_start"]:]
+                    action = handle_click(rel, ra)
+                elif bstate & curses.BUTTON4_PRESSED:
+                    scroll, cursor, rows_idx = _wheel(frame, -3)
+                elif bstate & getattr(curses, "BUTTON5_PRESSED", 0):
+                    scroll, cursor, rows_idx = _wheel(frame, 3)
+            else:
+                key = _decode_key(ch, stdscr)
+                rows = frame["rows"]
+                idx = frame["idx"]
+                new_idx, action = handle_key(key, rows, idx)
+                if rows:
+                    r = rows[new_idx]
+                    cursor = row_id(r) + ((r["cpath"],) if r["kind"] == "entry"
+                                           else ())
+
+            if action is None:
+                continue
+            if action["type"] == "quit":
+                return
+            if action["type"] == "show_all":
+                show_all = not show_all
+                fold_ovr.clear()
+            elif action["type"] == "toggle":
+                for g in frame["groups"]:
+                    if g["cpath"] == action["cpath"]:
+                        folded_now = resolve_fold(g, show_all, fold_ovr)
+                        toggle_group_fold(g, folded_now, fold_ovr)
+                        break
+            elif action["type"] == "jump":
+                entry = _entry_for_key(frame["groups"], action["key"])
+                if entry is not None:
+                    target = jump_target_for_entry(entry, list_sockets())
+                    if target is None:
+                        status_msg = "jump failed: socket not found"
+                        status_expire = time.monotonic() + 4
+                    else:
+                        executable = find_jump_executable(
+                            os.path.realpath(__file__))
+                        if executable is None:
+                            status_msg = "jump failed: claude-attn-jump not found"
+                            status_expire = time.monotonic() + 4
+                        else:
+                            curses.def_prog_mode()
+                            curses.endwin()
+                            rc = run_jump(executable, *target)
+                            stdscr.refresh()
+                            curses.reset_prog_mode()
+                            if rc != 0:
+                                status_msg = "jump failed (exit %d)" % rc
+                                status_expire = time.monotonic() + 4
+
+    def _wheel(frame, delta):
+        total = len(frame["rows"])
+        avail = max(1, len(frame["lines"]) - frame["claude_start"])
+        new_scroll = scroll_wheel(frame["scroll"], delta, total, avail)
+        new_idx = clamp_cursor_to_view(frame["idx"], new_scroll, avail, total)
+        rows = frame["rows"]
+        new_cursor = None
+        if rows:
+            r = rows[new_idx]
+            new_cursor = row_id(r) + ((r["cpath"],) if r["kind"] == "entry"
+                                       else ())
+        return new_scroll, new_cursor, new_idx
+
+    def _entry_for_key(groups, key):
+        for g in groups:
+            for e, _cls in g["entries"]:
+                if e.key == key:
+                    return e
+        return None
+
+    def _decode_key(ch, stdscr):
+        if ch in (curses.KEY_ENTER, 10, 13):
+            return "ENTER"
+        if ch == curses.KEY_UP:
+            return "UP"
+        if ch == curses.KEY_DOWN:
+            return "DOWN"
+        if ch == curses.KEY_RESIZE:
+            return ""
+        try:
+            return chr(ch)
+        except (ValueError, OverflowError):
+            return ""
+
+    curses.wrapper(stdscr_main)
+    return 0
+
+
+def run_query_default(argv):
+    return subprocess.run(argv, capture_output=True, text=True)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv) or 0)
