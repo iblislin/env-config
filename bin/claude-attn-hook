@@ -88,18 +88,10 @@ if [ "$sz" -gt 262144 ]; then
   tail -n 2000 "$log" >"$log.tmp" 2>/dev/null && mv -f "$log.tmp" "$log" 2>/dev/null
 fi
 
-# --- desktop notification (cross-virtual-desktop) -------------------
-# The tmux bell only sticks on NON-active windows, and tmux is blind to
-# virtual-desktop switches, so the board/bell can silently miss a window
-# you left "active" on another desktop. A libnotify popup reaches you on
-# whatever desktop you are on. Only for WAITING (Claude needs you).
-if [ "$status" = "waiting" ] && command -v notify-send >/dev/null 2>&1; then
-  : "${DISPLAY:=:0}"; export DISPLAY
-  [ -z "${XDG_RUNTIME_DIR:-}" ] && export XDG_RUNTIME_DIR="/run/user/$(id -u)"
-  [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ] && \
-    export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
-  timeout 3 notify-send -u critical -a claude-attn \
-    "🔔 Claude needs you — ${sess}:${win}" "${label:-$wname}" >/dev/null 2>&1 || true
-fi
+# No desktop notification any more (retired 2026-10-07): a notify-send
+# popup on WAITING used to cover a window left "active" on another
+# desktop, but the board's unread state is now WM-focus based
+# (.focus/.viewed), so it already catches that case, and the popup had
+# become redundant noise. Restore from git history if wanted again.
 
 exit 0
