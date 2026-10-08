@@ -915,5 +915,395 @@ class WheelScrollTests(unittest.TestCase):
                                    "cpath": target_row["cpath"]})
 
 
+# ---------------------------------------------------------------------
+# 21. vim-style `/` search -- matching fundamentals
+# ---------------------------------------------------------------------
+def mk_match_entry(sess_win="alpha_c:0", wname="shell", cpath="/home/u/proj",
+                    label="", status="waiting", ts=1000, key="k1",
+                    sockname="inner"):
+    return board.Entry(key, ts, status, sess_win, wname, sockname, cpath,
+                        label, "")
+
+
+class SmartcaseContainsTests(unittest.TestCase):
+    def test_lowercase_query_matches_case_insensitively(self):
+        self.assertTrue(board.smartcase_contains("AlphaProj", "alpha"))
+        self.assertTrue(board.smartcase_contains("ALPHAPROJ", "alpha"))
+
+    def test_uppercase_query_matches_case_sensitively_only(self):
+        self.assertTrue(board.smartcase_contains("AlphaProj", "Alpha"))
+        self.assertFalse(board.smartcase_contains("alphaproj", "Alpha"))
+
+    def test_empty_query_never_matches(self):
+        self.assertFalse(board.smartcase_contains("anything", ""))
+
+
+class EntrySearchFieldsTests(unittest.TestCase):
+    def test_session_name_before_last_colon_with_dots(self):
+        e = mk_match_entry(sess_win="beta.code:main:7")
+        fields = board.entry_search_fields(e)
+        self.assertIn("beta.code:main", fields)
+
+    def test_fields_include_cpath_tilde_and_label_fallback_to_wname(self):
+        e = mk_match_entry(cpath=os.path.expanduser("~/proj-x"),
+                            label="", wname="win-name")
+        fields = board.entry_search_fields(e)
+        self.assertIn(os.path.expanduser("~/proj-x"), fields)
+        self.assertIn("~/proj-x", fields)
+        self.assertIn("win-name", fields)
+
+    def test_label_takes_priority_over_wname(self):
+        e = mk_match_entry(label="my title", wname="win-name")
+        fields = board.entry_search_fields(e)
+        self.assertIn("my title", fields)
+        self.assertNotIn("win-name", fields)
+
+
+class FindMatchesTests(unittest.TestCase):
+    def setUp(self):
+        self.e_a = mk_match_entry(key="ka", cpath="/home/u/proj-a",
+                                   sess_win="alpha_c:0", label="",
+                                   wname="shell")
+        self.e_b = mk_match_entry(key="kb", cpath="/home/u/proj-b",
+                                   sess_win="beta.code:main:7",
+                                   label="needle-label", wname="win")
+        groups = [
+            {"cpath": "/home/u/proj-a", "newest": 100, "unread": 0,
+             "read": 1, "run": 0,
+             "entries": [(self.e_a, {"kind": "read", "age": 1})]},
+            {"cpath": "/home/u/proj-b", "newest": 200, "unread": 1,
+             "read": 0, "run": 0,
+             "entries": [(self.e_b, {"kind": "unread", "age": 1,
+                                      "alert": False})]},
+        ]
+        self.rows = board.build_rows(groups, True, {})
+
+    def test_matches_by_cpath(self):
+        idxs = board.find_matches(self.rows, "proj-a")
+        self.assertEqual([self.rows[i]["key"] for i in idxs], ["ka"])
+
+    def test_matches_by_tilde_form(self):
+        home = os.path.expanduser("~")
+        e = mk_match_entry(key="kh", cpath=home + "/proj-home")
+        rows = board.build_rows(
+            [{"cpath": home + "/proj-home", "newest": 1, "unread": 0,
+              "read": 1, "run": 0,
+              "entries": [(e, {"kind": "read", "age": 1})]}],
+            True, {})
+        idxs = board.find_matches(rows, "~/proj-home")
+        self.assertEqual([rows[i]["key"] for i in idxs], ["kh"])
+
+    def test_matches_by_session_name(self):
+        idxs = board.find_matches(self.rows, "beta.code:main")
+        self.assertEqual([self.rows[i]["key"] for i in idxs], ["kb"])
+
+    def test_matches_by_label(self):
+        idxs = board.find_matches(self.rows, "needle")
+        self.assertEqual([self.rows[i]["key"] for i in idxs], ["kb"])
+
+    def test_header_rows_never_match(self):
+        # The header's own displayed text is the (tilde-shortened) cpath,
+        # which textually matches -- but header rows must never be
+        # returned, only entries.
+        idxs = board.find_matches(self.rows, "proj-a")
+        for i in idxs:
+            self.assertEqual(self.rows[i]["kind"], "entry")
+
+    def test_empty_query_matches_nothing(self):
+        self.assertEqual(board.find_matches(self.rows, ""), [])
+
+
+# ---------------------------------------------------------------------
+# 22. vim-style `/` search -- incremental scan (anchor-relative, wraps)
+# ---------------------------------------------------------------------
+def mk_full_search_rows():
+    """A flat row list spanning 3 groups (header+entry each), for
+    exercising find_matches/search_scan/search_scan_next directly.
+    Entries k1 and k2 match "needle"; k0 does not. Also returns the
+    backing `groups` (all auto-folded: unread=0, run=0) for the
+    fold-aware tests."""
+    groups = [
+        {"cpath": "/p0", "newest": 300, "unread": 0, "read": 1, "run": 0,
+         "entries": [(mk_match_entry(key="k0", cpath="/p0", label="alpha",
+                                      sess_win="a:0"),
+                      {"kind": "read", "age": 1})]},
+        {"cpath": "/p1", "newest": 200, "unread": 0, "read": 1, "run": 0,
+         "entries": [(mk_match_entry(key="k1", cpath="/p1", label="needle",
+                                      sess_win="a:1"),
+                      {"kind": "read", "age": 1})]},
+        {"cpath": "/p2", "newest": 100, "unread": 0, "read": 1, "run": 0,
+         "entries": [(mk_match_entry(key="k2", cpath="/p2", label="needle",
+                                      sess_win="a:2"),
+                      {"kind": "read", "age": 1})]},
+    ]
+    return board.build_rows(groups, True, {}), groups
+
+
+class SearchScanTests(unittest.TestCase):
+    def test_scan_finds_first_match_at_or_after_anchor(self):
+        rows, _ = mk_full_search_rows()
+        # indices: 0 hdr /p0, 1 k0(alpha), 2 hdr /p1, 3 k1(needle),
+        #          4 hdr /p2, 5 k2(needle)
+        self.assertEqual(board.search_scan(rows, "needle", 0), 3)
+        self.assertEqual(board.search_scan(rows, "needle", 4), 5)
+
+    def test_scan_wraps_to_top_when_no_match_after_anchor(self):
+        rows, _ = mk_full_search_rows()
+        self.assertEqual(board.search_scan(rows, "needle", 6), 3)
+
+    def test_scan_returns_none_when_no_matches(self):
+        rows, _ = mk_full_search_rows()
+        self.assertIsNone(board.search_scan(rows, "xyz", 0))
+
+
+class SearchScanNextTests(unittest.TestCase):
+    def test_forward_finds_strictly_after_anchor(self):
+        rows, _ = mk_full_search_rows()
+        idx, wrap = board.search_scan_next(rows, "needle", 3, True)
+        self.assertEqual(idx, 5)
+        self.assertIsNone(wrap)
+
+    def test_forward_wraps_to_top_reports_wrap(self):
+        rows, _ = mk_full_search_rows()
+        idx, wrap = board.search_scan_next(rows, "needle", 5, True)
+        self.assertEqual(idx, 3)
+        self.assertEqual(wrap, "TOP")
+
+    def test_backward_finds_strictly_before_anchor(self):
+        rows, _ = mk_full_search_rows()
+        idx, wrap = board.search_scan_next(rows, "needle", 5, False)
+        self.assertEqual(idx, 3)
+        self.assertIsNone(wrap)
+
+    def test_backward_wraps_to_bottom_reports_wrap(self):
+        rows, _ = mk_full_search_rows()
+        idx, wrap = board.search_scan_next(rows, "needle", 3, False)
+        self.assertEqual(idx, 5)
+        self.assertEqual(wrap, "BOTTOM")
+
+    def test_no_matches_returns_none_wrap_none(self):
+        rows, _ = mk_full_search_rows()
+        self.assertEqual(board.search_scan_next(rows, "xyz", 0, True),
+                          (None, None))
+
+
+class SearchStatusTextTests(unittest.TestCase):
+    def test_wrap_status_text_top_and_bottom(self):
+        self.assertEqual(board.search_wrap_status("TOP", "x"),
+                          "search hit BOTTOM, continuing at TOP")
+        self.assertEqual(board.search_wrap_status("BOTTOM", "x"),
+                          "search hit TOP, continuing at BOTTOM")
+        self.assertIsNone(board.search_wrap_status(None, "x"))
+
+    def test_not_found_status_text(self):
+        self.assertEqual(board.search_not_found_status("xyz"),
+                          "Pattern not found: xyz")
+
+
+# ---------------------------------------------------------------------
+# 23. vim-style `/` search -- folding integration (unfold-on-match,
+#     the Esc-restore pattern)
+# ---------------------------------------------------------------------
+class EnsureGroupUnfoldedTests(unittest.TestCase):
+    def test_unfolds_a_folded_group_via_override_mechanism(self):
+        groups = [{"cpath": "/p1", "newest": 1000, "unread": 0, "read": 1,
+                   "run": 0, "entries": []}]
+        fold_ovr = {}
+        self.assertTrue(board.resolve_fold(groups[0], False, fold_ovr))
+        changed = board.ensure_group_unfolded(groups, False, fold_ovr, "/p1")
+        self.assertTrue(changed)
+        self.assertEqual(fold_ovr["/p1"], (1000, False))
+        self.assertFalse(board.resolve_fold(groups[0], False, fold_ovr))
+
+    def test_noop_when_already_unfolded(self):
+        groups = [{"cpath": "/p1", "newest": 1000, "unread": 1, "read": 0,
+                   "run": 0, "entries": []}]  # unread -> auto-unfolded
+        fold_ovr = {}
+        changed = board.ensure_group_unfolded(groups, False, fold_ovr, "/p1")
+        self.assertFalse(changed)
+        self.assertEqual(fold_ovr, {})
+
+
+class SearchIncrementalTests(unittest.TestCase):
+    def test_match_inside_folded_group_unfolds_it(self):
+        rows, groups = mk_full_search_rows()
+        fold_ovr = {}
+        anchor = board.cursor_id_for_row(rows[0])  # header /p0
+        new_cursor = board.search_incremental(groups, False, fold_ovr,
+                                               "needle", anchor)
+        self.assertEqual(new_cursor, ("entry", "k1", "/p1"))
+        self.assertIn("/p1", fold_ovr)
+        self.assertEqual(fold_ovr["/p1"], (200, False))
+
+    def test_empty_query_returns_none_and_touches_nothing(self):
+        rows, groups = mk_full_search_rows()
+        fold_ovr = {}
+        anchor = board.cursor_id_for_row(rows[0])
+        self.assertIsNone(
+            board.search_incremental(groups, False, fold_ovr, "", anchor))
+        self.assertEqual(fold_ovr, {})
+
+    def test_no_match_returns_none(self):
+        rows, groups = mk_full_search_rows()
+        fold_ovr = {}
+        anchor = board.cursor_id_for_row(rows[0])
+        self.assertIsNone(
+            board.search_incremental(groups, False, fold_ovr, "xyz", anchor))
+
+
+class SearchJumpTests(unittest.TestCase):
+    def test_next_match_wraps_with_status_and_unfolds(self):
+        rows, groups = mk_full_search_rows()
+        fold_ovr = {}
+        anchor = board.cursor_id_for_row(rows[5])  # k2, the last match
+        new_cursor, msg = board.search_jump(groups, False, fold_ovr,
+                                             "needle", anchor, True)
+        self.assertEqual(new_cursor, ("entry", "k1", "/p1"))
+        self.assertEqual(msg, "search hit BOTTOM, continuing at TOP")
+        self.assertIn("/p1", fold_ovr)
+
+    def test_prev_match_wraps_with_status(self):
+        rows, groups = mk_full_search_rows()
+        fold_ovr = {}
+        anchor = board.cursor_id_for_row(rows[3])  # k1, the first match
+        new_cursor, msg = board.search_jump(groups, False, fold_ovr,
+                                             "needle", anchor, False)
+        self.assertEqual(new_cursor, ("entry", "k2", "/p2"))
+        self.assertEqual(msg, "search hit TOP, continuing at BOTTOM")
+
+    def test_not_found_status_when_nothing_matches(self):
+        rows, groups = mk_full_search_rows()
+        anchor = board.cursor_id_for_row(rows[0])
+        new_cursor, msg = board.search_jump(groups, False, {}, "xyz",
+                                             anchor, True)
+        self.assertIsNone(new_cursor)
+        self.assertEqual(msg, "Pattern not found: xyz")
+
+
+class SearchEscRestoreTests(unittest.TestCase):
+    def test_fold_ovr_snapshot_restores_after_unfold(self):
+        _, groups = mk_full_search_rows()
+        fold_ovr = {}
+        saved = dict(fold_ovr)  # the SHELL snapshots fold_ovr before `/`
+        cursor = board.search_incremental(groups, False, fold_ovr, "needle",
+                                           None)
+        self.assertIsNotNone(cursor)
+        self.assertIn("/p1", fold_ovr)  # search unfolded it
+        # Esc: the SHELL restores fold_ovr from its pre-search snapshot
+        fold_ovr.clear()
+        fold_ovr.update(saved)
+        self.assertNotIn("/p1", fold_ovr)
+        self.assertTrue(board.resolve_fold(groups[1], False, fold_ovr))
+
+
+# ---------------------------------------------------------------------
+# 24. vim-style `/` search -- text-entry key handling
+# ---------------------------------------------------------------------
+class HandleSearchKeyTests(unittest.TestCase):
+    def test_printable_appends(self):
+        res = board.handle_search_key("x", "fo")
+        self.assertEqual(res, {"query": "fox", "exit": False,
+                                "confirm": False})
+
+    def test_backspace_deletes_last_char(self):
+        res = board.handle_search_key("BACKSPACE", "foo")
+        self.assertEqual(res, {"query": "fo", "exit": False,
+                                "confirm": False})
+
+    def test_backspace_on_empty_exits_without_confirm(self):
+        res = board.handle_search_key("BACKSPACE", "")
+        self.assertEqual(res, {"query": "", "exit": True, "confirm": False})
+
+    def test_enter_exits_and_confirms(self):
+        res = board.handle_search_key("ENTER", "foo")
+        self.assertEqual(res, {"query": "foo", "exit": True,
+                                "confirm": True})
+
+    def test_esc_exits_without_confirm(self):
+        res = board.handle_search_key("ESC", "foo")
+        self.assertEqual(res, {"query": "foo", "exit": True,
+                                "confirm": False})
+
+    def test_none_key_ignored(self):
+        res = board.handle_search_key(None, "foo")
+        self.assertEqual(res, {"query": "foo", "exit": False,
+                                "confirm": False})
+
+
+# ---------------------------------------------------------------------
+# 25. vim-style `/` search -- normal-mode key handling for / n N, and
+#     the drain-burst invariant (a `/`/n/N always returns a non-None
+#     action, which is the PRE-EXISTING, generic condition the burst
+#     loop in main() already breaks on -- see the report for how this
+#     was verified beyond this pure-function check).
+# ---------------------------------------------------------------------
+class HandleKeyNormalModeSearchTests(unittest.TestCase):
+    def test_slash_returns_search_start_action(self):
+        rows = mk_rows()
+        idx, action = board.handle_key("/", rows, 1)
+        self.assertEqual(idx, 1)
+        self.assertEqual(action, {"type": "search_start"})
+
+    def test_n_returns_search_next_forward(self):
+        rows = mk_rows()
+        _, action = board.handle_key("n", rows, 0)
+        self.assertEqual(action, {"type": "search_next", "forward": True})
+
+    def test_capital_n_returns_search_next_backward(self):
+        rows = mk_rows()
+        _, action = board.handle_key("N", rows, 0)
+        self.assertEqual(action, {"type": "search_next", "forward": False})
+
+    def test_slash_and_n_actions_are_non_none_ending_the_burst(self):
+        rows = mk_rows()
+        for key in ("/", "n", "N"):
+            _, action = board.handle_key(key, rows, 0)
+            self.assertIsNotNone(action)
+        # also true with an empty row list (the n == 0 branch)
+        for key in ("/", "n", "N"):
+            _, action = board.handle_key(key, [], 0)
+            self.assertIsNotNone(action)
+
+    def test_esc_in_normal_mode_clears_search(self):
+        # Esc while NOT in the `/` text-entry prompt has nothing to
+        # cancel -- its job is to clear an existing last-search
+        # highlight (same spec bullet as `/` + empty Enter).
+        rows = mk_rows()
+        idx, action = board.handle_key("ESC", rows, 1)
+        self.assertEqual(idx, 1)
+        self.assertEqual(action, {"type": "clear_search"})
+
+
+# ---------------------------------------------------------------------
+# 26. vim-style `/` search -- match highlighting
+# ---------------------------------------------------------------------
+class RenderHighlightTests(unittest.TestCase):
+    def test_highlighted_entry_uses_search_hit_style(self):
+        e = mk_match_entry(label="needle")
+        cls = {"kind": "read", "age": 5}
+        segs = board.render_entry_segs(e, cls, False, 20, 20,
+                                        highlighted=True)
+        styles = [s for _, s in segs]
+        self.assertIn("search_hit", styles)
+
+    def test_non_highlighted_entry_unaffected(self):
+        e = mk_match_entry(label="needle")
+        cls = {"kind": "read", "age": 5}
+        segs = board.render_entry_segs(e, cls, False, 20, 20)
+        styles = [s for _, s in segs]
+        self.assertNotIn("search_hit", styles)
+
+
+# ---------------------------------------------------------------------
+# 27. vim-style `/` search -- title hint
+# ---------------------------------------------------------------------
+class BuildFrameSearchHintTests(unittest.TestCase):
+    def test_hint_mentions_slash_search(self):
+        frame = board.build_frame([], 1000, False, {}, None, 0, 0,
+                                   100, 20, 3, None, [], None)
+        title_line = board.plain_text(frame["lines"][0])
+        self.assertIn("/ search", title_line)
+
+
 if __name__ == "__main__":
     unittest.main()

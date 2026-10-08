@@ -465,7 +465,8 @@ def entry_meta_text(entry):
     return "[%s]" % entry.sess_win
 
 
-def render_entry_segs(entry, cls, cursor_here, namecap, metacap):
+def render_entry_segs(entry, cls, cursor_here, namecap, metacap,
+                       highlighted=False):
     name_raw = entry.label or entry.wname
     name = clip_pad(name_raw, namecap)
     meta = clip(entry_meta_text(entry), metacap) if metacap >= 8 else ""
@@ -484,6 +485,9 @@ def render_entry_segs(entry, cls, cursor_here, namecap, metacap):
         dot_seg = ("○ ", "dim")
         icon_text, icon_style = icon_text, "dim"
         name_style = "dim"
+
+    if highlighted:
+        name_style = "search_hit"
 
     indent = ("> ", "cursor") if cursor_here else ("  ", None)
     return [indent, dot_seg, (icon_text, icon_style), ("  ", None),
@@ -522,7 +526,7 @@ _ANSI = {
     "cyan": "\033[36m", "cyan_bold": "\033[1;36m",
     "yellow_bold": "\033[1;33m", "green_bold": "\033[1;32m",
     "red_bold": "\033[1;31m", "magenta_bold": "\033[1;35m",
-    "cursor": "\033[1;33m",
+    "cursor": "\033[1;33m", "search_hit": "\033[7m",
 }
 
 
@@ -548,10 +552,13 @@ def header_geometry(width):
     return max(8, width - 26)
 
 
-def render_rows(rows, cursor_idx, namecap, metacap, hdrcap, now):
+def render_rows(rows, cursor_idx, namecap, metacap, hdrcap, now,
+                 last_search=None):
     """rows (as built by build_rows) -> (segs_per_row, row_actions), both
     aligned 1:1 with `rows`. row_actions[i] is ("header", cpath, None) or
-    ("entry", cpath, key)."""
+    ("entry", cpath, key). `last_search`, when non-empty, highlights
+    every entry row that currently matches it (group headers never
+    highlight, matching find_matches())."""
     out_segs = []
     out_actions = []
     for i, r in enumerate(rows):
@@ -561,8 +568,11 @@ def render_rows(rows, cursor_idx, namecap, metacap, hdrcap, now):
                                                  r["folded"], hdrcap, now))
             out_actions.append(("header", r["cpath"], None))
         else:
+            highlighted = bool(last_search) and entry_matches_query(
+                r["entry"], last_search)
             out_segs.append(render_entry_segs(r["entry"], r["cls"], here,
-                                                namecap, metacap))
+                                                namecap, metacap,
+                                                highlighted=highlighted))
             out_actions.append(("entry", r["cpath"], r["key"]))
     return out_segs, out_actions
 
@@ -586,6 +596,9 @@ def handle_key(key, rows, idx):
         return 0, None
     if key == "G":
         return (n - 1 if n else 0), None
+    sa = search_action_or_none(key, idx)
+    if sa is not None:
+        return sa
     if n == 0:
         if key == "a":
             return 0, {"type": "show_all"}
@@ -606,6 +619,25 @@ def handle_key(key, rows, idx):
     return idx, None
 
 
+def search_action_or_none(key, idx):
+    """'/' , 'n', 'N': the three normal-mode keys handle_key() delegates
+    to the search feature. Checked before the n==0 early-return in
+    handle_key() so they work even on an empty inbox (entering search
+    on an empty list is harmless; n/N then simply find nothing)."""
+    if key == "/":
+        return idx, {"type": "search_start"}
+    if key == "n":
+        return idx, {"type": "search_next", "forward": True}
+    if key == "N":
+        return idx, {"type": "search_next", "forward": False}
+    if key == "ESC":
+        # There is no `/` prompt to cancel in normal mode -- Esc's only
+        # job here is clearing an existing last-search highlight (the
+        # other way to clear it is `/` + Enter on an empty query).
+        return idx, {"type": "clear_search"}
+    return None
+
+
 def handle_click(y, row_actions):
     """y: absolute line index into the rendered Claude-section lines
     (already mapped through the current scroll offset by whoever built
@@ -621,6 +653,179 @@ def handle_click(y, row_actions):
     if kind == "entry":
         return {"type": "jump", "cpath": cpath, "key": key}
     return None
+
+
+# ---- search (vim-style / , n, N) ------------------------------------------
+
+def smartcase_contains(text, query):
+    """Vim smartcase substring match: case-insensitive, UNLESS `query`
+    contains an uppercase letter, in which case case-sensitive. Empty
+    `query` never matches."""
+    if not query:
+        return False
+    if query == query.lower():
+        return query.lower() in text.lower()
+    return query in text
+
+
+def entry_search_fields(entry):
+    """The text `/` search matches against for one entry: its directory
+    (raw and ~-shortened), its tmux session name (split_session_window's
+    LAST-':' rule, so a session name containing ':' or '.' is matched in
+    full), and its row-displayed name (the /rename label, falling back
+    to the window name -- the same fallback render_entry_segs uses)."""
+    sw = split_session_window(entry.sess_win)
+    sess_name = sw[0] if sw is not None else entry.sess_win
+    name = entry.label or entry.wname
+    return [entry.cpath, tilde(entry.cpath), sess_name, name]
+
+
+def entry_matches_query(entry, query):
+    return any(smartcase_contains(f, query)
+               for f in entry_search_fields(entry))
+
+
+def find_matches(rows, query):
+    """Row indices (into `rows`, as built by build_rows) of ENTRY rows
+    matching `query` -- group header rows never match on their own.
+    Empty query matches nothing."""
+    if not query:
+        return []
+    return [i for i, r in enumerate(rows)
+            if r["kind"] == "entry" and entry_matches_query(r["entry"],
+                                                               query)]
+
+
+def search_scan(full_rows, query, anchor_idx):
+    """Index into `full_rows` of the first match at or after
+    `anchor_idx`, wrapping to the top; None when nothing matches. Used
+    for incremental-while-typing positioning."""
+    matches = find_matches(full_rows, query)
+    if not matches:
+        return None
+    for i in matches:
+        if i >= anchor_idx:
+            return i
+    return matches[0]
+
+
+def search_scan_next(full_rows, query, anchor_idx, forward):
+    """Next (forward=True) / previous match STRICTLY after/before
+    `anchor_idx`, wrapping around the whole list (for n/N -- unlike
+    search_scan(), the current match itself is never re-returned).
+    Returns (match_idx_or_None, wrap), wrap one of None / "TOP" (wrapped
+    forward past the bottom) / "BOTTOM" (wrapped backward past the
+    top)."""
+    matches = find_matches(full_rows, query)
+    if not matches:
+        return None, None
+    if forward:
+        for i in matches:
+            if i > anchor_idx:
+                return i, None
+        return matches[0], "TOP"
+    for i in reversed(matches):
+        if i < anchor_idx:
+            return i, None
+    return matches[-1], "BOTTOM"
+
+
+def search_wrap_status(wrap, query):
+    if wrap == "TOP":
+        return "search hit BOTTOM, continuing at TOP"
+    if wrap == "BOTTOM":
+        return "search hit TOP, continuing at BOTTOM"
+    return None
+
+
+def search_not_found_status(query):
+    return "Pattern not found: %s" % query
+
+
+def group_by_cpath(groups, cpath):
+    for g in groups:
+        if g["cpath"] == cpath:
+            return g
+    return None
+
+
+def ensure_group_unfolded(groups, show_all, fold_ovr, cpath):
+    """If the group at `cpath` is currently folded, force it open via
+    the SAME override mechanism a manual toggle uses (toggle_group_fold)
+    -- a search match landing inside a folded group behaves exactly
+    like a user-initiated unfold, including its later expiry rule once
+    a newer event lands in that group. Returns True when it changed
+    anything."""
+    g = group_by_cpath(groups, cpath)
+    if g is None:
+        return False
+    if resolve_fold(g, show_all, fold_ovr):
+        fold_ovr[cpath] = (g["newest"], False)
+        return True
+    return False
+
+
+def search_incremental(groups, show_all, fold_ovr, query, anchor_id):
+    """Pure core of one incremental `/` keystroke: locate the first
+    match at or after `anchor_id`'s row position (wrapping to the top),
+    unfolding its group if needed, and return the new cursor id -- or
+    None when `query` is empty or nothing matches, in which case the
+    caller leaves the cursor untouched. `fold_ovr` is mutated in place,
+    same convention as toggle_group_fold(). Matching is done against
+    ALL entries regardless of fold state (build_rows with show_all=True,
+    an empty fold_ovr of its own) so a match hidden inside a folded
+    group is still found."""
+    if not query:
+        return None
+    full_rows = build_rows(groups, True, {})
+    anchor_idx = locate_cursor(full_rows, anchor_id, 0)
+    match_idx = search_scan(full_rows, query, anchor_idx)
+    if match_idx is None:
+        return None
+    match_row = full_rows[match_idx]
+    ensure_group_unfolded(groups, show_all, fold_ovr, match_row["cpath"])
+    return cursor_id_for_row(match_row)
+
+
+def search_jump(groups, show_all, fold_ovr, query, anchor_id, forward):
+    """Pure core of n/N: the next/previous match from the cursor,
+    wrapping around the whole list. Returns (new_cursor_id_or_None,
+    status_msg_or_None) -- the cursor id is None only when `query` is
+    empty or there are no matches at all (status_msg then explains
+    why); status_msg is also set, non-None, on a wrap."""
+    if not query:
+        return None, None
+    full_rows = build_rows(groups, True, {})
+    anchor_idx = locate_cursor(full_rows, anchor_id, 0)
+    match_idx, wrap = search_scan_next(full_rows, query, anchor_idx, forward)
+    if match_idx is None:
+        return None, search_not_found_status(query)
+    match_row = full_rows[match_idx]
+    ensure_group_unfolded(groups, show_all, fold_ovr, match_row["cpath"])
+    return cursor_id_for_row(match_row), search_wrap_status(wrap, query)
+
+
+def handle_search_key(key, query):
+    """Pure core of one keystroke while the `/` search prompt is open.
+    `key` is "ENTER", "ESC", "BACKSPACE", a single printable character,
+    or None (ignored -- e.g. a mouse event or window resize while
+    typing). Returns {"query": new_query, "exit": bool, "confirm":
+    bool}: `exit` means leave search-mode text entry (Enter, Esc, or
+    Backspace on an already-empty query, matching vim); `confirm` is
+    only meaningful when `exit` is True, and distinguishes Enter (keep
+    `query` as the new last-search) from Esc/empty-backspace (cancel --
+    the caller restores the pre-search cursor and fold state)."""
+    if key is None:
+        return {"query": query, "exit": False, "confirm": False}
+    if key == "ENTER":
+        return {"query": query, "exit": True, "confirm": True}
+    if key == "ESC":
+        return {"query": query, "exit": True, "confirm": False}
+    if key == "BACKSPACE":
+        if not query:
+            return {"query": query, "exit": True, "confirm": False}
+        return {"query": query[:-1], "exit": False, "confirm": False}
+    return {"query": query + key, "exit": False, "confirm": False}
 
 
 # ---- jump --------------------------------------------------------------
@@ -1041,7 +1246,7 @@ def build_bell_section(bell_rows, width):
 
 def build_frame(groups, now, show_all, fold_ovr, cursor, prev_idx, scroll,
                  width, height, interval, usage_cache, bell_rows,
-                 status_msg):
+                 status_msg, last_search=None):
     """Assemble one full frame from already-gathered data (see
     gather_refresh() for the I/O that produces `groups`/`bell_rows`/
     `usage_cache`) -- this function itself does no I/O, so a key or
@@ -1068,7 +1273,7 @@ def build_frame(groups, now, show_all, fold_ovr, cursor, prev_idx, scroll,
 
     ts = time.strftime("%H:%M:%S")
     hint = ("(every %ss · j/k move · Enter jump/fold · "
-            "click · a all · q quit)") % fmt_interval(interval)
+            "/ search · a all · q quit)") % fmt_interval(interval)
     title_text = " tmux attention board "
     if disp_width(title_text) + disp_width(ts) + 2 + disp_width(hint) > width:
         hint = "(every %ss)" % fmt_interval(interval)
@@ -1113,7 +1318,7 @@ def build_frame(groups, now, show_all, fold_ovr, cursor, prev_idx, scroll,
                                       % hidden, "dim")]]
         avail = max(avail, 1)
         row_segs, row_actions = render_rows(rows, idx, namecap, metacap,
-                                              hdrcap, now)
+                                              hdrcap, now, last_search)
         pairs = list(zip(row_segs, row_actions))
         new_scroll = follow_cursor(idx, scroll, avail, len(rows))
         view, new_scroll = windowed_rows(
@@ -1180,7 +1385,7 @@ def init_colors():
     attrs = {None: curses.A_NORMAL, "bold": curses.A_BOLD,
              "dim": curses.A_DIM, "qlabel": curses.A_DIM, "empty": curses.A_DIM,
              "low": curses.A_NORMAL, "mid": curses.A_NORMAL,
-             "high": curses.A_NORMAL}
+             "high": curses.A_NORMAL, "search_hit": curses.A_REVERSE}
     has_color = False
     try:
         has_color = curses.has_colors()
@@ -1229,6 +1434,23 @@ def draw_frame(win, frame, attrs):
             except curses.error:
                 pass
             x += disp_width(text)
+    win.refresh()
+
+
+def draw_search_prompt(win, query, attrs):
+    """Overlay the vim-style `/<query>` prompt on the terminal's BOTTOM
+    row while search mode is active -- drawn as a thin overlay on top of
+    the already-rendered frame (not part of build_frame's pure `lines`)
+    so the pure CORE stays unaware of the live-typing cursor."""
+    h, w = win.getmaxyx()
+    y = h - 1
+    text = clip("/" + query, w)
+    try:
+        win.move(y, 0)
+        win.clrtoeol()
+        win.addstr(y, 0, text, attrs.get("bold", curses.A_BOLD))
+    except curses.error:
+        pass
     win.refresh()
 
 
@@ -1321,10 +1543,17 @@ def main(argv):
     scroll = 0
     status_msg = None
     status_expire = 0.0
+    search_mode = False
+    search_query = ""
+    last_search = None
+    search_anchor = None
+    search_saved_cursor = None
+    search_saved_fold_ovr = None
 
     def stdscr_main(stdscr):
         nonlocal show_all, fold_ovr, cursor, idx, scroll, status_msg, \
-            status_expire
+            status_expire, search_mode, search_query, last_search, \
+            search_anchor, search_saved_cursor, search_saved_fold_ovr
         curses.curs_set(0)
         stdscr.nodelay(False)
         try:
@@ -1353,7 +1582,9 @@ def main(argv):
             should quit. `show_all`/`status_msg`/`status_expire` are the
             outer nonlocals; fold_ovr is mutated directly (it's a dict,
             no nonlocal needed)."""
-            nonlocal show_all, status_msg, status_expire
+            nonlocal show_all, status_msg, status_expire, cursor, \
+                search_mode, search_query, last_search, search_anchor, \
+                search_saved_cursor, search_saved_fold_ovr
             if action is None:
                 return False
             if action["type"] == "quit":
@@ -1367,6 +1598,25 @@ def main(argv):
                         folded_now = resolve_fold(g, show_all, fold_ovr)
                         toggle_group_fold(g, folded_now, fold_ovr)
                         break
+            elif action["type"] == "search_start":
+                search_mode = True
+                search_query = ""
+                search_anchor = cursor
+                search_saved_cursor = cursor
+                search_saved_fold_ovr = dict(fold_ovr)
+                status_msg = None
+            elif action["type"] == "search_next":
+                if last_search:
+                    new_cursor, msg = search_jump(
+                        frame["groups"], show_all, fold_ovr, last_search,
+                        cursor, action["forward"])
+                    if new_cursor is not None:
+                        cursor = new_cursor
+                    if msg:
+                        status_msg = msg
+                        status_expire = time.monotonic() + 4
+            elif action["type"] == "clear_search":
+                last_search = None
             elif action["type"] == "jump":
                 entry = _entry_for_key(frame["groups"], action["key"])
                 if entry is not None:
@@ -1405,11 +1655,15 @@ def main(argv):
             height, width = stdscr.getmaxyx()
             frame = build_frame(groups, now, show_all, fold_ovr, cursor,
                                  idx, scroll, width, height, interval,
-                                 usage_cache, bell_rows, status_msg)
+                                 usage_cache, bell_rows, status_msg,
+                                 search_query if search_mode else
+                                 last_search)
             cursor = frame["cursor"]
             idx = frame["idx"]
             scroll = frame["scroll"]
             draw_frame(stdscr, frame, attrs)
+            if search_mode:
+                draw_search_prompt(stdscr, search_query, attrs)
 
             stdscr.timeout(int(interval * 1000))
             ch = stdscr.getch()
@@ -1426,6 +1680,43 @@ def main(argv):
             try:
                 while ch != -1:
                     action = None
+                    if search_mode:
+                        # Search-mode text entry: every key is consumed
+                        # as typed text (or the ENTER/ESC/BACKSPACE
+                        # controls below), never as a board command --
+                        # j/k/q/a/g/G/space/o included. Mouse events are
+                        # ignored outright (swallowed via getmouse())
+                        # rather than confirm-then-handle, so a stray
+                        # click mid-query can never be misread as either
+                        # "confirm the search" or "jump to a window".
+                        if ch == curses.KEY_MOUSE:
+                            try:
+                                curses.getmouse()
+                            except curses.error:
+                                pass
+                        else:
+                            skey = _decode_search_key(ch)
+                            res = handle_search_key(skey, search_query)
+                            search_query = res["query"]
+                            if not res["exit"]:
+                                new_cursor = search_incremental(
+                                    frame["groups"], show_all, fold_ovr,
+                                    search_query, search_anchor)
+                                if new_cursor is not None:
+                                    cursor = new_cursor
+                            else:
+                                search_mode = False
+                                if res["confirm"]:
+                                    last_search = search_query or None
+                                else:
+                                    cursor = search_saved_cursor
+                                    fold_ovr.clear()
+                                    fold_ovr.update(search_saved_fold_ovr)
+                        # Any search-mode key ends the burst: the row
+                        # list, fold state or mode itself may have just
+                        # changed, and the next queued key must be
+                        # resolved against a fresh frame, not this one.
+                        break
                     if ch == curses.KEY_MOUSE:
                         try:
                             _id, mx, my, _mz, bstate = curses.getmouse()
@@ -1481,10 +1772,31 @@ def main(argv):
             return "DOWN"
         if ch == curses.KEY_RESIZE:
             return ""
+        if ch == 27:
+            return "ESC"
         try:
             return chr(ch)
         except (ValueError, OverflowError):
             return ""
+
+    def _decode_search_key(ch):
+        """Decode one keystroke while the `/` search prompt is open.
+        Returns "ENTER", "ESC", "BACKSPACE", a single printable
+        character, or None for anything else (ignored -- e.g. a resize
+        or an unmapped function key)."""
+        if ch in (curses.KEY_ENTER, 10, 13):
+            return "ENTER"
+        if ch == 27:
+            return "ESC"
+        if ch in (curses.KEY_BACKSPACE, 127, 8):
+            return "BACKSPACE"
+        if ch == curses.KEY_RESIZE:
+            return None
+        try:
+            c = chr(ch)
+        except (ValueError, OverflowError):
+            return None
+        return c if c.isprintable() else None
 
     curses.wrapper(stdscr_main)
     return 0
