@@ -1695,7 +1695,7 @@ def main(argv):
                             except curses.error:
                                 pass
                         else:
-                            skey = _decode_search_key(ch)
+                            skey = _decode_search_key(ch, stdscr)
                             res = handle_search_key(skey, search_query)
                             search_query = res["query"]
                             if not res["exit"]:
@@ -1779,7 +1779,7 @@ def main(argv):
         except (ValueError, OverflowError):
             return ""
 
-    def _decode_search_key(ch):
+    def _decode_search_key(ch, stdscr):
         """Decode one keystroke while the `/` search prompt is open.
         Returns "ENTER", "ESC", "BACKSPACE", a single printable
         character, or None for anything else (ignored -- e.g. a resize
@@ -1790,12 +1790,26 @@ def main(argv):
             return "ESC"
         if ch in (curses.KEY_BACKSPACE, 127, 8):
             return "BACKSPACE"
-        if ch == curses.KEY_RESIZE:
+        # Function keys (KEY_UP = 259, ...) are >= 256; chr() would turn
+        # them into printable junk like 'ă'.
+        if ch < 0 or ch >= 256:
             return None
-        try:
+        if ch >= 0xC0:
+            # getch() hands a UTF-8 character over one byte at a time;
+            # gather the continuation bytes so CJK queries work.
+            need = 1 if ch < 0xE0 else 2 if ch < 0xF0 else 3
+            buf = bytes([ch])
+            for _ in range(need):
+                nxt = stdscr.getch()
+                if not 0x80 <= nxt < 0xC0:
+                    return None
+                buf += bytes([nxt])
+            try:
+                c = buf.decode("utf-8")
+            except UnicodeDecodeError:
+                return None
+        else:
             c = chr(ch)
-        except (ValueError, OverflowError):
-            return None
         return c if c.isprintable() else None
 
     curses.wrapper(stdscr_main)
