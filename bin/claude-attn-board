@@ -1136,6 +1136,34 @@ def read_ratelimit_cache(path):
     return {"upd": upd_i, "fp": fp_i, "fr": fr, "wp": wp_i, "wr": wr}
 
 
+_RL_ACCT_RE = re.compile(r"\.ratelimit-([A-Za-z0-9._+-]+)")
+
+
+def read_ratelimit_caches(sdir):
+    """[(account, cache)] sorted by account, one per `.ratelimit-<acct>`
+    written by the statusline (one file per Claude account, so the default
+    and claude-alt profiles no longer overwrite each other). Falls back to
+    the legacy single `.ratelimit` as [(None, cache)] only when no
+    per-account file exists. `.ratelimit*.<pid>` temp files are skipped."""
+    out = []
+    try:
+        names = os.listdir(sdir)
+    except OSError:
+        names = []
+    for name in sorted(names):
+        m = _RL_ACCT_RE.fullmatch(name)
+        if not m or re.search(r"\.\d+$", name):
+            continue
+        cache = read_ratelimit_cache(os.path.join(sdir, name))
+        if cache is not None:
+            out.append((m.group(1), cache))
+    if not out:
+        cache = read_ratelimit_cache(os.path.join(sdir, ".ratelimit"))
+        if cache is not None:
+            out.append((None, cache))
+    return out
+
+
 def _mini_segs(label, pct, reset_ts, now):
     filled, empty, style = compute_gauge(pct)
     color = {"low": "low", "mid": "mid", "high": "high"}[style]
@@ -1150,12 +1178,20 @@ def _mini_segs(label, pct, reset_ts, now):
     return plain, segs
 
 
-def render_usage_segments(cache, width, now):
+def render_usage_segments(cache, width, now, account=None):
     """(plain, segs) for the usage line, or None when the cache is
     absent/unusable. Falls back to a compact "5h NN% 7d NN%" form when
-    the full gauge would not fit `width`."""
+    the full gauge would not fit `width`. A non-None `account` is
+    prefixed to the line so several accounts can be stacked."""
     if cache is None:
         return None
+    if account is not None:
+        prefix = "%s  " % account
+        inner = render_usage_segments(cache, width - disp_width(prefix), now)
+        if inner is None:
+            return None
+        plain = clip(prefix + inner[0], width)
+        return plain, [(prefix, "cyan")] + inner[1]
     plain_parts = []
     segs_parts = []
     if cache["fp"] is not None:
@@ -1285,10 +1321,11 @@ def build_frame(groups, now, show_all, fold_ovr, cursor, prev_idx, scroll,
         lines.append([(status_msg, "red_bold")])
         row_actions_head.append(None)
 
-    usage = render_usage_segments(usage_cache, width, now)
-    if usage is not None:
-        lines.append([(" ", None)] + usage[1])
-        row_actions_head.append(None)
+    for acct, cache in (usage_cache or []):
+        usage = render_usage_segments(cache, width - 1, now, acct)
+        if usage is not None:
+            lines.append([(" ", None)] + usage[1])
+            row_actions_head.append(None)
 
     lines.append([(clip(" " + "─" * 73, width), "dim")])
     row_actions_head.append(None)
@@ -1490,7 +1527,7 @@ def gather_refresh(sdir, focus_dir, viewed_dir, age_alert, now, run_query,
     existing_keys = {e.key for e in entries}
     bell_rows = dedupe_bells(list_bell_windows(sockets, run_query),
                               existing_keys)
-    usage_cache = read_ratelimit_cache(os.path.join(sdir, ".ratelimit"))
+    usage_cache = read_ratelimit_caches(sdir)
     return groups, bell_rows, usage_cache
 
 

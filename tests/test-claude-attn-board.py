@@ -613,6 +613,45 @@ class UsageGaugeTests(unittest.TestCase):
         self.assertIn("63%", plain)
         self.assertLessEqual(board.disp_width(plain), 15)
 
+    def test_account_label_prefixes_line(self):
+        cache = {"upd": 1000, "fp": 63, "fr": "", "wp": 28, "wr": ""}
+        plain, _ = board.render_usage_segments(cache, 80, 1000, "alice")
+        self.assertTrue(plain.startswith("alice"), plain)
+
+
+class RatelimitCachesTests(unittest.TestCase):
+    def setUp(self):
+        self.d = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.d)
+
+    def _write(self, name, line="1000\t63\t\t28\t\n"):
+        with open(os.path.join(self.d, name), "w") as f:
+            f.write(line)
+
+    def test_one_entry_per_account_sorted(self):
+        self._write(".ratelimit-bob")
+        self._write(".ratelimit-alice")
+        out = board.read_ratelimit_caches(self.d)
+        self.assertEqual([a for a, _ in out], ["alice", "bob"])
+
+    def test_legacy_file_and_pid_tempfiles_ignored_when_accounts_exist(self):
+        self._write(".ratelimit-alice")
+        self._write(".ratelimit")
+        self._write(".ratelimit.12345")
+        self._write(".ratelimit-alice.678")
+        out = board.read_ratelimit_caches(self.d)
+        self.assertEqual([a for a, _ in out], ["alice"])
+
+    def test_legacy_fallback_has_no_label(self):
+        self._write(".ratelimit")
+        out = board.read_ratelimit_caches(self.d)
+        self.assertEqual([a for a, _ in out], [None])
+
+    def test_empty_dir_gives_empty_list(self):
+        self.assertEqual(board.read_ratelimit_caches(self.d), [])
+
 
 # ---------------------------------------------------------------------
 # 16. scroll keeps cursor visible with markers
