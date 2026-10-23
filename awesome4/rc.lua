@@ -829,6 +829,18 @@ awful.rules.rules = {
     -- { rule = { class = "Firefox" },
     --   properties = { screen = 1, tag = "2" } },
 
+    -- WhisperWriter's correction popup (Mod4+q): float it, small, under the mouse, rather
+    -- than tiling it full-size. The name is WINDOW_TITLE in whisper-writer's
+    -- src/ui/correction_popup.py; change both together.
+    {
+        rule = { name = "WhisperWriter correction" },
+        properties = {
+            floating = true,
+            maximized = false,
+            titlebars_enabled = false,
+            placement = awful.placement.under_mouse + awful.placement.no_offscreen,
+        },
+    },
     -- urxvt
     {
         rule = { class = "urxvt" },
