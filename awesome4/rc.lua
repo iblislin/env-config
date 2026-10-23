@@ -585,8 +585,10 @@ globalkeys = gears.table.join(
               {description = "open a terminal", group = "launcher"}),
     awful.key({ modkey, "Control" }, "r", awesome.restart,
               {description = "reload awesome", group = "awesome"}),
-    awful.key({ modkey, "Shift"   }, "q", awesome.quit,
-              {description = "quit awesome", group = "awesome"}),
+    -- Was awesome.quit. Disabled (2026-10-23): it sits next to Mod4+q (whisper-correct), so
+    -- a stray Shift ended the whole session. Quit from the awesome menu instead.
+    awful.key({ modkey, "Shift"   }, "q", function () end,
+              {description = "no-op (was: quit awesome)", group = "awesome"}),
     awful.key({ modkey,           }, "q", function () awful.spawn(os.getenv("HOME") .. "/bin/whisper-correct") end,
               {description = "correct recent dictation (WhisperWriter)", group = "launcher"}),
 
